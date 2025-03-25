@@ -379,103 +379,262 @@ def setup_providers() -> List[str]:
     clear_screen()
     print_header("Setup Providers")
     
+    # Load configuration
+    config = load_config()
+    
+    # Check API keys
     api_keys = check_api_keys()
     
-    print("Available providers:")
+    print("Provider Status:")
     for provider, info in api_keys.items():
+        # Get config
+        provider_config = config.get("providers", {}).get(provider, {"enabled": False})
+        enabled = provider_config.get("enabled", False)
+        model = provider_config.get("default_model", "default")
+        
+        # Get status
         if info["available"]:
-            status = "✓ (API key found and valid)"
+            status = "✓ API key found and valid"
         else:
             if provider == "google" and info["missing"]:
-                status = f"✗ (Missing: {', '.join(info['missing'])})"
+                status = f"✗ Missing: {', '.join(info['missing'])}"
             elif provider == "google" and info["status"] == "invalid":
-                status = f"✗ ({info.get('error', 'Invalid configuration')})"
+                status = f"✗ {info.get('error', 'Invalid configuration')}"
             else:
-                status = "✗ (API key missing)"
-        print(f"  {provider:<10} - {status}")
+                status = "✗ API key missing"
+        
+        # Display status
+        enabled_str = "Enabled" if enabled else "Disabled"
+        print(f"  {provider:<10} - [{enabled_str}] {status} (Model: {model})")
     
-    print("\nChoose providers to use:")
-    print("1. All available providers")
-    print("2. OpenAI only")
-    print("3. Anthropic only")
-    print("4. Mock (no API keys needed)")
-    print("5. Custom selection")
+    print("\nChoose action:")
+    print("1. Use providers as configured")
+    print("2. Enable/disable specific providers")
+    print("3. Use all providers with valid API keys")
+    print("4. Use only OpenAI")
+    print("5. Use only Anthropic")
+    print("6. Use mock provider (no API keys needed)")
     
-    choice = input("\nEnter your choice (1-5): ").strip()
+    choice = input("\nEnter your choice (1-6): ").strip()
     
     available_providers = [p for p, info in api_keys.items() if info["available"]]
+    enabled_providers = [p for p, conf in config.get("providers", {}).items() 
+                        if conf.get("enabled", False)]
     
     if choice == '1':
-        if not available_providers:
-            print("\nNo valid API keys found. Defaulting to mock provider.")
-            return ["mock_provider"]
-        return available_providers
-    elif choice == '2':
-        if api_keys["openai"]["available"]:
-            return ["openai"]
-        else:
-            print("\nOpenAI API key not available. Using mock instead.")
-            return ["mock_openai"]
-    elif choice == '3':
-        if api_keys["anthropic"]["available"]:
-            return ["anthropic"]
-        else:
-            print("\nAnthropic API key not available. Using mock instead.")
-            return ["mock_anthropic"]
-    elif choice == '4':
-        return ["mock_provider"]
-    elif choice == '5':
-        providers_input = input("Enter providers (comma-separated, e.g., 'openai,anthropic'): ")
-        selected = [p.strip() for p in providers_input.split(',') if p.strip()]
-        
-        # Verify selected providers have API keys
-        missing_providers = []
-        for provider in selected:
-            if provider in api_keys and not api_keys[provider]["available"]:
-                missing_providers.append(provider)
-        
-        if missing_providers:
-            print(f"\nWarning: Missing API keys for: {', '.join(missing_providers)}")
-            use_anyway = input("Do you want to use these providers anyway? (y/n): ").strip().lower()
-            if use_anyway != 'y':
-                print("Removing providers with missing API keys.")
-                selected = [p for p in selected if p not in missing_providers]
+        # Use as configured, but validate that API keys exist
+        selected = []
+        for provider in enabled_providers:
+            if provider == "mock_provider" or provider.startswith("mock_"):
+                selected.append(provider)
+            elif provider in api_keys and api_keys[provider]["available"]:
+                selected.append(provider)
+            else:
+                print(f"\nWarning: Provider '{provider}' is enabled but has no valid API key.")
+                use_anyway = input(f"Do you want to use {provider} anyway? (y/n): ").strip().lower()
+                if use_anyway == 'y':
+                    selected.append(provider)
         
         if not selected:
             print("No valid providers selected. Defaulting to mock provider.")
-            return ["mock_provider"]
+            selected = ["mock_provider"]
+            
+            # Update config
+            if "mock_provider" in config.get("providers", {}):
+                config["providers"]["mock_provider"]["enabled"] = True
+            else:
+                if "providers" not in config:
+                    config["providers"] = {}
+                config["providers"]["mock_provider"] = {"enabled": True, "default_model": "mock-model"}
+            save_config(config)
         
         return selected
-    else:
-        print("Invalid choice. Using all available providers.")
+        
+    elif choice == '2':
+        # Enable/disable specific providers
+        for provider in sorted(config.get("providers", {}).keys()):
+            current = "enabled" if config["providers"][provider]["enabled"] else "disabled"
+            toggle = input(f"{provider} is currently {current}. Toggle? (y/n): ").strip().lower()
+            if toggle == 'y':
+                config["providers"][provider]["enabled"] = not config["providers"][provider]["enabled"]
+        
+        # Save updated config
+        save_config(config)
+        
+        # Return enabled providers
+        enabled_providers = [p for p, conf in config.get("providers", {}).items() 
+                            if conf.get("enabled", False)]
+        
+        # Validate that API keys exist
+        selected = []
+        for provider in enabled_providers:
+            if provider == "mock_provider" or provider.startswith("mock_"):
+                selected.append(provider)
+            elif provider in api_keys and api_keys[provider]["available"]:
+                selected.append(provider)
+            else:
+                print(f"\nWarning: Provider '{provider}' is enabled but has no valid API key.")
+                use_anyway = input(f"Do you want to use {provider} anyway? (y/n): ").strip().lower()
+                if use_anyway == 'y':
+                    selected.append(provider)
+        
+        if not selected:
+            print("No valid providers selected. Defaulting to mock provider.")
+            selected = ["mock_provider"]
+            
+            # Update config
+            if "mock_provider" in config.get("providers", {}):
+                config["providers"]["mock_provider"]["enabled"] = True
+            else:
+                if "providers" not in config:
+                    config["providers"] = {}
+                config["providers"]["mock_provider"] = {"enabled": True, "default_model": "mock-model"}
+            save_config(config)
+        
+        return selected
+        
+    elif choice == '3':
+        # Use all providers with valid API keys
         if not available_providers:
-            print("No valid API keys found. Defaulting to mock provider.")
-            return ["mock_provider"]
-        return available_providers
+            print("\nNo valid API keys found. Defaulting to mock provider.")
+            selected = ["mock_provider"]
+        else:
+            selected = available_providers
+            
+        # Update config to match selection
+        for provider in config.get("providers", {}):
+            config["providers"][provider]["enabled"] = (provider in selected)
+        
+        # Make sure mock_provider exists in config
+        if "mock_provider" not in config.get("providers", {}):
+            if "providers" not in config:
+                config["providers"] = {}
+            config["providers"]["mock_provider"] = {
+                "enabled": "mock_provider" in selected,
+                "default_model": "mock-model"
+            }
+            
+        save_config(config)
+        return selected
+        
+    elif choice == '4':
+        # OpenAI only
+        if api_keys["openai"]["available"]:
+            selected = ["openai"]
+        else:
+            print("\nOpenAI API key not available. Using mock instead.")
+            selected = ["mock_openai"]
+            
+        # Update config
+        for provider in config.get("providers", {}):
+            config["providers"][provider]["enabled"] = (provider in selected)
+            
+        save_config(config)
+        return selected
+        
+    elif choice == '5':
+        # Anthropic only
+        if api_keys["anthropic"]["available"]:
+            selected = ["anthropic"]
+        else:
+            print("\nAnthropic API key not available. Using mock instead.")
+            selected = ["mock_anthropic"]
+            
+        # Update config
+        for provider in config.get("providers", {}):
+            config["providers"][provider]["enabled"] = (provider in selected)
+            
+        save_config(config)
+        return selected
+        
+    elif choice == '6':
+        # Mock provider only
+        selected = ["mock_provider"]
+        
+        # Update config
+        for provider in config.get("providers", {}):
+            config["providers"][provider]["enabled"] = (provider in selected)
+            
+        # Make sure mock_provider exists in config
+        if "mock_provider" not in config.get("providers", {}):
+            if "providers" not in config:
+                config["providers"] = {}
+            config["providers"]["mock_provider"] = {"enabled": True, "default_model": "mock-model"}
+            
+        save_config(config)
+        return selected
+        
+    else:
+        print("Invalid choice. Using providers as configured.")
+        
+        # Use as configured, but validate that API keys exist
+        selected = []
+        for provider in enabled_providers:
+            if provider == "mock_provider" or provider.startswith("mock_"):
+                selected.append(provider)
+            elif provider in api_keys and api_keys[provider]["available"]:
+                selected.append(provider)
+        
+        if not selected:
+            print("No valid providers selected. Defaulting to mock provider.")
+            selected = ["mock_provider"]
+            
+            # Update config
+            if "mock_provider" in config.get("providers", {}):
+                config["providers"]["mock_provider"]["enabled"] = True
+            else:
+                if "providers" not in config:
+                    config["providers"] = {}
+                config["providers"]["mock_provider"] = {"enabled": True, "default_model": "mock-model"}
+            save_config(config)
+        
+        return selected
 
 def setup_models(providers: List[str]) -> Dict[str, str]:
     """Setup which models to use for each provider"""
     clear_screen()
     print_header("Setup Models")
     
+    # Load configuration
+    config = load_config()
     models = {}
     
-    print("Current providers:")
+    print("Current provider models:")
     for provider in providers:
-        default_model = DEFAULT_MODELS.get(provider, "default")
-        print(f"  {provider:<10} - Default model: {default_model}")
+        provider_config = config.get("providers", {}).get(provider, {})
+        default_model = provider_config.get("default_model", "default")
+        print(f"  {provider:<10} - Current model: {default_model}")
     
     customize = input("\nDo you want to customize the models? (y/n): ").strip().lower()
     
     if customize != 'y':
+        # Return models from config
+        for provider in providers:
+            provider_config = config.get("providers", {}).get(provider, {})
+            if "default_model" in provider_config:
+                models[provider] = provider_config["default_model"]
         return models
     
+    # Update models
     for provider in providers:
-        default_model = DEFAULT_MODELS.get(provider, "default")
+        provider_config = config.get("providers", {}).get(provider, {})
+        default_model = provider_config.get("default_model", "default")
+        
         model = input(f"Enter model for {provider} (default: {default_model}): ").strip()
         
         if model:
             models[provider] = model
+            
+            # Update config
+            if "providers" not in config:
+                config["providers"] = {}
+            if provider not in config["providers"]:
+                config["providers"][provider] = {}
+            
+            config["providers"][provider]["default_model"] = model
+    
+    # Save configuration
+    save_config(config)
     
     return models
 
@@ -640,6 +799,11 @@ def main(args=None):
         action="store_true",
         help="Only check setup and exit"
     )
+    parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to configuration file"
+    )
     
     parsed_args = parser.parse_args(args)
     
@@ -654,6 +818,13 @@ def main(args=None):
         check_setup()
         return 0
     
+    # Load configuration
+    config = load_config()
+    
+    # Get initially enabled providers from config
+    enabled_providers = [p for p, conf in config.get("providers", {}).items() 
+                        if conf.get("enabled", False)]
+    
     # Initialize tester
     tester = LLMTester(providers=[])
     
@@ -662,13 +833,23 @@ def main(args=None):
         clear_screen()
         print_header("LLM Tester Interactive Runner")
         
+        # Show current configuration
+        if hasattr(tester, 'providers') and tester.providers:
+            providers_str = ", ".join(tester.providers)
+            print(f"Active Providers: {providers_str}")
+        else:
+            print("No active providers configured. Use 'Setup Providers' to configure.")
+        
+        print("")  # Empty line for spacing
+        
         options = [
             ("Check Setup", "Verify environment and dependencies"),
             ("List Test Cases", "Show all available test cases"),
             ("Run Tests", "Run tests with current settings"),
             ("Run Optimized Tests", "Run tests with prompt optimization"),
             ("Setup Providers", "Choose which LLM providers to use"),
-            ("Setup Models", "Configure which models to use for each provider")
+            ("Setup Models", "Configure which models to use for each provider"),
+            ("Edit Configuration", "Edit test settings")
         ]
         
         print_menu(options)
@@ -688,14 +869,38 @@ def main(args=None):
             if not providers:
                 providers = setup_providers()
                 tester = LLMTester(providers=providers)
-            models = setup_models(providers)
+            
+            # Get models from config
+            models = {}
+            for provider in providers:
+                provider_config = config.get("providers", {}).get(provider, {})
+                if "default_model" in provider_config:
+                    models[provider] = provider_config["default_model"]
+            
+            # Ask if user wants to customize models
+            customize_models = input("\nDo you want to customize the models? (y/n): ").strip().lower()
+            if customize_models == 'y':
+                models = setup_models(providers)
+                
             run_tests(tester, providers, models)
         elif choice == 4:
             providers = getattr(tester, 'providers', [])
             if not providers:
                 providers = setup_providers()
                 tester = LLMTester(providers=providers)
-            models = setup_models(providers)
+            
+            # Get models from config
+            models = {}
+            for provider in providers:
+                provider_config = config.get("providers", {}).get(provider, {})
+                if "default_model" in provider_config:
+                    models[provider] = provider_config["default_model"]
+            
+            # Ask if user wants to customize models
+            customize_models = input("\nDo you want to customize the models? (y/n): ").strip().lower()
+            if customize_models == 'y':
+                models = setup_models(providers)
+                
             run_tests(tester, providers, models, optimize=True)
         elif choice == 5:
             providers = setup_providers()
@@ -706,6 +911,56 @@ def main(args=None):
                 providers = setup_providers()
                 tester = LLMTester(providers=providers)
             setup_models(providers)
+        elif choice == 7:
+            # Edit configuration
+            clear_screen()
+            print_header("Edit Configuration")
+            
+            config = load_config()
+            test_settings = config.get("test_settings", {})
+            
+            print("Current test settings:")
+            print(f"  Output directory: {test_settings.get('output_dir', 'test_results')}")
+            print(f"  Save optimized prompts: {test_settings.get('save_optimized_prompts', True)}")
+            
+            module_list = test_settings.get('default_modules', [])
+            modules_str = ", ".join(module_list) if module_list else "All"
+            print(f"  Default modules to test: {modules_str}")
+            
+            print("\nEdit settings:")
+            
+            # Edit output directory
+            new_output_dir = input(f"Output directory [{test_settings.get('output_dir', 'test_results')}]: ")
+            if new_output_dir:
+                if "test_settings" not in config:
+                    config["test_settings"] = {}
+                config["test_settings"]["output_dir"] = new_output_dir
+            
+            # Edit save optimized prompts
+            current_save = test_settings.get('save_optimized_prompts', True)
+            save_opt_prompts = input(f"Save optimized prompts (y/n) [{current_save and 'y' or 'n'}]: ")
+            if save_opt_prompts and save_opt_prompts.lower() in ['y', 'n']:
+                if "test_settings" not in config:
+                    config["test_settings"] = {}
+                config["test_settings"]["save_optimized_prompts"] = (save_opt_prompts.lower() == 'y')
+            
+            # Edit default modules
+            print("\nDefault modules to test:")
+            print("Enter a comma-separated list of modules to test by default.")
+            print("Leave empty to test all available modules.")
+            current_modules = ", ".join(test_settings.get('default_modules', []))
+            new_modules = input(f"Modules [{current_modules}]: ")
+            
+            if new_modules:
+                module_list = [m.strip() for m in new_modules.split(',') if m.strip()]
+                if "test_settings" not in config:
+                    config["test_settings"] = {}
+                config["test_settings"]["default_modules"] = module_list
+            
+            # Save configuration
+            save_config(config)
+            print("\nConfiguration saved.")
+            input("\nPress Enter to continue...")
     
     return 0
 
