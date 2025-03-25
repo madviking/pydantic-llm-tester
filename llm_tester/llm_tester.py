@@ -331,18 +331,26 @@ class LLMTester:
         # Calculate final percentage
         return (earned_points / total_points) * 100.0 if total_points > 0 else 0.0
     
-    def run_tests(self, model_overrides: Optional[Dict[str, str]] = None) -> Dict[str, Dict[str, Any]]:
+    def run_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
+                  modules: Optional[List[str]] = None) -> Dict[str, Dict[str, Any]]:
         """
         Run all available tests
         
         Args:
             model_overrides: Optional dictionary mapping providers to model names
+            modules: Optional list of module names to filter by
             
         Returns:
             Test results for each test and provider
         """
         test_cases = self.discover_test_cases()
         results = {}
+        
+        # Filter test cases by module if specified
+        if modules:
+            test_cases = [tc for tc in test_cases if tc['module'] in modules]
+            if not test_cases:
+                self.logger.warning(f"No test cases found for modules: {modules}")
         
         for test_case in test_cases:
             test_id = f"{test_case['module']}/{test_case['name']}"
@@ -408,22 +416,33 @@ class LLMTester:
         
         return results
     
-    def run_optimized_tests(self, model_overrides: Optional[Dict[str, str]] = None, save_optimized_prompts: bool = True) -> Dict[str, Dict[str, Any]]:
+    def run_optimized_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
+                         save_optimized_prompts: bool = True,
+                         modules: Optional[List[str]] = None) -> Dict[str, Dict[str, Any]]:
         """
         Optimize prompts based on initial results and run tests again
         
         Args:
             model_overrides: Optional dictionary mapping providers to model names
             save_optimized_prompts: Whether to save optimized prompts to files
+            modules: Optional list of module names to filter by
             
         Returns:
             Test results with optimized prompts
         """
         # First run regular tests
-        initial_results = self.run_tests(model_overrides=model_overrides)
+        initial_results = self.run_tests(model_overrides=model_overrides, modules=modules)
         
         # Optimize prompts
         test_cases = self.discover_test_cases()
+        
+        # Filter test cases by module if specified
+        if modules:
+            test_cases = [tc for tc in test_cases if tc['module'] in modules]
+            if not test_cases:
+                self.logger.warning(f"No test cases found for modules: {modules}")
+                return {}
+                
         optimized_results = {}
         
         for test_case in test_cases:

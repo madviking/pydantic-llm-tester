@@ -232,6 +232,83 @@ def list_test_cases(tester: LLMTester):
     print("\nTotal test cases: ", len(test_cases))
     input("\nPress Enter to return to the main menu...")
 
+def select_modules_to_test(tester: LLMTester) -> List[str]:
+    """
+    Allow the user to select which modules to test
+    
+    Args:
+        tester: LLMTester instance
+        
+    Returns:
+        List of selected module names
+    """
+    clear_screen()
+    print_header("Select Modules to Test")
+    
+    # Load config for default modules
+    config = load_config()
+    test_settings = config.get("test_settings", {})
+    default_modules = test_settings.get("default_modules", [])
+    
+    # Get all available modules
+    test_cases = tester.discover_test_cases()
+    available_modules = sorted(set(case['module'] for case in test_cases))
+    
+    print("Available modules:")
+    for i, module in enumerate(available_modules, 1):
+        is_default = module in default_modules
+        default_str = " (default)" if is_default else ""
+        print(f"  {i}. {module}{default_str}")
+    
+    print("\nSelect modules to test:")
+    print("1. All modules")
+    print("2. Default modules only")
+    print("3. Custom selection")
+    
+    choice = input("\nEnter your choice (1-3): ").strip()
+    
+    if choice == "1":
+        return available_modules
+    elif choice == "2":
+        if not default_modules:
+            print("\nNo default modules configured. Using all modules.")
+            return available_modules
+        return default_modules
+    elif choice == "3":
+        # Custom selection
+        selected_modules = []
+        print("\nEnter module numbers separated by commas (e.g., '1,3'), or leave empty to select all:")
+        selection = input("> ").strip()
+        
+        if not selection:
+            return available_modules
+        
+        try:
+            selected_indices = [int(idx.strip()) for idx in selection.split(",")]
+            selected_modules = [available_modules[idx-1] for idx in selected_indices 
+                              if 0 < idx <= len(available_modules)]
+            
+            if not selected_modules:
+                print("\nNo valid modules selected. Using all modules.")
+                return available_modules
+            
+            # Ask if user wants to save this as the default selection
+            save_as_default = input("\nSave this selection as default? (y/n): ").strip().lower()
+            if save_as_default == 'y':
+                if "test_settings" not in config:
+                    config["test_settings"] = {}
+                config["test_settings"]["default_modules"] = selected_modules
+                save_config(config)
+                print(f"Default modules updated: {', '.join(selected_modules)}")
+            
+            return selected_modules
+        except (ValueError, IndexError):
+            print("\nInvalid selection. Using all modules.")
+            return available_modules
+    else:
+        print("\nInvalid choice. Using all modules.")
+        return available_modules
+
 def setup_providers() -> List[str]:
     """Setup which providers to use"""
     clear_screen()
@@ -506,6 +583,9 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
     test_settings = config.get("test_settings", {})
     default_output_dir = test_settings.get("output_dir", "test_results")
     
+    # Let the user select which modules to test
+    selected_modules = select_modules_to_test(tester)
+    
     # Ask for output directory
     print("\nWhere would you like to save the test results?")
     print(f"1. Default directory ({default_output_dir})")
@@ -538,6 +618,7 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
     if models:
         for provider, model in models.items():
             print(f"Using model for {provider}: {model}")
+    print(f"Testing modules: {', '.join(selected_modules)}")
     
     # If using mock, we'll use the imported mock_get_response
     if using_mock:
@@ -565,7 +646,8 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
                 
                 results = tester.run_optimized_tests(
                     model_overrides=models,
-                    save_optimized_prompts=save_optimized_prompts
+                    save_optimized_prompts=save_optimized_prompts,
+                    modules=selected_modules
                 )
                 
                 # If prompts were saved, show the paths
@@ -575,7 +657,7 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
                         if 'optimized_prompt_path' in test_results:
                             print(f"  {test_id}: {test_results['optimized_prompt_path']}")
             else:
-                results = tester.run_tests(model_overrides=models)
+                results = tester.run_tests(model_overrides=models, modules=selected_modules)
     else:
         # Run with real providers
         print("\nSending requests to LLM providers. This may take some time...")
@@ -600,7 +682,8 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
             
             results = tester.run_optimized_tests(
                 model_overrides=models,
-                save_optimized_prompts=save_optimized_prompts
+                save_optimized_prompts=save_optimized_prompts,
+                modules=selected_modules
             )
             
             # If prompts were saved, show the paths
@@ -610,7 +693,7 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
                     if 'optimized_prompt_path' in test_results:
                         print(f"  {test_id}: {test_results['optimized_prompt_path']}")
         else:
-            results = tester.run_tests(model_overrides=models)
+            results = tester.run_tests(model_overrides=models, modules=selected_modules)
     
     print("\nTests completed successfully!")
     
