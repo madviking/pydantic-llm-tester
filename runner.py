@@ -816,6 +816,191 @@ def check_setup():
     
     input("\nPress Enter to continue...")
 
+def create_new_model():
+    """Create scaffolding for a new model"""
+    clear_screen()
+    print_header("Create New Model")
+    
+    # Get base directory
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Get model name
+    while True:
+        model_name = input("Enter name for the new model (e.g., 'product_reviews'): ").strip()
+        if not model_name:
+            print("Model name cannot be empty.")
+            continue
+            
+        # Convert to snake_case if needed
+        model_name = model_name.lower().replace(' ', '_').replace('-', '_')
+        
+        # Check if model already exists
+        model_dir = os.path.join(base_dir, "llm_tester", "models", model_name)
+        if os.path.exists(model_dir):
+            overwrite = input(f"Model '{model_name}' already exists. Overwrite? (y/n): ").strip().lower()
+            if overwrite != 'y':
+                continue
+        
+        break
+    
+    # Get model class name (PascalCase)
+    default_class_name = ''.join(word.capitalize() for word in model_name.split('_'))
+    class_name = input(f"Enter model class name (default: {default_class_name}): ").strip()
+    if not class_name:
+        class_name = default_class_name
+    
+    # Get model description
+    description = input("Enter a short description for the model: ").strip()
+    if not description:
+        description = f"Extract structured information from {model_name.replace('_', ' ')}."
+    
+    # Create directory structure
+    model_dir = os.path.join(base_dir, "llm_tester", "models", model_name)
+    os.makedirs(model_dir, exist_ok=True)
+    
+    # Create __init__.py
+    init_content = f"""\"\"\"
+{description}
+\"\"\"
+
+from .model import {class_name}
+
+__all__ = ["{class_name}"]
+"""
+    with open(os.path.join(model_dir, "__init__.py"), 'w') as f:
+        f.write(init_content)
+    
+    # Create model.py
+    model_content = f"""\"\"\"
+Model definition for {model_name}
+\"\"\"
+
+from typing import List, Optional, Dict, Any, Union
+from pydantic import BaseModel, Field
+from datetime import date, datetime
+
+
+class {class_name}(BaseModel):
+    \"\"\"
+    {description}
+    \"\"\"
+    
+    # TODO: Define your model fields here
+    id: str = Field(..., description="Unique identifier")
+    name: str = Field(..., description="Name or title")
+    description: str = Field(..., description="Detailed description")
+    
+    # Example of optional fields with different types
+    # tags: Optional[List[str]] = Field(None, description="List of tags")
+    # created_at: Optional[date] = Field(None, description="Creation date")
+    # metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
+"""
+    with open(os.path.join(model_dir, "model.py"), 'w') as f:
+        f.write(model_content)
+    
+    # Create README.md
+    readme_content = f"""# {class_name} Model
+
+{description}
+
+## Structure
+
+The model includes:
+
+- Basic identification fields (id, name)
+- Descriptive content
+
+## Example Usage
+
+```python
+from llm_tester.models.{model_name} import {class_name}
+
+# Parse data
+data = {{
+    "id": "example-id",
+    "name": "Example Name",
+    "description": "This is an example description."
+}}
+
+# Validate with model
+instance = {class_name}(**data)
+```
+
+## Test Cases
+
+Test cases should be added to `/llm_tester/tests/cases/{model_name}/` with:
+- Source files in `sources/`
+- Prompt templates in `prompts/`
+- Expected outputs in `expected/`
+"""
+    with open(os.path.join(model_dir, "README.md"), 'w') as f:
+        f.write(readme_content)
+    
+    # Create test case directories
+    test_cases_dir = os.path.join(base_dir, "llm_tester", "tests", "cases", model_name)
+    os.makedirs(os.path.join(test_cases_dir, "sources"), exist_ok=True)
+    os.makedirs(os.path.join(test_cases_dir, "prompts"), exist_ok=True)
+    os.makedirs(os.path.join(test_cases_dir, "expected"), exist_ok=True)
+    
+    # Create test case __init__.py
+    test_init_content = f"""\"\"\"
+Test cases for {model_name}
+\"\"\"
+"""
+    with open(os.path.join(test_cases_dir, "__init__.py"), 'w') as f:
+        f.write(test_init_content)
+    
+    # Create example prompt template
+    prompt_content = f"""Extract structured information from the provided {model_name.replace('_', ' ')}. Parse the text and extract all the relevant information. Return the result as a JSON object with the following structure:
+
+{{
+  "id": "Unique identifier",
+  "name": "Name or title",
+  "description": "Detailed description"
+  // Add additional fields based on your model
+}}
+
+Provide all the information you can find in the source text. If some information is not available, you can omit those fields from the response.
+"""
+    with open(os.path.join(test_cases_dir, "prompts", "example.txt"), 'w') as f:
+        f.write(prompt_content)
+    
+    # Create example source template
+    source_content = f"""EXAMPLE {model_name.upper().replace('_', ' ')}
+
+ID: example-123
+
+NAME: Example {model_name.replace('_', ' ').title()}
+
+DESCRIPTION:
+This is an example description for testing the {model_name.replace('_', ' ')} model. 
+You can replace this with actual content to extract information from.
+"""
+    with open(os.path.join(test_cases_dir, "sources", "example.txt"), 'w') as f:
+        f.write(source_content)
+    
+    # Create example expected output
+    expected_content = f"""{{
+  "id": "example-123",
+  "name": "Example {model_name.replace('_', ' ').title()}",
+  "description": "This is an example description for testing the {model_name.replace('_', ' ')} model. You can replace this with actual content to extract information from."
+}}
+"""
+    with open(os.path.join(test_cases_dir, "expected", "example.json"), 'w') as f:
+        f.write(expected_content)
+    
+    print(f"\nModel '{model_name}' created successfully!")
+    print(f"Model directory: {model_dir}")
+    print(f"Test cases directory: {test_cases_dir}")
+    print("\nTo use this model:")
+    print(f"1. Edit the model definition in {os.path.join(model_dir, 'model.py')}")
+    print(f"2. Add real test cases in {test_cases_dir}")
+    print("3. Update the model in the LLMTester class if needed")
+    
+    input("\nPress Enter to continue...")
+    
+    return model_name
+
 def main(args=None):
     """Main function for the interactive runner"""
     parser = argparse.ArgumentParser(description="Interactive LLM Tester Runner")
@@ -834,6 +1019,11 @@ def main(args=None):
         type=str,
         help="Path to configuration file"
     )
+    parser.add_argument(
+        "--create-model",
+        type=str,
+        help="Create a new model with the given name"
+    )
     
     parsed_args = parser.parse_args(args)
     
@@ -843,6 +1033,11 @@ def main(args=None):
     else:
         load_env_file()
     
+    # Create new model if requested
+    if parsed_args.create_model:
+        create_new_model()
+        return 0
+        
     # Only check setup if requested
     if parsed_args.check_only:
         check_setup()
@@ -879,7 +1074,8 @@ def main(args=None):
             ("Run Optimized Tests", "Run tests with prompt optimization"),
             ("Setup Providers", "Choose which LLM providers to use"),
             ("Setup Models", "Configure which models to use for each provider"),
-            ("Edit Configuration", "Edit test settings")
+            ("Edit Configuration", "Edit test settings"),
+            ("Create New Model", "Generate scaffolding for a new model")
         ]
         
         print_menu(options)
@@ -991,6 +1187,23 @@ def main(args=None):
             save_config(config)
             print("\nConfiguration saved.")
             input("\nPress Enter to continue...")
+        elif choice == 8:
+            # Create new model
+            new_model_name = create_new_model()
+            
+            # Ask if user wants to add the new model to default modules
+            add_to_defaults = input(f"Add {new_model_name} to default modules? (y/n): ").strip().lower()
+            if add_to_defaults == 'y':
+                config = load_config()
+                if "test_settings" not in config:
+                    config["test_settings"] = {}
+                
+                default_modules = config["test_settings"].get("default_modules", [])
+                if new_model_name not in default_modules:
+                    default_modules.append(new_model_name)
+                    config["test_settings"]["default_modules"] = default_modules
+                    save_config(config)
+                    print(f"Added {new_model_name} to default modules.")
     
     return 0
 
