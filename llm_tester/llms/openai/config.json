@@ -1,5 +1,7 @@
 {
   "name": "openai",
+  "env_key": "OPENAI_API_KEY",
+  "env_key_secret": "",
   "models": [
     {
       "name": "openai:o1",

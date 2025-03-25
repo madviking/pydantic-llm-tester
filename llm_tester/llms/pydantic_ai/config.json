@@ -1,0 +1,39 @@
+{
+  "name": "pydantic_ai",
+  "provider_type": "pydantic_ai",
+  "env_key": "OPENAI_API_KEY",
+  "env_key_secret": "",
+  "system_prompt": "Extract the requested information from the provided text accurately.",
+  "models": [
+    {
+      "name": "pydantic_ai:openai:gpt-4o",
+      "default": true,
+      "preferred": true,
+      "cost_input": 5,
+      "cost_output": 15,
+      "cost_category": "expensive",
+      "max_input_tokens": 128000,
+      "max_output_tokens": 4096
+    },
+    {
+      "name": "pydantic_ai:openai:gpt-4o-mini",
+      "default": false,
+      "preferred": true,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 128000,
+      "max_output_tokens": 4096
+    },
+    {
+      "name": "pydantic_ai:anthropic:claude-3-sonnet",
+      "default": false,
+      "preferred": true,
+      "cost_input": 3,
+      "cost_output": 15,
+      "cost_category": "standard",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 4096
+    }
+  ]
+}

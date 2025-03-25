@@ -1,0 +1,39 @@
+{
+  "name": "anthropic",
+  "provider_type": "anthropic",
+  "env_key": "ANTHROPIC_API_KEY",
+  "env_key_secret": "",
+  "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
+  "models": [
+    {
+      "name": "anthropic:claude-3-opus-20240229",
+      "default": true,
+      "preferred": true,
+      "cost_input": 15,
+      "cost_output": 75,
+      "cost_category": "expensive",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 4096
+    },
+    {
+      "name": "anthropic:claude-3-sonnet-20240229",
+      "default": false,
+      "preferred": true,
+      "cost_input": 3,
+      "cost_output": 15,
+      "cost_category": "standard",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 4096
+    },
+    {
+      "name": "anthropic:claude-3-haiku-20240307",
+      "default": false,
+      "preferred": true,
+      "cost_input": 0.25,
+      "cost_output": 1.25,
+      "cost_category": "cheap",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 4096
+    }
+  ]
+}
