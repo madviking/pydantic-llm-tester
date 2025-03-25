@@ -17,13 +17,15 @@
       "default_model": "gemini-1.5-flash"
     },
     "mock_provider": {
-      "enabled": true,
+      "enabled": false,
       "default_model": "mock-model"
     }
   },
   "test_settings": {
-    "output_dir": "test_results",
+    "output_dir": "tester",
     "save_optimized_prompts": true,
-    "default_modules": ["job_ads", "product_descriptions"]
+    "default_modules": [
+      "job_ads"
+    ]
   }
 }

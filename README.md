@@ -9,6 +9,8 @@ A Python module for testing and comparing different LLM models using PydanticAI 
 - Calculate accuracy compared to expected results
 - Optimize prompts for better performance
 - Generate detailed test reports
+- Centralized configuration management
+- Enhanced mock response system for testing without API keys
 
 ## Supported Models
 

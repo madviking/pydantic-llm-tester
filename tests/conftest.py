@@ -4,6 +4,7 @@ Pytest configuration
 
 import os
 import pytest
+import shutil
 from unittest.mock import MagicMock, patch
 
 from llm_tester import LLMTester
@@ -44,3 +45,22 @@ def mock_tester(mock_provider_manager):
 def job_ad_model():
     """Job ad model"""
     return JobAd
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_optimized_dirs():
+    """Ensure optimized prompt directories exist for tests"""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    dirs_to_create = [
+        os.path.join(base_dir, "llm_tester", "tests", "cases", "job_ads", "prompts", "optimized"),
+        os.path.join(base_dir, "llm_tester", "tests", "cases", "product_descriptions", "prompts", "optimized")
+    ]
+    
+    for directory in dirs_to_create:
+        os.makedirs(directory, exist_ok=True)
+    
+    # This runs after the test session
+    yield
+    
+    # Cleanup is optional - we'll leave the directories in place for now

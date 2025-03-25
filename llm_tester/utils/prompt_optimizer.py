@@ -4,12 +4,17 @@ Prompt optimizer for improving LLM prompts
 
 from typing import Dict, Any, List, Optional
 import json
+import logging
 
 
 class PromptOptimizer:
     """
     Optimizes prompts based on initial test results
     """
+    
+    def __init__(self):
+        """Initialize the prompt optimizer"""
+        self.logger = logging.getLogger(__name__)
     
     def optimize_prompt(
         self, 
@@ -56,7 +61,15 @@ class PromptOptimizer:
             # Create the optimized prompts directory
             prompts_dir = os.path.dirname(original_prompt_path)
             optimized_dir = os.path.join(prompts_dir, "optimized")
-            os.makedirs(optimized_dir, exist_ok=True)
+            
+            # Ensure the directory exists
+            if not os.path.exists(optimized_dir):
+                try:
+                    os.makedirs(optimized_dir, exist_ok=True)
+                except OSError as e:
+                    # If there's an error creating the directory, fall back to the parent directory
+                    self.logger.warning(f"Could not create optimized directory: {e}")
+                    optimized_dir = prompts_dir
             
             # Get the filename from the original path
             filename = os.path.basename(original_prompt_path)

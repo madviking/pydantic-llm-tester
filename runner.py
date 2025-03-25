@@ -8,7 +8,6 @@ managing test cases, and viewing results.
 
 import os
 import sys
-import json
 import argparse
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
@@ -20,67 +19,10 @@ import importlib
 sys.path.append(str(Path(__file__).parent))
 
 from llm_tester import LLMTester
-
-# Default configuration
-DEFAULT_CONFIG = {
-    "providers": {
-        "openai": {
-            "enabled": True,
-            "default_model": "gpt-4"
-        },
-        "anthropic": {
-            "enabled": True,
-            "default_model": "claude-3-opus-20240229"
-        },
-        "mistral": {
-            "enabled": True,
-            "default_model": "mistral-large-latest"
-        },
-        "google": {
-            "enabled": True,
-            "default_model": "gemini-pro"
-        },
-        "mock_provider": {
-            "enabled": True,
-            "default_model": "mock-model"
-        }
-    },
-    "test_settings": {
-        "output_dir": "test_results",
-        "save_optimized_prompts": True,
-        "default_modules": ["job_ads", "product_descriptions"]
-    }
-}
+from llm_tester.utils.config_manager import load_config, save_config, get_enabled_providers, get_test_setting, update_test_setting
 
 # Import mock responses
 from llm_tester.utils.mock_responses import mock_get_response
-
-def load_config() -> Dict[str, Any]:
-    """Load configuration from config.json"""
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
-    
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-            return config
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"Error loading config: {e}")
-            return DEFAULT_CONFIG
-    else:
-        # Create default config file
-        save_config(DEFAULT_CONFIG)
-        return DEFAULT_CONFIG
-
-def save_config(config: Dict[str, Any]) -> None:
-    """Save configuration to config.json"""
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
-    
-    try:
-        with open(config_path, 'w') as f:
-            json.dump(config, f, indent=2)
-    except IOError as e:
-        print(f"Error saving config: {e}")
 
 def clear_screen():
     """Clear the terminal screen"""

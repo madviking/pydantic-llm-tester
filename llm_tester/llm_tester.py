@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from .utils.prompt_optimizer import PromptOptimizer
 from .utils.report_generator import ReportGenerator
 from .utils.provider_manager import ProviderManager
+from .utils.config_manager import load_config, get_test_setting, get_provider_model
 
 
 class LLMTester:
@@ -153,16 +154,24 @@ class LLMTester:
             self.logger.error(f"Error loading model: {str(e)}")
             return None
     
-    def run_test(self, test_case: Dict[str, Any]) -> Dict[str, Any]:
+    def run_test(self, test_case: Dict[str, Any], model_overrides: Optional[Dict[str, str]] = None, 
+                 progress_callback: Optional[callable] = None) -> Dict[str, Any]:
         """
         Run a single test for all providers
         
         Args:
             test_case: Test case configuration
+            model_overrides: Optional dictionary mapping providers to model names
+            progress_callback: Optional callback function for reporting progress
             
         Returns:
             Test results for each provider
         """
+        test_id = f"{test_case['module']}/{test_case['name']}"
+        
+        if progress_callback:
+            progress_callback(f"Running test: {test_id}")
+        
         # Load source, prompt, and expected data
         with open(test_case['source_path'], 'r') as f:
             source_text = f.read()
@@ -179,27 +188,55 @@ class LLMTester:
         # Run test for each provider
         results = {}
         for provider in self.providers:
+            if progress_callback:
+                progress_callback(f"  Testing provider: {provider}")
+            
             try:
+                # Get model name from overrides if available
+                model_name = None
+                if model_overrides and provider in model_overrides:
+                    model_name = model_overrides[provider]
+                    
+                if progress_callback:
+                    model_info = f" with model {model_name}" if model_name else ""
+                    progress_callback(f"  Sending request to {provider}{model_info}...")
+                
                 # Get response from provider
                 response = self.provider_manager.get_response(
                     provider=provider,
                     prompt=prompt_text,
-                    source=source_text
+                    source=source_text,
+                    model_name=model_name
                 )
+                
+                if progress_callback:
+                    progress_callback(f"  Validating {provider} response...")
                 
                 # Validate response against model
                 validation_result = self._validate_response(response, model_class, expected_data)
                 
+                if progress_callback:
+                    accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
+                    progress_callback(f"  {provider} accuracy: {accuracy:.2f}%")
+                
                 results[provider] = {
                     'response': response,
-                    'validation': validation_result
+                    'validation': validation_result,
+                    'model': model_name
                 }
             except Exception as e:
                 self.logger.error(f"Error testing provider {provider}: {str(e)}")
+                if progress_callback:
+                    progress_callback(f"  Error with {provider}: {str(e)}")
+                    
                 results[provider] = {
-                    'error': str(e)
+                    'error': str(e),
+                    'model': model_name if 'model_name' in locals() else None
                 }
         
+        if progress_callback:
+            progress_callback(f"Completed test: {test_id}")
+            
         return results
     
     def _validate_response(self, response: str, model_class: Type[BaseModel], expected_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -377,91 +414,6 @@ class LLMTester:
             
         return results
     
-    def run_test(self, test_case: Dict[str, Any], model_overrides: Optional[Dict[str, str]] = None, 
-                 progress_callback: Optional[callable] = None) -> Dict[str, Any]:
-        """
-        Run a single test for all providers
-        
-        Args:
-            test_case: Test case configuration
-            model_overrides: Optional dictionary mapping providers to model names
-            progress_callback: Optional callback function for reporting progress
-            
-        Returns:
-            Test results for each provider
-        """
-        test_id = f"{test_case['module']}/{test_case['name']}"
-        
-        if progress_callback:
-            progress_callback(f"Running test: {test_id}")
-        
-        # Load source, prompt, and expected data
-        with open(test_case['source_path'], 'r') as f:
-            source_text = f.read()
-        
-        with open(test_case['prompt_path'], 'r') as f:
-            prompt_text = f.read()
-        
-        with open(test_case['expected_path'], 'r') as f:
-            expected_data = json.load(f)
-        
-        # Get model class
-        model_class = test_case['model_class']
-        
-        # Run test for each provider
-        results = {}
-        for provider in self.providers:
-            if progress_callback:
-                progress_callback(f"  Testing provider: {provider}")
-            
-            try:
-                # Get model name from overrides if available
-                model_name = None
-                if model_overrides and provider in model_overrides:
-                    model_name = model_overrides[provider]
-                    
-                if progress_callback:
-                    model_info = f" with model {model_name}" if model_name else ""
-                    progress_callback(f"  Sending request to {provider}{model_info}...")
-                
-                # Get response from provider
-                response = self.provider_manager.get_response(
-                    provider=provider,
-                    prompt=prompt_text,
-                    source=source_text,
-                    model_name=model_name
-                )
-                
-                if progress_callback:
-                    progress_callback(f"  Validating {provider} response...")
-                
-                # Validate response against model
-                validation_result = self._validate_response(response, model_class, expected_data)
-                
-                if progress_callback:
-                    accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
-                    progress_callback(f"  {provider} accuracy: {accuracy:.2f}%")
-                
-                results[provider] = {
-                    'response': response,
-                    'validation': validation_result,
-                    'model': model_name
-                }
-            except Exception as e:
-                self.logger.error(f"Error testing provider {provider}: {str(e)}")
-                if progress_callback:
-                    progress_callback(f"  Error with {provider}: {str(e)}")
-                    
-                results[provider] = {
-                    'error': str(e),
-                    'model': model_name if 'model_name' in locals() else None
-                }
-        
-        if progress_callback:
-            progress_callback(f"Completed test: {test_id}")
-            
-        return results
-    
     def run_optimized_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
                          save_optimized_prompts: bool = True,
                          modules: Optional[List[str]] = None,
@@ -550,6 +502,16 @@ class LLMTester:
                 # Use the saved optimized prompt path
                 prompts_dir = os.path.dirname(test_case['prompt_path'])
                 optimized_dir = os.path.join(prompts_dir, "optimized")
+                
+                # Ensure the directory exists
+                if not os.path.exists(optimized_dir):
+                    try:
+                        os.makedirs(optimized_dir, exist_ok=True)
+                    except OSError as e:
+                        # If there's an error creating the directory, fall back to the parent directory
+                        self.logger.warning(f"Could not create optimized directory: {e}")
+                        optimized_dir = prompts_dir
+                
                 filename = os.path.basename(test_case['prompt_path'])
                 optimized_prompt_path = os.path.join(optimized_dir, filename)
             else:
@@ -558,9 +520,10 @@ class LLMTester:
                     os.path.dirname(test_case['prompt_path']), 
                     f"{test_case['name']}_optimized.txt"
                 )
-                
-                with open(optimized_prompt_path, 'w') as f:
-                    f.write(optimized_prompt)
+            
+            # Write the optimized prompt to the file
+            with open(optimized_prompt_path, 'w') as f:
+                f.write(optimized_prompt)
             
             test_case_optimized['prompt_path'] = optimized_prompt_path
             

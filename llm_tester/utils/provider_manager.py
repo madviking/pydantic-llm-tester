@@ -8,6 +8,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 from dotenv import load_dotenv
 
+from .config_manager import get_provider_model
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent.parent.parent / '.env'
