@@ -1,0 +1,1 @@
+# Expected results for job_ads tests

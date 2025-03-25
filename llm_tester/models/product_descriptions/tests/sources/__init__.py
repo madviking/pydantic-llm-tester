@@ -1,0 +1,1 @@
+# Source texts for product_descriptions tests

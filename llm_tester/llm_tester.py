@@ -54,73 +54,128 @@ class LLMTester:
     
     def discover_test_cases(self) -> List[Dict[str, Any]]:
         """
-        Discover available test cases by scanning directories
+        Discover available test cases by scanning model directories
         
         Returns:
             List of test case configurations
         """
         test_cases = []
         
-        # Scan for modules under the cases directory
-        for module_name in os.listdir(self.cases_dir):
-            module_path = os.path.join(self.cases_dir, module_name)
-            
-            # Skip non-directories and special directories
-            if not os.path.isdir(module_path) or module_name.startswith('__'):
-                continue
-            
-            # Check for sources, prompts, and expected subdirectories
-            sources_dir = os.path.join(module_path, "sources")
-            prompts_dir = os.path.join(module_path, "prompts")
-            expected_dir = os.path.join(module_path, "expected")
-            
-            if not all(os.path.exists(d) for d in [sources_dir, prompts_dir, expected_dir]):
-                self.logger.warning(f"Module {module_name} is missing required subdirectories")
-                continue
-            
-            # Get test case base names (from source files without extension)
-            for source_file in os.listdir(sources_dir):
-                if not source_file.endswith('.txt'):
-                    continue
-                    
-                base_name = os.path.splitext(source_file)[0]
-                prompt_file = f"{base_name}.txt"
-                expected_file = f"{base_name}.json"
-                
-                if not os.path.exists(os.path.join(prompts_dir, prompt_file)):
-                    self.logger.warning(f"Missing prompt file for {module_name}/{base_name}")
-                    continue
-                    
-                if not os.path.exists(os.path.join(expected_dir, expected_file)):
-                    self.logger.warning(f"Missing expected file for {module_name}/{base_name}")
-                    continue
-                
-                # Load associated model
-                model_class = self._find_model_class(module_name, base_name)
-                if not model_class:
-                    self.logger.warning(f"Could not find model for {module_name}/{base_name}")
-                    continue
-                
-                test_case = {
-                    'module': module_name,
-                    'name': base_name,
-                    'model_class': model_class,
-                    'source_path': os.path.join(sources_dir, source_file),
-                    'prompt_path': os.path.join(prompts_dir, prompt_file),
-                    'expected_path': os.path.join(expected_dir, expected_file)
-                }
-                
-                test_cases.append(test_case)
+        # Get all modules from the models directory
+        models_dir = os.path.join(os.path.dirname(__file__), "models")
+        self.logger.info(f"Scanning models directory: {models_dir}")
         
+        # List all potential module directories
+        module_dirs = []
+        for item in os.listdir(models_dir):
+            item_path = os.path.join(models_dir, item)
+            # Skip non-directories, hidden directories, and special files
+            if not os.path.isdir(item_path) or item.startswith('__') or item.startswith('.'):
+                continue
+            module_dirs.append(item)
+            
+        self.logger.info(f"Found potential modules: {', '.join(module_dirs)}")
+        
+        # Import model classes and get test cases
+        for module_name in module_dirs:
+            self.logger.info(f"Processing module: {module_name}")
+            
+            # Get model class from module
+            model_class = self._find_model_class(module_name)
+            if not model_class:
+                self.logger.warning(f"Could not find model class for module {module_name}")
+                continue
+                
+            # Check if model class has the get_test_cases method
+            if not hasattr(model_class, 'get_test_cases'):
+                self.logger.warning(f"Model class for module {module_name} does not have get_test_cases method")
+                
+                # Fall back to legacy approach for backward compatibility
+                self.logger.info(f"Falling back to legacy test discovery for module {module_name}")
+                legacy_test_cases = self._discover_legacy_test_cases(module_name, model_class)
+                if legacy_test_cases:
+                    test_cases.extend(legacy_test_cases)
+                continue
+                
+            # Get test cases from model class
+            try:
+                module_test_cases = model_class.get_test_cases()
+                if module_test_cases:
+                    self.logger.info(f"Found {len(module_test_cases)} test cases for module {module_name}")
+                    test_cases.extend(module_test_cases)
+                else:
+                    self.logger.warning(f"No test cases found for module {module_name}")
+            except Exception as e:
+                self.logger.error(f"Error getting test cases for module {module_name}: {str(e)}")
+                
+        self.logger.info(f"Discovered {len(test_cases)} test cases across all modules")
         return test_cases
     
-    def _find_model_class(self, module_name: str, base_name: str) -> Optional[Type[BaseModel]]:
+    def _discover_legacy_test_cases(self, module_name: str, model_class: Type[BaseModel]) -> List[Dict[str, Any]]:
         """
-        Find the pydantic model class for a test case
+        Discover test cases for a module using the legacy directory structure
+        
+        Args:
+            module_name: Name of the module
+            model_class: The model class to use for validation
+            
+        Returns:
+            List of test case configurations
+        """
+        test_cases = []
+        
+        # Check if legacy structure exists
+        module_path = os.path.join(self.cases_dir, module_name)
+        if not os.path.isdir(module_path):
+            self.logger.warning(f"Legacy module directory not found: {module_path}")
+            return []
+            
+        # Check for sources, prompts, and expected subdirectories
+        sources_dir = os.path.join(module_path, "sources")
+        prompts_dir = os.path.join(module_path, "prompts")
+        expected_dir = os.path.join(module_path, "expected")
+        
+        if not all(os.path.exists(d) for d in [sources_dir, prompts_dir, expected_dir]):
+            self.logger.warning(f"Legacy module {module_name} is missing required subdirectories")
+            return []
+        
+        # Get test case base names (from source files without extension)
+        for source_file in os.listdir(sources_dir):
+            if not source_file.endswith('.txt'):
+                continue
+                
+            base_name = os.path.splitext(source_file)[0]
+            prompt_file = f"{base_name}.txt"
+            expected_file = f"{base_name}.json"
+            
+            if not os.path.exists(os.path.join(prompts_dir, prompt_file)):
+                self.logger.warning(f"Missing prompt file for {module_name}/{base_name}")
+                continue
+                
+            if not os.path.exists(os.path.join(expected_dir, expected_file)):
+                self.logger.warning(f"Missing expected file for {module_name}/{base_name}")
+                continue
+            
+            test_case = {
+                'module': module_name,
+                'name': base_name,
+                'model_class': model_class,
+                'source_path': os.path.join(sources_dir, source_file),
+                'prompt_path': os.path.join(prompts_dir, prompt_file),
+                'expected_path': os.path.join(expected_dir, expected_file)
+            }
+            
+            test_cases.append(test_case)
+            
+        self.logger.info(f"Found {len(test_cases)} legacy test cases for module {module_name}")
+        return test_cases
+    
+    def _find_model_class(self, module_name: str) -> Optional[Type[BaseModel]]:
+        """
+        Find the pydantic model class for a module
         
         Args:
             module_name: Name of the module (e.g., 'job_ads')
-            base_name: Base name of the test case (doesn't matter, we use the main model)
             
         Returns:
             Pydantic model class or None if not found
@@ -128,14 +183,16 @@ class LLMTester:
         try:
             # Try to import the module
             module_path = f"llm_tester.models.{module_name}"
+            self.logger.debug(f"Importing module: {module_path}")
             module = importlib.import_module(module_path)
             
-            # For job_ads, use the single JobAd model
-            if module_name == 'job_ads':
+            # First try to find specific model classes by name
+            # For job_ads, use the JobAd model
+            if module_name == 'job_ads' and hasattr(module, 'JobAd'):
                 return module.JobAd
                 
             # For product_descriptions, use the ProductDescription model
-            if module_name == 'product_descriptions':
+            if module_name == 'product_descriptions' and hasattr(module, 'ProductDescription'):
                 return module.ProductDescription
             
             # For other modules, try to find a main model class
@@ -146,17 +203,20 @@ class LLMTester:
                 if inspect.isclass(obj) and issubclass(obj, BaseModel):
                     # Look for the main class in the module
                     if name == module_class_name or name == f"{module_class_name}Model" or name == "Model":
+                        self.logger.debug(f"Found model class by name: {name}")
                         return obj
             
             # If no matching class found, return the first BaseModel subclass
             for name, obj in inspect.getmembers(module):
                 if inspect.isclass(obj) and issubclass(obj, BaseModel) and obj != BaseModel:
+                    self.logger.debug(f"Found first BaseModel subclass: {name}")
                     return obj
             
+            self.logger.warning(f"No model class found for module {module_name}")
             return None
             
         except (ImportError, AttributeError) as e:
-            self.logger.error(f"Error loading model: {str(e)}")
+            self.logger.error(f"Error loading model for {module_name}: {str(e)}")
             return None
     
     def run_test(self, test_case: Dict[str, Any], model_overrides: Optional[Dict[str, str]] = None, 
@@ -723,18 +783,21 @@ class LLMTester:
             
         return optimized_results
     
-    def generate_report(self, results: Dict[str, Any], optimized: bool = False) -> str:
+    def generate_report(self, results: Dict[str, Any], optimized: bool = False) -> Dict[str, str]:
         """
-        Generate a report from test results
+        Generate reports from test results
         
         Args:
             results: Test results
             optimized: Whether results are from optimized tests
             
         Returns:
-            Report text
+            Dictionary of report text by type ('main' and module-specific)
         """
-        report_text = self.report_generator.generate_report(results, optimized)
+        reports = {}
+        
+        # Generate main report
+        main_report = self.report_generator.generate_report(results, optimized)
         
         # Add cost summary to the report
         cost_summary = cost_tracker.get_run_summary(self.run_id)
@@ -751,11 +814,51 @@ class LLMTester:
                 cost_report_text += f"- {model_name}: ${model_data.get('total_cost', 0):.6f} "
                 cost_report_text += f"({model_data.get('total_tokens', 0):,} tokens, {model_data.get('test_count', 0)} tests)\n"
             
-            report_text += cost_report_text
+            main_report += cost_report_text
         
-        return report_text
+        reports['main'] = main_report
+        
+        # Generate module-specific reports
+        modules_processed = set()
+        for test_id in results:
+            module_name = test_id.split('/')[0]
+            
+            # Skip if already processed
+            if module_name in modules_processed:
+                continue
+                
+            modules_processed.add(module_name)
+            
+            # Skip test module as it's used for unit tests
+            if module_name == 'test':
+                continue
+                
+            # Get model class
+            model_class = self._find_model_class(module_name)
+            if not model_class:
+                self.logger.warning(f"Could not find model class for module {module_name}")
+                continue
+                
+            # Generate module-specific report if the model class has the method
+            if hasattr(model_class, 'save_module_report'):
+                try:
+                    module_report_path = model_class.save_module_report(results, self.run_id)
+                    self.logger.info(f"Module report for {module_name} saved to {module_report_path}")
+                    
+                    # Read the report content
+                    try:
+                        with open(module_report_path, 'r') as f:
+                            module_report = f.read()
+                            reports[module_name] = module_report
+                    except Exception as e:
+                        self.logger.error(f"Error reading module report for {module_name}: {str(e)}")
+                        
+                except Exception as e:
+                    self.logger.error(f"Error generating module report for {module_name}: {str(e)}")
+        
+        return reports
     
-    def save_cost_report(self, output_dir: Optional[str] = None) -> str:
+    def save_cost_report(self, output_dir: Optional[str] = None) -> Dict[str, str]:
         """
         Save the cost report to a file
         
@@ -763,18 +866,56 @@ class LLMTester:
             output_dir: Optional directory to save the report (defaults to test_results)
             
         Returns:
-            Path to the saved report file
+            Dictionary of paths to the saved report files
         """
         output_dir = output_dir or get_test_setting("output_dir", "test_results")
         
         # Create the output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
         
-        # Save the cost report
-        report_path = cost_tracker.save_cost_report(output_dir, self.run_id)
-        if report_path:
-            self.logger.info(f"Cost report saved to {report_path}")
+        # Save the main cost report
+        report_paths = {}
+        main_report_path = cost_tracker.save_cost_report(output_dir, self.run_id)
+        if main_report_path:
+            self.logger.info(f"Cost report saved to {main_report_path}")
+            report_paths['main'] = main_report_path
         else:
-            self.logger.warning("Failed to save cost report")
+            self.logger.warning("Failed to save main cost report")
+        
+        # Get cost data from cost tracker
+        cost_data = cost_tracker.get_run_data(self.run_id)
+        if not cost_data:
+            self.logger.warning("No cost data available to save module-specific reports")
+            return report_paths
+        
+        # For each model used, save a module-specific report
+        modules_processed = set()
+        for test_id in cost_data.get('tests', {}):
+            module_name = test_id.split('/')[0]
             
-        return report_path
+            # Skip if already processed
+            if module_name in modules_processed:
+                continue
+                
+            modules_processed.add(module_name)
+            
+            # Skip test module as it's used for unit tests
+            if module_name == 'test':
+                continue
+                
+            # Get model class
+            model_class = self._find_model_class(module_name)
+            if not model_class:
+                self.logger.warning(f"Could not find model class for module {module_name}")
+                continue
+                
+            # Save module-specific report if the model class has the method
+            if hasattr(model_class, 'save_module_cost_report'):
+                try:
+                    module_report_path = model_class.save_module_cost_report(cost_data, self.run_id)
+                    self.logger.info(f"Module cost report for {module_name} saved to {module_report_path}")
+                    report_paths[module_name] = module_report_path
+                except Exception as e:
+                    self.logger.error(f"Error saving module cost report for {module_name}: {str(e)}")
+        
+        return report_paths

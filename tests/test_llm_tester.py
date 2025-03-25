@@ -286,22 +286,30 @@ def test_optimize_prompt(mock_tester):
 
 def test_generate_report(mock_tester):
     """Test generating a report"""
-    with patch('llm_tester.utils.report_generator.ReportGenerator') as mock_generator:
+    with patch('llm_tester.utils.report_generator.ReportGenerator') as mock_generator, \
+         patch('llm_tester.utils.cost_manager.cost_tracker.get_run_summary') as mock_get_summary:
+        
+        # Create mocks
         generator_instance = MagicMock()
         mock_generator.return_value = generator_instance
         
         # Make sure generate_report returns something reasonable
         generator_instance.generate_report.return_value = "Test report"
         
+        # Mock the cost summary to return None to avoid adding cost summary info
+        mock_get_summary.return_value = None
+        
         # Replace tester's report generator with our mock
         mock_tester.report_generator = generator_instance
         
         # Generate report
         mock_results = {"test": "results"}
-        report = mock_tester.generate_report(mock_results)
+        reports = mock_tester.generate_report(mock_results)
         
         # Check that generate_report was called
         generator_instance.generate_report.assert_called_once_with(mock_results, False)
         
-        # Check the report
-        assert report == "Test report"
+        # Check the reports structure
+        assert isinstance(reports, dict)
+        assert 'main' in reports
+        assert "Test report" in reports['main']

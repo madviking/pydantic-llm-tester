@@ -16,13 +16,26 @@ def mock_provider_manager():
     """Mock provider manager"""
     # Import mock_get_response
     from llm_tester.utils.mock_responses import mock_get_response
+    from llm_tester.utils.cost_manager import UsageData
     
     with patch('llm_tester.utils.provider_manager.ProviderManager') as mock:
         manager_instance = MagicMock()
         mock.return_value = manager_instance
         
-        # Use the mock_get_response from the module
-        manager_instance.get_response.side_effect = mock_get_response
+        # Use a wrapper that returns both the response and usage data
+        def mock_response_with_usage(provider, prompt, source, model_name=None):
+            response = mock_get_response(provider, prompt, source, model_name)
+            # Create mock usage data
+            usage_data = UsageData(
+                provider=provider,
+                model=model_name or "mock-model",
+                prompt_tokens=len(prompt.split()) + len(source.split()),
+                completion_tokens=500  # Rough estimate
+            )
+            return response, usage_data
+            
+        # Use our wrapped version
+        manager_instance.get_response.side_effect = mock_response_with_usage
         yield manager_instance
 
 

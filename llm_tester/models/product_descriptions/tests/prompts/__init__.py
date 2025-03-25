@@ -1,0 +1,1 @@
+# Prompts for product_descriptions tests

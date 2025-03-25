@@ -45,7 +45,7 @@ class TestProviderManager:
         manager = ProviderManager(["mock_provider"])
         
         # Test job ad
-        response = manager.get_response(
+        response, usage_data = manager.get_response(
             provider="mock_provider",
             prompt="Extract information from this job post.",
             source="SENIOR MACHINE LEARNING ENGINEER position at DataVision Analytics"
@@ -55,8 +55,14 @@ class TestProviderManager:
         assert "SENIOR MACHINE LEARNING ENGINEER" in response
         assert "DataVision Analytics" in response
         
+        # Check usage data is returned
+        assert usage_data is not None
+        assert usage_data.provider == "mock_provider"
+        assert usage_data.prompt_tokens > 0
+        assert usage_data.completion_tokens > 0
+        
         # Test product description
-        response = manager.get_response(
+        response, usage_data = manager.get_response(
             provider="mock_provider",
             prompt="Extract information from this product description.",
             source="Wireless Earbuds X1 by TechGear"
@@ -65,6 +71,12 @@ class TestProviderManager:
         # Check response has product description content
         assert "Wireless Earbuds X1" in response
         assert "TechGear" in response
+        
+        # Check usage data again
+        assert usage_data is not None
+        assert usage_data.provider == "mock_provider"
+        assert usage_data.prompt_tokens > 0
+        assert usage_data.completion_tokens > 0
     
     @api_key_required
     def test_available_providers(self):

@@ -1,3 +1,0 @@
-"""
-Job advertisement test cases
-"""

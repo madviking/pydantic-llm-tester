@@ -1,3 +1,0 @@
-"""
-Product descriptions test cases
-"""

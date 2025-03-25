@@ -1,0 +1,1 @@
+# Prompts for job_ads tests

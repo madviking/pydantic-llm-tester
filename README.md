@@ -130,11 +130,18 @@ python -m llm_tester.cli --json --output results.json
 ## Adding New Models
 
 1. Create a new directory in `llm_tester/models/your_model_type/`
-2. Implement your Pydantic model in `model.py`
-3. Add test cases in `llm_tester/tests/cases/your_model_type/`
-   - Add source files in `sources/`
-   - Add prompts in `prompts/`
-   - Add expected outputs in `expected/`
+2. Implement your Pydantic model in `model.py` with these components:
+   - Define your model class extending BaseModel
+   - Add class variables for module configuration: MODULE_NAME, TEST_DIR, REPORT_DIR
+   - Implement the `get_test_cases()` class method
+   - Implement the `save_module_report()` and `save_module_cost_report()` class methods
+3. Create the test structure:
+   - Create `llm_tester/models/your_model_type/tests/` directory
+   - Add `sources/` for input data files
+   - Add `prompts/` for prompt templates
+   - Add `expected/` for expected output JSON
+   - Create `reports/` directory for module-specific reports
+4. Add appropriate `__init__.py` files to ensure proper imports
 
 ## License
 

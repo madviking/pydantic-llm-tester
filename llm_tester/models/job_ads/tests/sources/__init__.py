@@ -1,0 +1,1 @@
+# Source texts for job_ads tests

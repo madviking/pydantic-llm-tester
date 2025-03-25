@@ -1,0 +1,1 @@
+# Tests for job_ads module
