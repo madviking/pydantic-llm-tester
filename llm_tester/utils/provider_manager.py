@@ -4,11 +4,12 @@ Manager for LLM provider connections
 
 import os
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from dotenv import load_dotenv
 
 from .config_manager import get_provider_model
+from .cost_manager import UsageData, cost_tracker
 
 # Load environment variables from .env file
 env_path = Path(__file__).parent.parent.parent / '.env'
@@ -201,7 +202,7 @@ class ProviderManager:
         except Exception as e:
             raise Exception(f"Failed to initialize Google Vertex AI client: {str(e)}")
     
-    def get_response(self, provider: str, prompt: str, source: str, model_name: Optional[str] = None) -> str:
+    def get_response(self, provider: str, prompt: str, source: str, model_name: Optional[str] = None) -> Tuple[str, Optional[UsageData]]:
         """
         Get a response from a provider
         
@@ -212,7 +213,7 @@ class ProviderManager:
             model_name: Optional specific model name to use (if provider has multiple models)
             
         Returns:
-            Response text
+            Tuple of (response_text, usage_data)
         """
         # Check if this is a mock provider
         if provider.startswith("mock_") or provider == "mock_provider":
@@ -220,11 +221,27 @@ class ProviderManager:
             # Import here to avoid circular imports
             from .mock_responses import get_mock_response
             
+            # Create mock usage data
+            mock_model = "mock-model"
+            # Estimate token count for the mock response
+            prompt_tokens = len(prompt.split()) + len(source.split())
+            completion_tokens = 500  # Rough estimate for mock responses
+            
             # Determine which mock to use based on source content
             if "MACHINE LEARNING ENGINEER" in source or "job" in source.lower() or "software engineer" in source.lower() or "developer" in source.lower():
-                return get_mock_response("job_ads", source)
+                mock_response = get_mock_response("job_ads", source)
             else:
-                return get_mock_response("product_descriptions", source)
+                mock_response = get_mock_response("product_descriptions", source)
+            
+            # Create usage data for mock
+            usage_data = UsageData(
+                provider=provider,
+                model=mock_model,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens
+            )
+            
+            return mock_response, usage_data
         
         # Check if the provider is initialized
         if provider not in self.provider_clients:
@@ -248,7 +265,7 @@ class ProviderManager:
         else:
             raise ValueError(f"Getting responses from provider {provider} not implemented")
     
-    def _get_openai_response(self, prompt: str, model_name: Optional[str] = None) -> str:
+    def _get_openai_response(self, prompt: str, model_name: Optional[str] = None) -> Tuple[str, UsageData]:
         """
         Get a response from OpenAI
         
@@ -257,7 +274,7 @@ class ProviderManager:
             model_name: Optional model name (defaults to gpt-4)
             
         Returns:
-            Response text
+            Tuple of (response_text, usage_data)
         """
         client = self.provider_clients["openai"]
         model = model_name or "gpt-4"
@@ -269,9 +286,24 @@ class ProviderManager:
                 {"role": "user", "content": prompt}
             ]
         )
-        return response.choices[0].message.content
+        
+        # Extract and track usage information
+        usage_info = response.usage
+        usage_data = UsageData(
+            provider="openai",
+            model=model,
+            prompt_tokens=usage_info.prompt_tokens,
+            completion_tokens=usage_info.completion_tokens,
+            total_tokens=usage_info.total_tokens
+        )
+        
+        self.logger.info(f"OpenAI {model} usage: {usage_info.prompt_tokens} prompt tokens, "
+                        f"{usage_info.completion_tokens} completion tokens, "
+                        f"${usage_data.total_cost:.6f} total cost")
+        
+        return response.choices[0].message.content, usage_data
     
-    def _get_anthropic_response(self, prompt: str, model_name: Optional[str] = None) -> str:
+    def _get_anthropic_response(self, prompt: str, model_name: Optional[str] = None) -> Tuple[str, UsageData]:
         """
         Get a response from Anthropic
         
@@ -280,7 +312,7 @@ class ProviderManager:
             model_name: Optional model name (defaults to claude-3-opus)
             
         Returns:
-            Response text
+            Tuple of (response_text, usage_data)
         """
         client = self.provider_clients["anthropic"]
         model = model_name or "claude-3-opus-20240229"
@@ -293,9 +325,22 @@ class ProviderManager:
                 {"role": "user", "content": prompt}
             ]
         )
-        return response.content[0].text
+        
+        # Extract and track usage information
+        usage_data = UsageData(
+            provider="anthropic",
+            model=model,
+            prompt_tokens=response.usage.input_tokens,
+            completion_tokens=response.usage.output_tokens
+        )
+        
+        self.logger.info(f"Anthropic {model} usage: {response.usage.input_tokens} prompt tokens, "
+                        f"{response.usage.output_tokens} completion tokens, "
+                        f"${usage_data.total_cost:.6f} total cost")
+        
+        return response.content[0].text, usage_data
     
-    def _get_mistral_response(self, prompt: str, model_name: Optional[str] = None) -> str:
+    def _get_mistral_response(self, prompt: str, model_name: Optional[str] = None) -> Tuple[str, UsageData]:
         """
         Get a response from Mistral
         
@@ -304,7 +349,7 @@ class ProviderManager:
             model_name: Optional model name (defaults to mistral-large-latest)
             
         Returns:
-            Response text
+            Tuple of (response_text, usage_data)
         """
         client = self.provider_clients["mistral"]
         model = model_name or "mistral-large-latest"
@@ -316,9 +361,23 @@ class ProviderManager:
                 {"role": "user", "content": prompt}
             ]
         )
-        return response.choices[0].message.content
+        
+        # Extract and track usage information
+        usage_data = UsageData(
+            provider="mistral",
+            model=model,
+            prompt_tokens=response.usage.prompt_tokens,
+            completion_tokens=response.usage.completion_tokens,
+            total_tokens=response.usage.total_tokens
+        )
+        
+        self.logger.info(f"Mistral {model} usage: {response.usage.prompt_tokens} prompt tokens, "
+                        f"{response.usage.completion_tokens} completion tokens, "
+                        f"${usage_data.total_cost:.6f} total cost")
+        
+        return response.choices[0].message.content, usage_data
     
-    def _get_google_response(self, prompt: str, model_name: Optional[str] = None) -> str:
+    def _get_google_response(self, prompt: str, model_name: Optional[str] = None) -> Tuple[str, UsageData]:
         """
         Get a response from Google Vertex AI
         
@@ -327,7 +386,7 @@ class ProviderManager:
             model_name: Optional model name (defaults to text-bison for better compatibility)
             
         Returns:
-            Response text
+            Tuple of (response_text, usage_data)
         """
         if "google" not in self.provider_clients:
             raise ValueError("Google provider not initialized. Check API credentials and environment variables.")
@@ -362,7 +421,23 @@ class ProviderManager:
                         top_p=0.8,
                     )
                     
-                    return response.text
+                    # For Google Vertex AI, we may not get direct token counts
+                    # Estimate based on words (rough approximation)
+                    prompt_tokens = len(prompt.split()) + 10  # Add system message words
+                    completion_tokens = len(response.text.split())
+                    
+                    usage_data = UsageData(
+                        provider="google",
+                        model=model,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens
+                    )
+                    
+                    self.logger.info(f"Google {model} estimated usage: {prompt_tokens} prompt tokens, "
+                                    f"{completion_tokens} completion tokens, "
+                                    f"${usage_data.total_cost:.6f} total cost")
+                    
+                    return response.text, usage_data
                 except Exception as e:
                     # If we get an access error, use a mock response
                     if "not allowed to use Publisher Model" in str(e):
@@ -370,7 +445,17 @@ class ProviderManager:
                         # Fall back to mock response
                         is_job_ad = "job" in prompt.lower() or "engineer" in prompt.lower() or "developer" in prompt.lower()
                         from .mock_responses import get_mock_response
-                        return get_mock_response("job_ads" if is_job_ad else "product_descriptions", prompt)
+                        mock_response = get_mock_response("job_ads" if is_job_ad else "product_descriptions", prompt)
+                        
+                        # Create mock usage data
+                        usage_data = UsageData(
+                            provider="google",
+                            model=model,
+                            prompt_tokens=len(prompt.split()) + 10,
+                            completion_tokens=500  # Rough estimate
+                        )
+                        
+                        return mock_response, usage_data
                     else:
                         raise e
             else:
@@ -389,7 +474,28 @@ class ProviderManager:
                         ]
                     )
                     
-                    return response.text
+                    # Estimate token usage for Gemini models
+                    # Get any usage information if available, otherwise estimate
+                    try:
+                        prompt_tokens = response.usage_metadata.prompt_token_count
+                        completion_tokens = response.usage_metadata.candidates_token_count
+                    except (AttributeError, TypeError):
+                        # If usage data not available, estimate based on text length
+                        prompt_tokens = len(prompt.split()) + 10  # Add system message words
+                        completion_tokens = len(response.text.split())
+                    
+                    usage_data = UsageData(
+                        provider="google",
+                        model=model,
+                        prompt_tokens=prompt_tokens,
+                        completion_tokens=completion_tokens
+                    )
+                    
+                    self.logger.info(f"Google {model} usage: {prompt_tokens} prompt tokens, "
+                                    f"{completion_tokens} completion tokens, "
+                                    f"${usage_data.total_cost:.6f} total cost")
+                    
+                    return response.text, usage_data
                 except Exception as gemini_error:
                     # If permission error, use mock
                     if "not allowed to use Publisher Model" in str(gemini_error):
@@ -397,7 +503,17 @@ class ProviderManager:
                         # Fall back to mock response
                         is_job_ad = "job" in prompt.lower() or "engineer" in prompt.lower() or "developer" in prompt.lower()
                         from .mock_responses import get_mock_response
-                        return get_mock_response("job_ads" if is_job_ad else "product_descriptions", prompt)
+                        mock_response = get_mock_response("job_ads" if is_job_ad else "product_descriptions", prompt)
+                        
+                        # Create mock usage data
+                        usage_data = UsageData(
+                            provider="google",
+                            model=model,
+                            prompt_tokens=len(prompt.split()) + 10,
+                            completion_tokens=500  # Rough estimate
+                        )
+                        
+                        return mock_response, usage_data
                     else:
                         self.logger.warning(f"Failed to use Gemini model: {str(gemini_error)}. Falling back to text-bison.")
                         # Fall back to text-bison
@@ -410,6 +526,16 @@ class ProviderManager:
                 # Fall back to mock response
                 is_job_ad = "job" in prompt.lower() or "engineer" in prompt.lower() or "developer" in prompt.lower()
                 from .mock_responses import get_mock_response
-                return get_mock_response("job_ads" if is_job_ad else "product_descriptions", prompt)
+                mock_response = get_mock_response("job_ads" if is_job_ad else "product_descriptions", prompt)
+                
+                # Create mock usage data
+                usage_data = UsageData(
+                    provider="google",
+                    model=model,
+                    prompt_tokens=len(prompt.split()) + 10,
+                    completion_tokens=500  # Rough estimate
+                )
+                
+                return mock_response, usage_data
             else:
                 raise Exception(f"Failed to get response from Google Vertex AI: {str(e)}")

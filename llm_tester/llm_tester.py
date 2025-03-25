@@ -5,7 +5,7 @@ Main LLM Tester class for running tests and generating reports
 import os
 import importlib
 import json
-from typing import List, Dict, Any, Optional, Type
+from typing import List, Dict, Any, Optional, Type, Tuple
 import logging
 import inspect
 
@@ -15,6 +15,7 @@ from .utils.prompt_optimizer import PromptOptimizer
 from .utils.report_generator import ReportGenerator, DateEncoder
 from .utils.provider_manager import ProviderManager
 from .utils.config_manager import load_config, get_test_setting, get_provider_model
+from .utils.cost_manager import cost_tracker, UsageData
 
 
 class LLMTester:
@@ -39,6 +40,10 @@ class LLMTester:
         
         # Test case directories
         self.cases_dir = os.path.join(self.test_dir, "cases")
+        
+        # Initialize cost tracking
+        self.run_id = cost_tracker.start_new_run()
+        self.logger.info(f"Started new test run with ID: {self.run_id}")
         
         self._verify_directories()
     
@@ -202,7 +207,7 @@ class LLMTester:
                     progress_callback(f"  Sending request to {provider}{model_info}...")
                 
                 # Get response from provider
-                response = self.provider_manager.get_response(
+                response, usage_data = self.provider_manager.get_response(
                     provider=provider,
                     prompt=prompt_text,
                     source=source_text,
@@ -215,6 +220,18 @@ class LLMTester:
                 # Validate response against model
                 validation_result = self._validate_response(response, model_class, expected_data)
                 
+                # Record cost data
+                if usage_data:
+                    cost_tracker.add_test_result(
+                        test_id=test_id,
+                        provider=provider,
+                        model=usage_data.model,
+                        usage_data=usage_data,
+                        run_id=self.run_id
+                    )
+                    if progress_callback:
+                        progress_callback(f"  {provider} tokens: {usage_data.prompt_tokens} prompt, {usage_data.completion_tokens} completion, cost: ${usage_data.total_cost:.6f}")
+                
                 if progress_callback:
                     accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
                     progress_callback(f"  {provider} accuracy: {accuracy:.2f}%")
@@ -222,7 +239,8 @@ class LLMTester:
                 results[provider] = {
                     'response': response,
                     'validation': validation_result,
-                    'model': model_name
+                    'model': model_name,
+                    'usage': usage_data.to_dict() if usage_data else None
                 }
             except Exception as e:
                 self.logger.error(f"Error testing provider {provider}: {str(e)}")
@@ -522,8 +540,25 @@ class LLMTester:
                 progress_callback(f"Completed test: {test_id}")
                 progress_callback(f"Progress: {i}/{len(test_cases)} tests completed")
         
+        # Generate cost summary after all tests are complete
+        cost_summary = cost_tracker.get_run_summary(self.run_id)
+        
+        if progress_callback and cost_summary:
+            progress_callback(f"\nCost Summary:")
+            progress_callback(f"Total cost: ${cost_summary.get('total_cost', 0):.6f}")
+            progress_callback(f"Total tokens: {cost_summary.get('total_tokens', 0):,}")
+            progress_callback(f"Prompt tokens: {cost_summary.get('prompt_tokens', 0):,}")
+            progress_callback(f"Completion tokens: {cost_summary.get('completion_tokens', 0):,}")
+            
+            # Add model-specific costs
+            progress_callback(f"\nModel Costs:")
+            for model_name, model_data in cost_summary.get('models', {}).items():
+                progress_callback(f"- {model_name}: ${model_data.get('total_cost', 0):.6f} "
+                               f"({model_data.get('total_tokens', 0):,} tokens, {model_data.get('test_count', 0)} tests)")
+        
         if progress_callback:
-            progress_callback(f"All {len(test_cases)} tests completed successfully!")
+            progress_callback(f"\nAll {len(test_cases)} tests completed successfully!")
+            progress_callback(f"A detailed cost report can be generated with save_cost_report()")
             
         return results
     
@@ -666,8 +701,25 @@ class LLMTester:
                 progress_callback(f"  Completed optimization for {test_id}")
                 progress_callback(f"  Progress: {i}/{len(test_cases)} completed")
         
+        # Generate cost summary after all optimized tests are complete
+        cost_summary = cost_tracker.get_run_summary(self.run_id)
+        
+        if progress_callback and cost_summary:
+            progress_callback(f"\nCost Summary:")
+            progress_callback(f"Total cost: ${cost_summary.get('total_cost', 0):.6f}")
+            progress_callback(f"Total tokens: {cost_summary.get('total_tokens', 0):,}")
+            progress_callback(f"Prompt tokens: {cost_summary.get('prompt_tokens', 0):,}")
+            progress_callback(f"Completion tokens: {cost_summary.get('completion_tokens', 0):,}")
+            
+            # Add model-specific costs
+            progress_callback(f"\nModel Costs:")
+            for model_name, model_data in cost_summary.get('models', {}).items():
+                progress_callback(f"- {model_name}: ${model_data.get('total_cost', 0):.6f} "
+                               f"({model_data.get('total_tokens', 0):,} tokens, {model_data.get('test_count', 0)} tests)")
+        
         if progress_callback:
             progress_callback(f"\nAll optimizations completed successfully!")
+            progress_callback(f"A detailed cost report can be generated with save_cost_report()")
             
         return optimized_results
     
@@ -682,4 +734,47 @@ class LLMTester:
         Returns:
             Report text
         """
-        return self.report_generator.generate_report(results, optimized)
+        report_text = self.report_generator.generate_report(results, optimized)
+        
+        # Add cost summary to the report
+        cost_summary = cost_tracker.get_run_summary(self.run_id)
+        if cost_summary:
+            cost_report_text = "\n\n## Cost Summary\n"
+            cost_report_text += f"Total cost: ${cost_summary.get('total_cost', 0):.6f}\n"
+            cost_report_text += f"Total tokens: {cost_summary.get('total_tokens', 0):,}\n"
+            cost_report_text += f"Prompt tokens: {cost_summary.get('prompt_tokens', 0):,}\n"
+            cost_report_text += f"Completion tokens: {cost_summary.get('completion_tokens', 0):,}\n\n"
+            
+            # Add model-specific costs
+            cost_report_text += "### Model Costs\n"
+            for model_name, model_data in cost_summary.get('models', {}).items():
+                cost_report_text += f"- {model_name}: ${model_data.get('total_cost', 0):.6f} "
+                cost_report_text += f"({model_data.get('total_tokens', 0):,} tokens, {model_data.get('test_count', 0)} tests)\n"
+            
+            report_text += cost_report_text
+        
+        return report_text
+    
+    def save_cost_report(self, output_dir: Optional[str] = None) -> str:
+        """
+        Save the cost report to a file
+        
+        Args:
+            output_dir: Optional directory to save the report (defaults to test_results)
+            
+        Returns:
+            Path to the saved report file
+        """
+        output_dir = output_dir or get_test_setting("output_dir", "test_results")
+        
+        # Create the output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save the cost report
+        report_path = cost_tracker.save_cost_report(output_dir, self.run_id)
+        if report_path:
+            self.logger.info(f"Cost report saved to {report_path}")
+        else:
+            self.logger.warning("Failed to save cost report")
+            
+        return report_path

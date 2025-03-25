@@ -34,7 +34,6 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
-test_results/
 *.md.html
 
 # IDE files
@@ -50,3 +49,10 @@ test_results/
 *.log
 *.bak
 *.tmp
+ai_engine
+ai_engine/
+
+# results fodler
+test_results/*
+!test_results/report_example.md
+!test_results/cost_report_example.json

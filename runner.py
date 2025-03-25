@@ -21,6 +21,7 @@ sys.path.append(str(Path(__file__).parent))
 from llm_tester import LLMTester
 from llm_tester.utils.config_manager import load_config, save_config, get_enabled_providers, get_test_setting, update_test_setting
 from llm_tester.utils.provider_manager import ProviderManager
+from llm_tester.utils.cost_manager import cost_tracker
 
 # Import mock responses
 from llm_tester.utils.mock_responses import mock_get_response
@@ -702,12 +703,39 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
             else:
                 print(f"    {provider}: Results available in full report")
     
+    # Save cost report
+    cost_report_path = tester.save_cost_report(output_dir)
+    if cost_report_path:
+        print(f"\nCost report saved to {cost_report_path}")
+    
     # Ask if user wants to view the report
     view_report = input("\nDo you want to view the full report? (y/n): ").strip().lower()
     if view_report == 'y':
         clear_screen()
         print_header("Test Report")
         print(report)
+    
+    # Ask if user wants to view the cost report
+    view_cost = input("\nDo you want to view the cost summary? (y/n): ").strip().lower()
+    if view_cost == 'y':
+        clear_screen()
+        print_header("Cost Summary")
+        
+        # Get cost summary
+        cost_summary = cost_tracker.get_run_summary(tester.run_id)
+        if cost_summary:
+            print(f"Total cost: ${cost_summary.get('total_cost', 0):.6f}")
+            print(f"Total tokens: {cost_summary.get('total_tokens', 0):,}")
+            print(f"Prompt tokens: {cost_summary.get('prompt_tokens', 0):,}")
+            print(f"Completion tokens: {cost_summary.get('completion_tokens', 0):,}")
+            
+            # Add model-specific costs
+            print("\nModel Costs:")
+            for model_name, model_data in cost_summary.get('models', {}).items():
+                print(f"- {model_name}: ${model_data.get('total_cost', 0):.6f} "
+                    f"({model_data.get('total_tokens', 0):,} tokens, {model_data.get('test_count', 0)} tests)")
+        else:
+            print("No cost data available")
     
     input("\nPress Enter to return to the main menu...")
 
@@ -1068,6 +1096,11 @@ def run_with_defaults(providers=None, models=None, modules=None, optimize=False,
         f.write(report)
     
     logger.info(f"Report saved to {report_path}")
+    
+    # Save cost report
+    cost_report_path = tester.save_cost_report(output_dir)
+    if cost_report_path:
+        logger.info(f"Cost report saved to {cost_report_path}")
     
     # Print summary
     logger.info("Test Summary:")
