@@ -1,0 +1,3 @@
+Extract the key information from the provided job advertisement and format it as JSON. Include the job title, company name, location, salary range if provided, experience requirements, a list of required skills, a brief job description, and whether the job is remote or not.
+
+Respond only with the JSON object, no additional text.

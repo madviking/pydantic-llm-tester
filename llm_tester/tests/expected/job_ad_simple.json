@@ -1,0 +1,18 @@
+{
+  "title": "Software Developer - Python",
+  "company": "TechCorp Inc.",
+  "location": "San Francisco, CA",
+  "salary_range": "$110,000 - $140,000 per year",
+  "experience_required": "3+ years of professional Python development experience",
+  "skills": [
+    "Python",
+    "SQL",
+    "database design",
+    "Flask or Django",
+    "cloud platforms (AWS, GCP, or Azure)",
+    "RESTful API design",
+    "communication skills"
+  ],
+  "description": "We are seeking an experienced Python developer to help build and maintain our cloud-based applications.",
+  "remote": false
+}

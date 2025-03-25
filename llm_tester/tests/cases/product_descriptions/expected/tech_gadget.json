@@ -1,0 +1,118 @@
+{
+  "id": "TX15-2025-PRO",
+  "name": "UltraBook Pro X15 Laptop (2025 Model)",
+  "brand": "TechVantage Electronics",
+  "category": "Laptops",
+  "subcategory": "Premium Laptops",
+  "price": {
+    "amount": 1699.99,
+    "currency": "USD",
+    "discount_percentage": 10.0,
+    "original_amount": 1899.99
+  },
+  "description": "The UltraBook Pro X15 represents the pinnacle of portable computing technology. With its stunning 15.6-inch 4K OLED display, you'll enjoy vibrant colors and perfect blacks for an immersive visual experience. Powered by the latest 13th Gen Intel Core i9 processor and NVIDIA GeForce RTX 4070 graphics, this laptop handles everything from complex data analysis to advanced 3D rendering with ease. The sleek aluminum unibody design is just 0.67 inches thin and weighs only 3.8 pounds, making it incredibly portable without sacrificing performance. The edge-to-edge keyboard features per-key RGB lighting and a generous glass trackpad for precise control. With up to 32GB of ultra-fast DDR5 memory and a lightning-quick 2TB NVMe SSD, you'll never be slowed down by your hardware. The innovative cooling system with dual fans and heat pipes ensures optimal performance even under heavy workloads.",
+  "features": [
+    "15.6\" 4K OLED Display (3840x2160) with 100% DCI-P3 color gamut",
+    "Intel Core i9-13900H processor (14 cores, up to 5.4GHz)",
+    "NVIDIA GeForce RTX 4070 with 8GB GDDR6",
+    "32GB DDR5-5200MHz RAM",
+    "2TB PCIe Gen4 NVMe SSD",
+    "Windows 11 Pro pre-installed",
+    "Thunderbolt 4, USB-C, HDMI 2.1, and SD card reader",
+    "Backlit RGB keyboard with 1.5mm key travel",
+    "1080p webcam with IR for Windows Hello",
+    "Wi-Fi 6E and Bluetooth 5.3",
+    "99.6Whr battery with up to 10 hours of usage"
+  ],
+  "specifications": [
+    {
+      "name": "Processor",
+      "value": "Intel Core i9-13900H (14 cores: 6 performance + 8 efficiency)"
+    },
+    {
+      "name": "Graphics",
+      "value": "NVIDIA GeForce RTX 4070 with 8GB GDDR6"
+    },
+    {
+      "name": "Memory",
+      "value": "32GB DDR5-5200MHz (soldered)"
+    },
+    {
+      "name": "Storage",
+      "value": "2TB PCIe Gen4 NVMe SSD"
+    },
+    {
+      "name": "Display",
+      "value": "15.6\" 4K OLED (3840x2160), 400 nits, 100% DCI-P3"
+    },
+    {
+      "name": "Battery",
+      "value": "99.6Whr Li-Polymer"
+    },
+    {
+      "name": "Webcam",
+      "value": "1080p with IR sensor"
+    },
+    {
+      "name": "Audio",
+      "value": "Quad speakers with Dolby Atmos"
+    },
+    {
+      "name": "Connectivity",
+      "value": "Wi-Fi 6E (802.11ax), Bluetooth 5.3"
+    },
+    {
+      "name": "Ports",
+      "value": "2x Thunderbolt 4, 2x USB-C, 1x HDMI 2.1, 1x SD card reader, 1x 3.5mm audio jack"
+    },
+    {
+      "name": "Operating System",
+      "value": "Windows 11 Pro"
+    }
+  ],
+  "dimensions": {
+    "length": 13.6,
+    "width": 9.3,
+    "height": 0.67,
+    "unit": "inches"
+  },
+  "weight": {
+    "value": 3.8,
+    "unit": "pounds"
+  },
+  "materials": [
+    "CNC-milled aluminum unibody",
+    "Corning Gorilla Glass display cover",
+    "Carbon fiber composite keyboard deck"
+  ],
+  "colors": [
+    "Midnight Black",
+    "Platinum Silver",
+    "Cobalt Blue"
+  ],
+  "images": [
+    "https://techvantage.com/images/ultrabook-pro-x15-front.jpg",
+    "https://techvantage.com/images/ultrabook-pro-x15-angle.jpg",
+    "https://techvantage.com/images/ultrabook-pro-x15-side.jpg",
+    "https://techvantage.com/images/ultrabook-pro-x15-keyboard.jpg",
+    "https://techvantage.com/images/ultrabook-pro-x15-ports.jpg"
+  ],
+  "availability": "In Stock",
+  "shipping_info": {
+    "ships_within": "1-2 business days",
+    "shipping_type": "Free expedited shipping (2-3 days)"
+  },
+  "warranty": "2-year limited hardware warranty",
+  "return_policy": "30-day satisfaction guarantee",
+  "reviews": {
+    "rating": 4.8,
+    "count": 1246
+  },
+  "release_date": "2025-03-15",
+  "is_bestseller": true,
+  "related_products": [
+    "TX15-DOCK",
+    "TX-PRO-BAG",
+    "TX-SLEEVE-15"
+  ]
+}

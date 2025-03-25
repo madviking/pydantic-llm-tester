@@ -1,0 +1,82 @@
+FULL STACK DEVELOPER
+
+TechInnovate Solutions
+Web Development Team
+Posted on: February 10, 2025
+
+Location: Austin, Texas, United States
+
+ABOUT THE ROLE:
+TechInnovate Solutions is looking for a talented Full Stack Developer to join our Web Development Team. You will be responsible for developing and maintaining web applications, working on both client-side and server-side components.
+
+SALARY AND EMPLOYMENT TYPE:
+- Full-time position
+- Salary range: $95,000 - $120,000 annually, depending on experience
+- Benefits package included
+- Performance bonuses available
+
+EXPERIENCE REQUIREMENTS:
+- 3+ years of experience in full stack web development
+- Mid-level expertise in JavaScript/TypeScript development
+- Experience with modern web frameworks
+
+REQUIRED SKILLS:
+- Strong proficiency in JavaScript/TypeScript
+- Experience with React or Vue.js
+- Node.js and Express
+- RESTful API design and development
+- SQL and NoSQL databases (PostgreSQL, MongoDB)
+- Git version control
+- HTML/CSS
+
+PREFERRED SKILLS:
+- Experience with GraphQL
+- Knowledge of AWS or Azure cloud services
+- Docker and containerization
+- CI/CD pipelines
+- Testing frameworks (Jest, Mocha)
+- Agile development methodologies
+
+EDUCATION:
+- Bachelor's degree in Computer Science or related field
+- Equivalent practical experience will be considered
+
+KEY RESPONSIBILITIES:
+- Develop and maintain web applications
+- Write clean, maintainable, and efficient code
+- Collaborate with UX/UI designers
+- Implement responsive design
+- Optimize applications for performance
+- Debug and troubleshoot issues
+- Participate in code reviews
+- Stay updated with emerging technologies
+
+DETAILED JOB DESCRIPTION:
+As a Full Stack Developer at TechInnovate Solutions, you will work in a collaborative environment to build and maintain web applications for our clients. You will be involved in all stages of the development lifecycle, from planning and design to testing and deployment. We value clean code, innovation, and continuous learning. Our tech stack includes React, Node.js, and PostgreSQL, but we're always open to adopting new technologies that improve our development process.
+
+BENEFITS:
+- Comprehensive health insurance
+  Includes medical, dental, and vision coverage
+- 401(k) retirement plan
+  With 4% company match
+- Flexible work schedule
+  Core hours with flexibility
+- Professional development
+  Conference attendance and learning stipend
+- Generous PTO
+  3 weeks vacation plus holidays
+
+APPLICATION DEADLINE:
+March 15, 2025
+
+CONTACT INFORMATION:
+HR Department
+recruiting@techinnovatesolutions.com
+https://careers.techinnovatesolutions.com/full-stack
+Phone: (512) 555-7890
+
+REMOTE WORK POLICY:
+This position offers a hybrid work arrangement with 2-3 days in our Austin office and the remainder remote.
+
+TRAVEL REQUIREMENTS:
+Minimal travel required (less than 5%) for occasional team or client meetings.

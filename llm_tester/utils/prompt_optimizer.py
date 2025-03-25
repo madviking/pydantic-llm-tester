@@ -1,0 +1,247 @@
+"""
+Prompt optimizer for improving LLM prompts
+"""
+
+from typing import Dict, Any, List, Optional
+import json
+
+
+class PromptOptimizer:
+    """
+    Optimizes prompts based on initial test results
+    """
+    
+    def optimize_prompt(
+        self, 
+        original_prompt: str, 
+        source: str, 
+        model_class: Any, 
+        expected_data: Dict[str, Any],
+        initial_results: Dict[str, Any]
+    ) -> str:
+        """
+        Optimize a prompt based on initial results
+        
+        Args:
+            original_prompt: Original prompt text
+            source: Source text
+            model_class: Pydantic model class
+            expected_data: Expected data
+            initial_results: Initial test results
+            
+        Returns:
+            Optimized prompt text
+        """
+        # Analyze initial results to identify problems
+        problems = self._analyze_results(initial_results, expected_data)
+        
+        # Get model schema
+        model_schema = model_class.schema()
+        
+        # Create optimized prompt
+        optimized_prompt = self._create_optimized_prompt(
+            original_prompt=original_prompt,
+            model_schema=model_schema,
+            problems=problems
+        )
+        
+        return optimized_prompt
+    
+    def _analyze_results(
+        self, 
+        results: Dict[str, Any], 
+        expected_data: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Analyze results to identify problems
+        
+        Args:
+            results: Initial test results
+            expected_data: Expected data
+            
+        Returns:
+            List of identified problems
+        """
+        problems = []
+        
+        for provider, provider_results in results.items():
+            if 'error' in provider_results:
+                # Provider had an error
+                problems.append({
+                    'type': 'provider_error',
+                    'provider': provider,
+                    'error': provider_results['error']
+                })
+                continue
+            
+            validation = provider_results.get('validation', {})
+            
+            if not validation.get('success', False):
+                # Validation failed
+                problems.append({
+                    'type': 'validation_error',
+                    'provider': provider,
+                    'error': validation.get('error', 'Unknown validation error')
+                })
+                continue
+            
+            # Check accuracy
+            accuracy = validation.get('accuracy', 0.0)
+            
+            if accuracy < 100.0:
+                # Not fully accurate
+                validated_data = validation.get('validated_data', {})
+                
+                # Find specific fields with problems
+                field_problems = self._identify_field_problems(validated_data, expected_data)
+                
+                problems.append({
+                    'type': 'accuracy_issue',
+                    'provider': provider,
+                    'accuracy': accuracy,
+                    'field_problems': field_problems
+                })
+        
+        return problems
+    
+    def _identify_field_problems(
+        self, 
+        actual: Dict[str, Any], 
+        expected: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Identify specific field problems
+        
+        Args:
+            actual: Actual data
+            expected: Expected data
+            
+        Returns:
+            List of field problems
+        """
+        field_problems = []
+        
+        for key, expected_value in expected.items():
+            if key not in actual:
+                # Missing field
+                field_problems.append({
+                    'field': key,
+                    'type': 'missing_field',
+                    'expected': expected_value
+                })
+            else:
+                actual_value = actual[key]
+                
+                if isinstance(expected_value, dict) and isinstance(actual_value, dict):
+                    # Recursively check nested fields
+                    nested_problems = self._identify_field_problems(actual_value, expected_value)
+                    
+                    for problem in nested_problems:
+                        problem['field'] = f"{key}.{problem['field']}"
+                        field_problems.append(problem)
+                elif isinstance(expected_value, list) and isinstance(actual_value, list):
+                    # Check lists
+                    if len(expected_value) != len(actual_value):
+                        field_problems.append({
+                            'field': key,
+                            'type': 'list_length_mismatch',
+                            'expected_length': len(expected_value),
+                            'actual_length': len(actual_value)
+                        })
+                    
+                    for i, (expected_item, actual_item) in enumerate(zip(expected_value, actual_value)):
+                        if expected_item != actual_item:
+                            field_problems.append({
+                                'field': f"{key}[{i}]",
+                                'type': 'value_mismatch',
+                                'expected': expected_item,
+                                'actual': actual_item
+                            })
+                elif expected_value != actual_value:
+                    # Simple value mismatch
+                    field_problems.append({
+                        'field': key,
+                        'type': 'value_mismatch',
+                        'expected': expected_value,
+                        'actual': actual_value
+                    })
+        
+        # Check for extra fields
+        for key in actual:
+            if key not in expected:
+                field_problems.append({
+                    'field': key,
+                    'type': 'unexpected_field',
+                    'value': actual[key]
+                })
+        
+        return field_problems
+    
+    def _create_optimized_prompt(
+        self, 
+        original_prompt: str, 
+        model_schema: Dict[str, Any],
+        problems: List[Dict[str, Any]]
+    ) -> str:
+        """
+        Create an optimized prompt based on problems
+        
+        Args:
+            original_prompt: Original prompt text
+            model_schema: Pydantic model schema
+            problems: Identified problems
+            
+        Returns:
+            Optimized prompt text
+        """
+        # Start with the original prompt
+        optimized_prompt = original_prompt
+        
+        # Add clarifications based on problems
+        clarifications = []
+        
+        # Check for validation errors
+        validation_errors = [p for p in problems if p['type'] == 'validation_error']
+        if validation_errors:
+            clarifications.append("IMPORTANT: Your response must be valid JSON that matches the required schema.")
+        
+        # Check for accuracy issues
+        accuracy_issues = [p for p in problems if p['type'] == 'accuracy_issue']
+        
+        if accuracy_issues:
+            # Collect all field problems
+            all_field_problems = []
+            for issue in accuracy_issues:
+                all_field_problems.extend(issue.get('field_problems', []))
+            
+            # Group by field
+            field_to_problems = {}
+            for problem in all_field_problems:
+                field = problem['field']
+                if field not in field_to_problems:
+                    field_to_problems[field] = []
+                field_to_problems[field].append(problem)
+            
+            # Add clarifications for problematic fields
+            for field, field_problems in field_to_problems.items():
+                problem_types = set(p['type'] for p in field_problems)
+                
+                if 'missing_field' in problem_types:
+                    clarifications.append(f"The field '{field}' must be included in your response.")
+                elif 'value_mismatch' in problem_types:
+                    clarifications.append(f"Pay special attention to the value of '{field}' to ensure accuracy.")
+                elif 'list_length_mismatch' in problem_types:
+                    clarifications.append(f"Ensure you extract all items for the list '{field}'.")
+        
+        # Add model schema clarification
+        schema_str = json.dumps(model_schema, indent=2)
+        
+        # Combine clarifications with the original prompt
+        if clarifications:
+            clarifications_text = "\n".join(clarifications)
+            optimized_prompt = f"{original_prompt}\n\nADDITIONAL INSTRUCTIONS:\n{clarifications_text}\n\nYour response MUST conform to this JSON schema:\n```json\n{schema_str}\n```"
+        else:
+            # If no specific problems, still add the schema for clarity
+            optimized_prompt = f"{original_prompt}\n\nYour response MUST conform to this JSON schema:\n```json\n{schema_str}\n```"
+        
+        return optimized_prompt

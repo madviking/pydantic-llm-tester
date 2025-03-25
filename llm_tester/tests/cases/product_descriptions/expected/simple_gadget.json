@@ -1,0 +1,90 @@
+{
+  "id": "WE-X1-BLK",
+  "name": "Wireless Earbuds X1",
+  "brand": "TechGear",
+  "category": "Audio Accessories",
+  "price": {
+    "amount": 79.99,
+    "currency": "USD",
+    "discount_percentage": 20.0,
+    "original_amount": 99.99
+  },
+  "description": "Experience true wireless freedom with our X1 Wireless Earbuds. These compact, lightweight earbuds deliver premium sound quality with deep bass and crystal-clear highs. The ergonomic design ensures a comfortable fit for extended listening sessions.",
+  "features": [
+    "True wireless design",
+    "Bluetooth 5.2 connectivity",
+    "8-hour battery life (30 hours with charging case)",
+    "Active noise cancellation",
+    "Touch controls",
+    "IPX7 waterproof rating",
+    "Built-in microphones for calls",
+    "Voice assistant compatible"
+  ],
+  "specifications": [
+    {
+      "name": "Driver Size",
+      "value": "10",
+      "unit": "mm"
+    },
+    {
+      "name": "Frequency Response",
+      "value": "20Hz-20KHz"
+    },
+    {
+      "name": "Battery Capacity",
+      "value": "55mAh (earbuds), 500mAh (case)"
+    },
+    {
+      "name": "Charging Time",
+      "value": "1.5",
+      "unit": "hours"
+    },
+    {
+      "name": "Bluetooth Range",
+      "value": "10",
+      "unit": "meters"
+    },
+    {
+      "name": "Weight",
+      "value": "5.6",
+      "unit": "g"
+    }
+  ],
+  "dimensions": {
+    "length": 2.1,
+    "width": 1.8,
+    "height": 2.5,
+    "unit": "cm"
+  },
+  "weight": {
+    "value": 5.6,
+    "unit": "g"
+  },
+  "colors": [
+    "Midnight Black",
+    "Arctic White",
+    "Navy Blue"
+  ],
+  "images": [
+    "https://techgear.com/images/wireless-earbuds-x1-black.jpg",
+    "https://techgear.com/images/wireless-earbuds-x1-case.jpg",
+    "https://techgear.com/images/wireless-earbuds-x1-fit.jpg"
+  ],
+  "shipping_info": {
+    "ships_within": "1 business day",
+    "shipping_type": "Free standard shipping"
+  },
+  "warranty": "1-year limited warranty",
+  "return_policy": "30-day money-back guarantee",
+  "reviews": {
+    "rating": 4.6,
+    "count": 352
+  },
+  "release_date": "2025-01-15",
+  "is_bestseller": true,
+  "related_products": [
+    "WE-X1-TIPS",
+    "WE-X1-CASE",
+    "BT-SPK-10"
+  ]
+}

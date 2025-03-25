@@ -1,0 +1,74 @@
+Extract structured information from the provided product description. Parse the text and extract all the relevant information about the product. Return the result as a JSON object with the following structure:
+
+{
+  "id": "Product identifier",
+  "name": "Product name",
+  "brand": "Brand name",
+  "category": "Product category",
+  "subcategory": "Product subcategory (if available)",
+  "price": {
+    "amount": 0.0,
+    "currency": "USD",
+    "discount_percentage": 0.0,
+    "original_amount": 0.0
+  },
+  "description": "Detailed product description",
+  "features": [
+    "Feature 1",
+    "Feature 2",
+    ...
+  ],
+  "specifications": [
+    {
+      "name": "Spec name",
+      "value": "Spec value",
+      "unit": "Unit (if applicable)"
+    },
+    ...
+  ],
+  "dimensions": {
+    "length": 0.0,
+    "width": 0.0,
+    "height": 0.0,
+    "unit": "units"
+  },
+  "weight": {
+    "value": 0.0,
+    "unit": "units"
+  },
+  "materials": [
+    "Material 1",
+    "Material 2",
+    ...
+  ],
+  "colors": [
+    "Color 1",
+    "Color 2",
+    ...
+  ],
+  "images": [
+    "URL 1",
+    "URL 2",
+    ...
+  ],
+  "availability": "Availability status",
+  "shipping_info": {
+    "ships_within": "Shipping timeframe",
+    "shipping_type": "Type of shipping"
+  },
+  "warranty": "Warranty information",
+  "return_policy": "Return policy details",
+  "reviews": {
+    "rating": 0.0,
+    "count": 0
+  },
+  "release_date": "YYYY-MM-DD",
+  "is_bestseller": true/false,
+  "related_products": [
+    "Related product ID 1",
+    "Related product ID 2",
+    ...
+  ]
+}
+
+Provide all the information you can find in the source text. If some information is not available, you can omit those fields from the response.

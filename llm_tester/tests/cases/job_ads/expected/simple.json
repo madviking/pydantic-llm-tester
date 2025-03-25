@@ -1,0 +1,87 @@
+{
+  "title": "FULL STACK DEVELOPER",
+  "company": "TechInnovate Solutions",
+  "department": "Web Development Team",
+  "location": {
+    "city": "Austin",
+    "state": "Texas",
+    "country": "United States"
+  },
+  "salary": {
+    "range": "$95,000 - $120,000",
+    "currency": "USD",
+    "period": "annually"
+  },
+  "employment_type": "Full-time",
+  "experience": {
+    "years": "3+ years",
+    "level": "Mid-level"
+  },
+  "required_skills": [
+    "JavaScript/TypeScript",
+    "React or Vue.js",
+    "Node.js and Express",
+    "RESTful API design and development",
+    "SQL and NoSQL databases (PostgreSQL, MongoDB)",
+    "Git version control",
+    "HTML/CSS"
+  ],
+  "preferred_skills": [
+    "GraphQL",
+    "AWS or Azure cloud services",
+    "Docker and containerization",
+    "CI/CD pipelines",
+    "Testing frameworks (Jest, Mocha)",
+    "Agile development methodologies"
+  ],
+  "education": [
+    {
+      "degree": "Bachelor's degree",
+      "field": "Computer Science or related field",
+      "required": false
+    }
+  ],
+  "responsibilities": [
+    "Develop and maintain web applications",
+    "Write clean, maintainable, and efficient code",
+    "Collaborate with UX/UI designers",
+    "Implement responsive design",
+    "Optimize applications for performance",
+    "Debug and troubleshoot issues",
+    "Participate in code reviews",
+    "Stay updated with emerging technologies"
+  ],
+  "benefits": [
+    {
+      "name": "Comprehensive health insurance",
+      "description": "Includes medical, dental, and vision coverage"
+    },
+    {
+      "name": "401(k) retirement plan",
+      "description": "With 4% company match"
+    },
+    {
+      "name": "Flexible work schedule",
+      "description": "Core hours with flexibility"
+    },
+    {
+      "name": "Professional development",
+      "description": "Conference attendance and learning stipend"
+    },
+    {
+      "name": "Generous PTO",
+      "description": "3 weeks vacation plus holidays"
+    }
+  ],
+  "description": "As a Full Stack Developer at TechInnovate Solutions, you will work in a collaborative environment to build and maintain web applications for our clients. You will be involved in all stages of the development lifecycle, from planning and design to testing and deployment. We value clean code, innovation, and continuous learning. Our tech stack includes React, Node.js, and PostgreSQL, but we're always open to adopting new technologies that improve our development process.",
+  "application_deadline": "2025-03-15",
+  "contact_info": {
+    "name": "HR Department",
+    "email": "recruiting@techinnovatesolutions.com",
+    "phone": "(512) 555-7890",
+    "website": "https://careers.techinnovatesolutions.com/full-stack"
+  },
+  "remote": true,
+  "travel_required": "Minimal travel required (less than 5%) for occasional team or client meetings",
+  "posting_date": "2025-02-10"
+}

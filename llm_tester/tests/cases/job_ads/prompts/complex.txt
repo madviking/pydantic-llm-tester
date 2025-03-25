@@ -1,0 +1,22 @@
+Extract detailed information from the provided job advertisement and format it as a structured JSON object. Your response should include all of the following information when available:
+
+1. Job title
+2. Company name
+3. Department within the company
+4. Location details (city, state, country)
+5. Salary information (range, currency, payment period)
+6. Employment type (full-time, part-time, contract, etc.)
+7. Experience requirements (years, level)
+8. Required skills (as a list)
+9. Preferred skills (as a list)
+10. Education requirements (degree, field, and whether required or preferred)
+11. Job responsibilities (as a list)
+12. Benefits offered (name and description)
+13. Detailed job description
+14. Application deadline
+15. Contact information (name, email, phone, website)
+16. Remote work options
+17. Travel requirements
+18. Posting date
+
+Format your response as a valid JSON object with appropriate nesting of objects and arrays. Ensure all dates are in ISO format (YYYY-MM-DD). Respond only with the JSON object, no additional text.
