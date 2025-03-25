@@ -972,6 +972,119 @@ You can replace this with actual content to extract information from.
     
     return model_name
 
+def run_with_defaults(providers=None, models=None, modules=None, optimize=False, output_dir=None):
+    """
+    Run tests with default settings without interactive prompts
+    
+    Args:
+        providers: List of provider names to use. If None, uses enabled providers from config.
+        models: Dictionary mapping providers to models. If None, uses defaults from config.
+        modules: List of module names to test. If None, uses all available modules.
+        optimize: Whether to run optimized tests
+        output_dir: Directory to save results. If None, uses default from config.
+        
+    Returns:
+        Exit code (0 for success)
+    """
+    logger = logging.getLogger(__name__)
+    logger.info("Running with default settings (non-interactive mode)")
+    
+    # Load configuration
+    config = load_config()
+    
+    # Get providers if not specified
+    if providers is None:
+        providers = [p for p, conf in config.get("providers", {}).items() 
+                    if conf.get("enabled", False)]
+        
+        if not providers:
+            logger.warning("No providers enabled in config, defaulting to mock_provider")
+            providers = ["mock_provider"]
+            
+    # Initialize tester
+    tester = LLMTester(providers=providers)
+    
+    # Get models if not specified
+    if models is None:
+        models = {}
+        for provider in providers:
+            provider_config = config.get("providers", {}).get(provider, {})
+            if "default_model" in provider_config:
+                models[provider] = provider_config["default_model"]
+    
+    # Get output directory if not specified
+    if output_dir is None:
+        test_settings = config.get("test_settings", {})
+        output_dir = test_settings.get("output_dir", "test_results")
+    
+    # Create timestamp-based filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"report_{timestamp}{'_optimized' if optimize else ''}.md"
+    
+    # Run tests
+    logger.info(f"Starting test run with {'optimized' if optimize else 'standard'} prompts")
+    logger.info(f"Providers: {', '.join(providers)}")
+    
+    for provider, model in models.items():
+        logger.info(f"Using model for {provider}: {model}")
+    
+    if modules:
+        logger.info(f"Testing modules: {', '.join(modules)}")
+    else:
+        logger.info("Testing all available modules")
+    
+    # Prepare progress callback
+    def progress_callback(message):
+        logger.info(message)
+    
+    # Run tests
+    if optimize:
+        # Get save_optimized_prompts setting from config
+        test_settings = config.get("test_settings", {})
+        save_optimized_prompts = test_settings.get("save_optimized_prompts", True)
+        
+        results = tester.run_optimized_tests(
+            model_overrides=models,
+            save_optimized_prompts=save_optimized_prompts,
+            modules=modules,
+            progress_callback=progress_callback
+        )
+    else:
+        results = tester.run_tests(
+            model_overrides=models, 
+            modules=modules,
+            progress_callback=progress_callback
+        )
+    
+    # Generate report
+    logger.info("Generating report...")
+    report = tester.generate_report(results, optimized=optimize)
+    
+    # Save report
+    os.makedirs(output_dir, exist_ok=True)
+    report_path = os.path.join(output_dir, filename)
+    
+    with open(report_path, "w") as f:
+        f.write(report)
+    
+    logger.info(f"Report saved to {report_path}")
+    
+    # Print summary
+    logger.info("Test Summary:")
+    for test_name, test_results in results.items():
+        logger.info(f"  {test_name}:")
+        for provider, provider_result in test_results.items():
+            if isinstance(provider_result, dict) and 'validation' in provider_result:
+                validation = provider_result.get('validation', {})
+                accuracy = validation.get('accuracy', 0.0) if validation.get('success', False) else 0.0
+                model = provider_result.get('model', 'default')
+                logger.info(f"    {provider} ({model}): {accuracy:.2f}%")
+            else:
+                logger.info(f"    {provider}: Results available in full report")
+    
+    return 0
+
+
 def main(args=None):
     """Main function for the interactive runner"""
     # Setup logging
@@ -1018,6 +1131,30 @@ def main(args=None):
         action="store_true",
         help="Enable debug logging"
     )
+    parser.add_argument(
+        "--non-interactive", "-n",
+        action="store_true",
+        help="Run tests with default settings without interactive prompts"
+    )
+    parser.add_argument(
+        "--optimize", "-o",
+        action="store_true",
+        help="Run optimized tests (only used with --non-interactive)"
+    )
+    parser.add_argument(
+        "--provider", "-p",
+        action="append",
+        help="Provider to use (can be specified multiple times, only used with --non-interactive)"
+    )
+    parser.add_argument(
+        "--module", "-m",
+        action="append",
+        help="Module to test (can be specified multiple times, only used with --non-interactive)"
+    )
+    parser.add_argument(
+        "--output-dir",
+        help="Directory to save results (only used with --non-interactive)"
+    )
     
     parsed_args = parser.parse_args(args)
     
@@ -1034,7 +1171,8 @@ def main(args=None):
     
     # Create new model if requested
     if parsed_args.create_model:
-        create_new_model()
+        model_name = parsed_args.create_model
+        create_new_model(model_name)
         return 0
         
     # Only check setup if requested
@@ -1044,6 +1182,15 @@ def main(args=None):
     
     # Load configuration
     config = load_config()
+    
+    # Non-interactive mode
+    if parsed_args.non_interactive:
+        return run_with_defaults(
+            providers=parsed_args.provider,
+            modules=parsed_args.module,
+            optimize=parsed_args.optimize,
+            output_dir=parsed_args.output_dir
+        )
     
     # Get initially enabled providers from config
     enabled_providers = [p for p, conf in config.get("providers", {}).items() 

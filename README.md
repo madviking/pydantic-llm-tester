@@ -37,7 +37,9 @@ The installation script will:
 - Install required dependencies
 - Create a template .env file for your API keys
 
-## Running the Interactive Tool
+## Running the Tool
+
+### Interactive Mode
 
 ```bash
 # Make sure the virtual environment is activated
@@ -53,6 +55,35 @@ The interactive runner provides a menu-driven interface to:
 - Configure which providers and models to use
 - Run tests with or without prompt optimization
 - View and save test results
+
+### Non-Interactive Mode
+
+You can also run tests directly using default settings without any prompts:
+
+```bash
+# Run with default settings (providers from config)
+./runner.py --non-interactive
+
+# Run with specific providers
+./runner.py -n -p openai -p anthropic
+
+# Run optimized tests
+./runner.py -n --optimize
+
+# Run specific modules
+./runner.py -n -m job_ads -m product_descriptions
+
+# Specify output directory
+./runner.py -n --output-dir ./my_results
+```
+
+Command line options for non-interactive mode:
+- `-n, --non-interactive`: Run in non-interactive mode using defaults
+- `-o, --optimize`: Run with prompt optimization
+- `-p, --provider`: Provider to use (can be specified multiple times)
+- `-m, --module`: Module to test (can be specified multiple times)
+- `--output-dir`: Directory to save results
+- `--debug`: Enable debug logging
 
 ## Usage
 
