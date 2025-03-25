@@ -17,7 +17,9 @@ class PromptOptimizer:
         source: str, 
         model_class: Any, 
         expected_data: Dict[str, Any],
-        initial_results: Dict[str, Any]
+        initial_results: Dict[str, Any],
+        save_to_file: bool = False,
+        original_prompt_path: Optional[str] = None
     ) -> str:
         """
         Optimize a prompt based on initial results
@@ -28,6 +30,8 @@ class PromptOptimizer:
             model_class: Pydantic model class
             expected_data: Expected data
             initial_results: Initial test results
+            save_to_file: Whether to save the optimized prompt to a file
+            original_prompt_path: Path to the original prompt file, used to determine where to save
             
         Returns:
             Optimized prompt text
@@ -44,6 +48,26 @@ class PromptOptimizer:
             model_schema=model_schema,
             problems=problems
         )
+        
+        # Save optimized prompt to a file if requested
+        if save_to_file and original_prompt_path:
+            import os
+            
+            # Create the optimized prompts directory
+            prompts_dir = os.path.dirname(original_prompt_path)
+            optimized_dir = os.path.join(prompts_dir, "optimized")
+            os.makedirs(optimized_dir, exist_ok=True)
+            
+            # Get the filename from the original path
+            filename = os.path.basename(original_prompt_path)
+            base_name, ext = os.path.splitext(filename)
+            
+            # Create the optimized prompt path
+            optimized_path = os.path.join(optimized_dir, f"{base_name}{ext}")
+            
+            # Save the optimized prompt
+            with open(optimized_path, 'w') as f:
+                f.write(optimized_prompt)
         
         return optimized_prompt
     

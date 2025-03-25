@@ -408,12 +408,13 @@ class LLMTester:
         
         return results
     
-    def run_optimized_tests(self, model_overrides: Optional[Dict[str, str]] = None) -> Dict[str, Dict[str, Any]]:
+    def run_optimized_tests(self, model_overrides: Optional[Dict[str, str]] = None, save_optimized_prompts: bool = True) -> Dict[str, Dict[str, Any]]:
         """
         Optimize prompts based on initial results and run tests again
         
         Args:
             model_overrides: Optional dictionary mapping providers to model names
+            save_optimized_prompts: Whether to save optimized prompts to files
             
         Returns:
             Test results with optimized prompts
@@ -447,20 +448,31 @@ class LLMTester:
                 source=source_text,
                 model_class=model_class,
                 expected_data=expected_data,
-                initial_results=initial_results.get(test_id, {})
+                initial_results=initial_results.get(test_id, {}),
+                save_to_file=save_optimized_prompts,
+                original_prompt_path=test_case['prompt_path']
             )
             
             # Run test with optimized prompt
             test_case_optimized = test_case.copy()
             
-            # Create temporary file for optimized prompt
-            optimized_prompt_path = os.path.join(
-                os.path.dirname(test_case['prompt_path']), 
-                f"{test_case['name']}_optimized.txt"
-            )
-            
-            with open(optimized_prompt_path, 'w') as f:
-                f.write(optimized_prompt)
+            # Create temporary file for optimized prompt if not saving to permanent files
+            optimized_prompt_path = None
+            if save_optimized_prompts:
+                # Use the saved optimized prompt path
+                prompts_dir = os.path.dirname(test_case['prompt_path'])
+                optimized_dir = os.path.join(prompts_dir, "optimized")
+                filename = os.path.basename(test_case['prompt_path'])
+                optimized_prompt_path = os.path.join(optimized_dir, filename)
+            else:
+                # Create a temporary file
+                optimized_prompt_path = os.path.join(
+                    os.path.dirname(test_case['prompt_path']), 
+                    f"{test_case['name']}_optimized.txt"
+                )
+                
+                with open(optimized_prompt_path, 'w') as f:
+                    f.write(optimized_prompt)
             
             test_case_optimized['prompt_path'] = optimized_prompt_path
             
@@ -471,11 +483,13 @@ class LLMTester:
                 'original_results': initial_results.get(test_id, {}),
                 'optimized_results': optimized_test_results,
                 'original_prompt': original_prompt,
-                'optimized_prompt': optimized_prompt
+                'optimized_prompt': optimized_prompt,
+                'optimized_prompt_path': optimized_prompt_path
             }
             
-            # Clean up temporary file
-            os.remove(optimized_prompt_path)
+            # Clean up temporary file if not saving to permanent files
+            if not save_optimized_prompts and optimized_prompt_path:
+                os.remove(optimized_prompt_path)
         
         return optimized_results
     

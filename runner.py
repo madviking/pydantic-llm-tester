@@ -543,17 +543,72 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
     if using_mock:
         print("\nUsing mock providers. No API calls will be made.")
         
+        # Get save_optimized_prompts setting from config
+        config = load_config()
+        test_settings = config.get("test_settings", {})
+        save_optimized_prompts = test_settings.get("save_optimized_prompts", True)
+        
         # Patch the get_response method
         with patch('llm_tester.utils.provider_manager.ProviderManager.get_response', mock_get_response):
             if optimize:
-                results = tester.run_optimized_tests(model_overrides=models)
+                # Ask if user wants to save optimized prompts
+                should_save = input(f"\nSave optimized prompts to files? (y/n) [{'y' if save_optimized_prompts else 'n'}]: ").strip().lower()
+                if should_save:
+                    save_optimized_prompts = should_save == 'y'
+                    
+                    # Update config if changed
+                    if save_optimized_prompts != test_settings.get("save_optimized_prompts", True):
+                        if "test_settings" not in config:
+                            config["test_settings"] = {}
+                        config["test_settings"]["save_optimized_prompts"] = save_optimized_prompts
+                        save_config(config)
+                
+                results = tester.run_optimized_tests(
+                    model_overrides=models,
+                    save_optimized_prompts=save_optimized_prompts
+                )
+                
+                # If prompts were saved, show the paths
+                if save_optimized_prompts:
+                    print("\nOptimized prompts saved to:")
+                    for test_id, test_results in results.items():
+                        if 'optimized_prompt_path' in test_results:
+                            print(f"  {test_id}: {test_results['optimized_prompt_path']}")
             else:
                 results = tester.run_tests(model_overrides=models)
     else:
         # Run with real providers
         print("\nSending requests to LLM providers. This may take some time...")
+        
+        # Get save_optimized_prompts setting from config
+        config = load_config()
+        test_settings = config.get("test_settings", {})
+        save_optimized_prompts = test_settings.get("save_optimized_prompts", True)
+        
         if optimize:
-            results = tester.run_optimized_tests(model_overrides=models)
+            # Ask if user wants to save optimized prompts
+            should_save = input(f"\nSave optimized prompts to files? (y/n) [{'y' if save_optimized_prompts else 'n'}]: ").strip().lower()
+            if should_save:
+                save_optimized_prompts = should_save == 'y'
+                
+                # Update config if changed
+                if save_optimized_prompts != test_settings.get("save_optimized_prompts", True):
+                    if "test_settings" not in config:
+                        config["test_settings"] = {}
+                    config["test_settings"]["save_optimized_prompts"] = save_optimized_prompts
+                    save_config(config)
+            
+            results = tester.run_optimized_tests(
+                model_overrides=models,
+                save_optimized_prompts=save_optimized_prompts
+            )
+            
+            # If prompts were saved, show the paths
+            if save_optimized_prompts:
+                print("\nOptimized prompts saved to:")
+                for test_id, test_results in results.items():
+                    if 'optimized_prompt_path' in test_results:
+                        print(f"  {test_id}: {test_results['optimized_prompt_path']}")
         else:
             results = tester.run_tests(model_overrides=models)
     
