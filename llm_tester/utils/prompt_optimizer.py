@@ -212,7 +212,7 @@ class PromptOptimizer:
         
         Args:
             original_prompt: Original prompt text
-            model_schema: Pydantic model schema
+            model_schema: Pydantic model schema (for reference only, not included in prompt)
             problems: Identified problems
             
         Returns:
@@ -227,7 +227,7 @@ class PromptOptimizer:
         # Check for validation errors
         validation_errors = [p for p in problems if p['type'] == 'validation_error']
         if validation_errors:
-            clarifications.append("IMPORTANT: Your response must be valid JSON that matches the required schema.")
+            clarifications.append("IMPORTANT: Your response must be valid JSON with the requested fields and formats.")
         
         # Check for accuracy issues
         accuracy_issues = [p for p in problems if p['type'] == 'accuracy_issue']
@@ -256,16 +256,23 @@ class PromptOptimizer:
                     clarifications.append(f"Pay special attention to the value of '{field}' to ensure accuracy.")
                 elif 'list_length_mismatch' in problem_types:
                     clarifications.append(f"Ensure you extract all items for the list '{field}'.")
-        
-        # Add model schema clarification
-        schema_str = json.dumps(model_schema, indent=2)
+                elif 'unexpected_field' in problem_types:
+                    clarifications.append(f"Do not include extra field '{field}' in your response.")
         
         # Combine clarifications with the original prompt
         if clarifications:
             clarifications_text = "\n".join(clarifications)
-            optimized_prompt = f"{original_prompt}\n\nADDITIONAL INSTRUCTIONS:\n{clarifications_text}\n\nYour response MUST conform to this JSON schema:\n```json\n{schema_str}\n```"
+            optimized_prompt = f"{original_prompt}\n\nADDITIONAL INSTRUCTIONS:\n{clarifications_text}"
+            
+            # Add general tips for better extraction
+            optimized_prompt += "\n\nIMPORTANT TIPS FOR ACCURATE EXTRACTION:"
+            optimized_prompt += "\n- Extract all required information exactly as presented in the source text"
+            optimized_prompt += "\n- Format dates in ISO format (YYYY-MM-DD)"
+            optimized_prompt += "\n- Use proper boolean values (true/false) for yes/no fields"
+            optimized_prompt += "\n- Keep list items in the order they appear in the text"
+            optimized_prompt += "\n- Format your response as valid JSON"
         else:
-            # If no specific problems, still add the schema for clarity
-            optimized_prompt = f"{original_prompt}\n\nYour response MUST conform to this JSON schema:\n```json\n{schema_str}\n```"
+            # If no specific problems, just add general guidance
+            optimized_prompt = original_prompt
         
         return optimized_prompt
