@@ -190,20 +190,34 @@ def get_mock_response(module: str, source: str) -> str:
     
     return json.dumps(mock_data, indent=2)
 
-def mock_get_response(self, provider: str, prompt: str, source: str, model_name: str = None) -> str:
+def mock_get_response(*args, **kwargs) -> str:
     """
     Mock implementation of get_response for ProviderManager
     
+    Can be used in two ways:
+    1. As a method with self: mock_get_response(self, provider, prompt, source, model_name=None)
+    2. As a standalone function: mock_get_response(provider, prompt, source, model_name=None)
+    
     Args:
-        self: The provider manager instance
-        provider: The provider name
-        prompt: The prompt text
-        source: The source text
-        model_name: Optional model name
+        Either (self, provider, prompt, source, model_name=None)
+        Or (provider, prompt, source, model_name=None)
         
     Returns:
         A mock response
     """
+    # Parse arguments based on whether this is called as a method or function
+    if len(args) >= 3 and hasattr(args[0], 'get_response'):
+        # Called as method with self
+        _, provider, prompt, source = args[:4]
+        model_name = kwargs.get('model_name')
+    elif len(args) >= 3:
+        # Called as standalone function
+        provider, prompt, source = args[:3]
+        model_name = kwargs.get('model_name')
+    else:
+        # Not enough arguments
+        raise ValueError(f"Not enough arguments for mock_get_response: {args}, {kwargs}")
+    
     # Determine which mock response to use based on source content
     if "job" in source.lower() or "software engineer" in source.lower() or "developer" in source.lower():
         return get_mock_response("job_ads", source)

@@ -14,7 +14,7 @@
     },
     "google": {
       "enabled": true,
-      "default_model": "gemini-pro"
+      "default_model": "gemini-1.5-flash"
     },
     "mock_provider": {
       "enabled": true,

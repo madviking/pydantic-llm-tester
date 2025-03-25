@@ -332,13 +332,15 @@ class LLMTester:
         return (earned_points / total_points) * 100.0 if total_points > 0 else 0.0
     
     def run_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
-                  modules: Optional[List[str]] = None) -> Dict[str, Dict[str, Any]]:
+                  modules: Optional[List[str]] = None,
+                  progress_callback: Optional[callable] = None) -> Dict[str, Dict[str, Any]]:
         """
         Run all available tests
         
         Args:
             model_overrides: Optional dictionary mapping providers to model names
             modules: Optional list of module names to filter by
+            progress_callback: Optional callback function for reporting progress
             
         Returns:
             Test results for each test and provider
@@ -351,24 +353,48 @@ class LLMTester:
             test_cases = [tc for tc in test_cases if tc['module'] in modules]
             if not test_cases:
                 self.logger.warning(f"No test cases found for modules: {modules}")
+                if progress_callback:
+                    progress_callback(f"WARNING: No test cases found for modules: {modules}")
+                return {}
         
-        for test_case in test_cases:
+        if progress_callback:
+            progress_callback(f"Running {len(test_cases)} test cases...")
+        
+        for i, test_case in enumerate(test_cases, 1):
             test_id = f"{test_case['module']}/{test_case['name']}"
-            results[test_id] = self.run_test(test_case, model_overrides)
+            
+            if progress_callback:
+                progress_callback(f"[{i}/{len(test_cases)}] Running test: {test_id}")
+                
+            results[test_id] = self.run_test(test_case, model_overrides, progress_callback)
+            
+            if progress_callback:
+                progress_callback(f"Completed test: {test_id}")
+                progress_callback(f"Progress: {i}/{len(test_cases)} tests completed")
         
+        if progress_callback:
+            progress_callback(f"All {len(test_cases)} tests completed successfully!")
+            
         return results
     
-    def run_test(self, test_case: Dict[str, Any], model_overrides: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    def run_test(self, test_case: Dict[str, Any], model_overrides: Optional[Dict[str, str]] = None, 
+                 progress_callback: Optional[callable] = None) -> Dict[str, Any]:
         """
         Run a single test for all providers
         
         Args:
             test_case: Test case configuration
             model_overrides: Optional dictionary mapping providers to model names
+            progress_callback: Optional callback function for reporting progress
             
         Returns:
             Test results for each provider
         """
+        test_id = f"{test_case['module']}/{test_case['name']}"
+        
+        if progress_callback:
+            progress_callback(f"Running test: {test_id}")
+        
         # Load source, prompt, and expected data
         with open(test_case['source_path'], 'r') as f:
             source_text = f.read()
@@ -385,11 +411,18 @@ class LLMTester:
         # Run test for each provider
         results = {}
         for provider in self.providers:
+            if progress_callback:
+                progress_callback(f"  Testing provider: {provider}")
+            
             try:
                 # Get model name from overrides if available
                 model_name = None
                 if model_overrides and provider in model_overrides:
                     model_name = model_overrides[provider]
+                    
+                if progress_callback:
+                    model_info = f" with model {model_name}" if model_name else ""
+                    progress_callback(f"  Sending request to {provider}{model_info}...")
                 
                 # Get response from provider
                 response = self.provider_manager.get_response(
@@ -399,8 +432,15 @@ class LLMTester:
                     model_name=model_name
                 )
                 
+                if progress_callback:
+                    progress_callback(f"  Validating {provider} response...")
+                
                 # Validate response against model
                 validation_result = self._validate_response(response, model_class, expected_data)
+                
+                if progress_callback:
+                    accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
+                    progress_callback(f"  {provider} accuracy: {accuracy:.2f}%")
                 
                 results[provider] = {
                     'response': response,
@@ -409,16 +449,23 @@ class LLMTester:
                 }
             except Exception as e:
                 self.logger.error(f"Error testing provider {provider}: {str(e)}")
+                if progress_callback:
+                    progress_callback(f"  Error with {provider}: {str(e)}")
+                    
                 results[provider] = {
                     'error': str(e),
                     'model': model_name if 'model_name' in locals() else None
                 }
         
+        if progress_callback:
+            progress_callback(f"Completed test: {test_id}")
+            
         return results
     
     def run_optimized_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
                          save_optimized_prompts: bool = True,
-                         modules: Optional[List[str]] = None) -> Dict[str, Dict[str, Any]]:
+                         modules: Optional[List[str]] = None,
+                         progress_callback: Optional[callable] = None) -> Dict[str, Dict[str, Any]]:
         """
         Optimize prompts based on initial results and run tests again
         
@@ -426,13 +473,24 @@ class LLMTester:
             model_overrides: Optional dictionary mapping providers to model names
             save_optimized_prompts: Whether to save optimized prompts to files
             modules: Optional list of module names to filter by
+            progress_callback: Optional callback function for reporting progress
             
         Returns:
             Test results with optimized prompts
         """
+        if progress_callback:
+            progress_callback("Phase 1: Running initial tests to establish baseline...")
+            
         # First run regular tests
-        initial_results = self.run_tests(model_overrides=model_overrides, modules=modules)
+        initial_results = self.run_tests(
+            model_overrides=model_overrides, 
+            modules=modules,
+            progress_callback=progress_callback
+        )
         
+        if progress_callback:
+            progress_callback("\nPhase 2: Optimizing prompts based on initial results...")
+            
         # Optimize prompts
         test_cases = self.discover_test_cases()
         
@@ -441,12 +499,17 @@ class LLMTester:
             test_cases = [tc for tc in test_cases if tc['module'] in modules]
             if not test_cases:
                 self.logger.warning(f"No test cases found for modules: {modules}")
+                if progress_callback:
+                    progress_callback(f"WARNING: No test cases found for modules: {modules}")
                 return {}
                 
         optimized_results = {}
         
-        for test_case in test_cases:
+        for i, test_case in enumerate(test_cases, 1):
             test_id = f"{test_case['module']}/{test_case['name']}"
+            
+            if progress_callback:
+                progress_callback(f"\n[{i}/{len(test_cases)}] Optimizing prompt for: {test_id}")
             
             # Optimize prompt based on initial results
             with open(test_case['prompt_path'], 'r') as f:
@@ -461,6 +524,9 @@ class LLMTester:
             # Get model class
             model_class = test_case['model_class']
             
+            if progress_callback:
+                progress_callback(f"  Analyzing initial results and optimizing prompt...")
+            
             # Optimize prompt
             optimized_prompt = self.prompt_optimizer.optimize_prompt(
                 original_prompt=original_prompt,
@@ -471,6 +537,9 @@ class LLMTester:
                 save_to_file=save_optimized_prompts,
                 original_prompt_path=test_case['prompt_path']
             )
+            
+            if progress_callback:
+                progress_callback(f"  Prompt optimization completed for {test_id}")
             
             # Run test with optimized prompt
             test_case_optimized = test_case.copy()
@@ -495,8 +564,15 @@ class LLMTester:
             
             test_case_optimized['prompt_path'] = optimized_prompt_path
             
-            # Run test with optimized prompt and pass model_overrides
-            optimized_test_results = self.run_test(test_case_optimized, model_overrides)
+            if progress_callback:
+                progress_callback(f"  Running tests with optimized prompt...")
+                
+            # Run test with optimized prompt and pass model_overrides and progress callback
+            optimized_test_results = self.run_test(
+                test_case_optimized, 
+                model_overrides, 
+                progress_callback
+            )
             
             optimized_results[test_id] = {
                 'original_results': initial_results.get(test_id, {}),
@@ -509,7 +585,14 @@ class LLMTester:
             # Clean up temporary file if not saving to permanent files
             if not save_optimized_prompts and optimized_prompt_path:
                 os.remove(optimized_prompt_path)
+                
+            if progress_callback:
+                progress_callback(f"  Completed optimization for {test_id}")
+                progress_callback(f"  Progress: {i}/{len(test_cases)} completed")
         
+        if progress_callback:
+            progress_callback(f"\nAll optimizations completed successfully!")
+            
         return optimized_results
     
     def generate_report(self, results: Dict[str, Any], optimized: bool = False) -> str:

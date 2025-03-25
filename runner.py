@@ -383,6 +383,30 @@ def setup_providers() -> List[str]:
                 config["providers"]["mock_provider"] = {"enabled": True, "default_model": "mock-model"}
             save_config(config)
         
+        # Initialize provider manager to check for any initialization issues
+        if selected and selected != ["mock_provider"]:
+            temp_manager = ProviderManager(selected)
+            if hasattr(temp_manager, 'initialization_errors') and temp_manager.initialization_errors:
+                print("\nWarning: Some providers had initialization issues:")
+                for provider, error in temp_manager.initialization_errors.items():
+                    if provider in selected:
+                        print(f"  - {provider}: {error}")
+                        
+                print("\nWould you like to continue with these providers? (y/n)")
+                continue_anyway = input("> ").strip().lower()
+                if continue_anyway != 'y':
+                    print("Using mock provider instead.")
+                    selected = ["mock_provider"]
+                    
+                    # Update config
+                    if "mock_provider" in config.get("providers", {}):
+                        config["providers"]["mock_provider"]["enabled"] = True
+                    else:
+                        if "providers" not in config:
+                            config["providers"] = {}
+                        config["providers"]["mock_provider"] = {"enabled": True, "default_model": "mock-model"}
+                    save_config(config)
+        
         return selected
         
     elif choice == '2':
@@ -644,10 +668,14 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
                         config["test_settings"]["save_optimized_prompts"] = save_optimized_prompts
                         save_config(config)
                 
+                def progress_callback(message):
+                    print(message)
+                    
                 results = tester.run_optimized_tests(
                     model_overrides=models,
                     save_optimized_prompts=save_optimized_prompts,
-                    modules=selected_modules
+                    modules=selected_modules,
+                    progress_callback=progress_callback
                 )
                 
                 # If prompts were saved, show the paths

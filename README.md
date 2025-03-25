@@ -1,6 +1,6 @@
 # LLM Tester
 
-A Python module for testing and comparing different LLM models using PydanticAI to extract structured data from text.
+A Python module for testing and comparing different LLM models using PydanticAI to extract structured data from text. 
 
 ## Features
 
