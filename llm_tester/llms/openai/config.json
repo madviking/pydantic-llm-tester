@@ -1,0 +1,58 @@
+{
+  "name": "openai",
+  "models": [
+    {
+      "name": "openai:o1",
+      "default": true,
+      "preferred": true,
+      "cost_input": 15,
+      "cost_output": 60,
+      "cost_category": "expensive",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 100000,
+      "file_upload": false,
+      "quality": 90,
+      "region": "us-central1",
+      "reasoning": true
+    },
+    {
+      "name": "openai:o3-mini",
+      "default": true,
+      "preferred": true,
+      "cost_input": 1.1,
+      "cost_output": 4.4,
+      "cost_category": "expensive",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 100000,
+      "file_upload": false,
+      "quality": 90,
+      "region": "us-central1"
+    },
+    {
+      "name": "openai:gpt-4o",
+      "default": true,
+      "preferred": true,
+      "cost_input": 2.5,
+      "cost_output": 10,
+      "cost_category": "expensive",
+      "max_input_tokens": 128000,
+      "max_output_tokens": 16384,
+      "file_upload": true,
+      "quality": 90,
+      "region": "europe-west3"
+    },
+    {
+      "name": "openai:gpt-4o-mini",
+      "default": true,
+      "preferred": true,
+      "cost_input": 0.15,
+      "cost_output": 0.6,
+      "cost_category": "cheap",
+      "max_input_tokens": 128000,
+      "max_output_tokens": 16384,
+      "file_upload": false,
+      "quality": 90,
+      "region": "europe-west3"
+    }
+  ]
+}
