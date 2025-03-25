@@ -56,3 +56,6 @@ ai_engine/
 test_results/*
 !test_results/report_example.md
 !test_results/cost_report_example.json
+
+llm_tester/models/*/reports/*
+!llm_tester/models/*/reports/.gitkeep

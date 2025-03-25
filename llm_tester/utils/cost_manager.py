@@ -285,6 +285,24 @@ class CostTracker:
         
         return self.test_runs[run_id]["summary"]
     
+    def get_run_data(self, run_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Get all data for a specific run
+        
+        Args:
+            run_id: Optional run identifier (defaults to current run)
+            
+        Returns:
+            Dictionary containing all run data
+        """
+        run_id = run_id or self.current_run_id
+        
+        if run_id not in self.test_runs:
+            self.logger.error(f"Run ID {run_id} not found")
+            return {}
+            
+        return self.test_runs[run_id]
+    
     def get_cost_report(self, run_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a detailed cost report for a run
