@@ -501,12 +501,47 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
     clear_screen()
     print_header("Running Tests" + (" (Optimized)" if optimize else ""))
     
+    # Load configuration
+    config = load_config()
+    test_settings = config.get("test_settings", {})
+    default_output_dir = test_settings.get("output_dir", "test_results")
+    
+    # Ask for output directory
+    print("\nWhere would you like to save the test results?")
+    print(f"1. Default directory ({default_output_dir})")
+    print("2. Custom directory")
+    print("3. Don't save results to file")
+    
+    choice = input("\nEnter your choice (1-3): ").strip()
+    
+    if choice == "2":
+        output_dir = input("Enter the output directory path: ").strip()
+        if not output_dir:
+            output_dir = default_output_dir
+    elif choice == "3":
+        output_dir = None
+    else:
+        output_dir = default_output_dir
+    
+    # Create custom filename
+    if output_dir:
+        filename = input("\nEnter a custom filename (leave empty for timestamp-based name): ").strip()
+        if not filename:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"report_{timestamp}{'_optimized' if optimize else ''}.md"
+    
     # Check if we're using mock providers
     using_mock = any(p.startswith("mock_") for p in providers)
     
+    print("\nStarting test run...")
+    print(f"Providers: {', '.join(providers)}")
+    if models:
+        for provider, model in models.items():
+            print(f"Using model for {provider}: {model}")
+    
     # If using mock, we'll use the imported mock_get_response
     if using_mock:
-        print("Using mock providers. No API calls will be made.")
+        print("\nUsing mock providers. No API calls will be made.")
         
         # Patch the get_response method
         with patch('llm_tester.utils.provider_manager.ProviderManager.get_response', mock_get_response):
@@ -516,25 +551,34 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
                 results = tester.run_tests(model_overrides=models)
     else:
         # Run with real providers
+        print("\nSending requests to LLM providers. This may take some time...")
         if optimize:
             results = tester.run_optimized_tests(model_overrides=models)
         else:
             results = tester.run_tests(model_overrides=models)
     
+    print("\nTests completed successfully!")
+    
     # Generate report
+    print("Generating report...")
     report = tester.generate_report(results, optimized=optimize)
     
-    # Create output directory
-    os.makedirs("test_results", exist_ok=True)
-    
-    # Save report to file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    report_path = f"test_results/report_{timestamp}{'_optimized' if optimize else ''}.md"
-    
-    with open(report_path, "w") as f:
-        f.write(report)
-    
-    print(f"\nReport saved to {report_path}")
+    # Save report to file if requested
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        report_path = os.path.join(output_dir, filename)
+        
+        with open(report_path, "w") as f:
+            f.write(report)
+        
+        print(f"\nReport saved to {report_path}")
+        
+        # Save output directory to config
+        if output_dir != default_output_dir:
+            if "test_settings" not in config:
+                config["test_settings"] = {}
+            config["test_settings"]["output_dir"] = output_dir
+            save_config(config)
     
     # Print summary
     print("\nTest Summary:")
@@ -548,6 +592,13 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
                 print(f"    {provider} ({model}): {accuracy:.2f}%")
             else:
                 print(f"    {provider}: Results available in full report")
+    
+    # Ask if user wants to view the report
+    view_report = input("\nDo you want to view the full report? (y/n): ").strip().lower()
+    if view_report == 'y':
+        clear_screen()
+        print_header("Test Report")
+        print(report)
     
     input("\nPress Enter to return to the main menu...")
 
