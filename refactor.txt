@@ -2,6 +2,8 @@
 
 This plan divides the refactoring work into incremental phases, each of which can be tested after implementation to ensure stability before moving to the next phase.
 
+THESE ARE DONE:
+
 ## Phase 1: Foundational Improvements
 Focus: Fix immediate code duplication and improve testability without changing core architecture
 
@@ -20,8 +22,13 @@ Focus: Fix immediate code duplication and improve testability without changing c
 - Create standardized mock response format
 - Add unit tests for mock response system
 
+-----------------
+
+THESE ARE NEW:
+
 ## Phase 2: Provider Management Refactoring
 Focus: Improve the provider system without breaking existing functionality
+
 
 ### 2.1 Provider Interface Definition
 - Create abstract base class for providers

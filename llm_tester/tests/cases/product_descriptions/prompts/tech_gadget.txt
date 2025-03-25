@@ -1,74 +1,66 @@
-Extract structured information from the provided product description. Parse the text and extract all the relevant information about the product. Return the result as a JSON object with the following structure:
+Extract structured information from the provided product description. Parse the text and extract all the relevant information about the product. Return the result as a JSON object with the following schema:
 
 {
-  "id": "Product identifier",
-  "name": "Product name",
-  "brand": "Brand name",
-  "category": "Product category",
-  "subcategory": "Product subcategory (if available)",
+  "id": "Product identifier (string)",
+  "name": "Product name (string)",
+  "brand": "Brand name (string)",
+  "category": "Product category (string)",
+  "subcategory": "Product subcategory (string, optional)",
   "price": {
-    "amount": 0.0,
-    "currency": "USD",
-    "discount_percentage": 0.0,
-    "original_amount": 0.0
+    "amount": 0.0 (number),
+    "currency": "USD (string)",
+    "discount_percentage": 0.0 (number, optional),
+    "original_amount": 0.0 (number, optional)
   },
-  "description": "Detailed product description",
+  "description": "Detailed product description (string)",
   "features": [
-    "Feature 1",
-    "Feature 2",
-    ...
+    "Feature 1 (string)",
+    "Feature 2 (string)"
   ],
   "specifications": [
     {
-      "name": "Spec name",
-      "value": "Spec value",
-      "unit": "Unit (if applicable)"
-    },
-    ...
+      "name": "Spec name (string)",
+      "value": "Spec value (string or number)",
+      "unit": "Unit (string, optional)"
+    }
   ],
   "dimensions": {
-    "length": 0.0,
-    "width": 0.0,
-    "height": 0.0,
-    "unit": "units"
+    "length": 0.0 (number),
+    "width": 0.0 (number),
+    "height": 0.0 (number),
+    "unit": "units (string)"
   },
   "weight": {
-    "value": 0.0,
-    "unit": "units"
+    "value": 0.0 (number),
+    "unit": "units (string)"
   },
-  "materials": [
-    "Material 1",
-    "Material 2",
-    ...
-  ],
   "colors": [
-    "Color 1",
-    "Color 2",
-    ...
+    "Color 1 (string)",
+    "Color 2 (string)"
   ],
   "images": [
-    "URL 1",
-    "URL 2",
-    ...
+    "https://example.com/image1.jpg (URL string)",
+    "https://example.com/image2.jpg (URL string)"
   ],
-  "availability": "Availability status",
+  "availability": "In stock (string)",
   "shipping_info": {
-    "ships_within": "Shipping timeframe",
-    "shipping_type": "Type of shipping"
+    "ships_within": "Shipping timeframe (string)",
+    "shipping_type": "Type of shipping (string)"
   },
-  "warranty": "Warranty information",
-  "return_policy": "Return policy details",
+  "warranty": "Warranty information (string)",
+  "return_policy": "Return policy details (string)",
   "reviews": {
-    "rating": 0.0,
-    "count": 0
+    "rating": 4.5 (number),
+    "count": 100 (integer)
   },
-  "release_date": "YYYY-MM-DD",
-  "is_bestseller": true/false,
+  "release_date": "YYYY-MM-DD (date string)",
+  "is_bestseller": true/false (boolean),
   "related_products": [
-    "Related product ID 1",
-    "Related product ID 2",
-    ...
+    "Related product ID 1 (string)",
+    "Related product ID 2 (string)"
   ]
 }
 
-Provide all the information you can find in the source text. If some information is not available, you can omit those fields from the response.
+IMPORTANT: Make sure to include ALL fields in the schema, even if you need to use your best judgment to infer values not explicitly stated in the product description. For missing information, provide reasonable defaults based on the product type. Use https://example.com URLs for any image links that aren't specified.
+
+Respond only with the JSON object, no additional text.

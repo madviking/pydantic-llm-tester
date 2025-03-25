@@ -12,7 +12,7 @@ import inspect
 from pydantic import BaseModel
 
 from .utils.prompt_optimizer import PromptOptimizer
-from .utils.report_generator import ReportGenerator
+from .utils.report_generator import ReportGenerator, DateEncoder
 from .utils.provider_manager import ProviderManager
 from .utils.config_manager import load_config, get_test_setting, get_provider_model
 
@@ -251,36 +251,77 @@ class LLMTester:
         Returns:
             Validation results
         """
+        self.logger.info(f"Validating response against model {model_class.__name__}")
+        self.logger.debug(f"Expected data: {json.dumps(expected_data, indent=2)}")
+        self.logger.debug(f"Raw response: {response[:500]}...")
+        
         try:
             # Parse the response as JSON
             try:
                 response_data = json.loads(response)
-            except json.JSONDecodeError:
+                self.logger.info("Successfully parsed response as JSON")
+            except json.JSONDecodeError as e:
+                self.logger.warning(f"Failed to parse response as JSON: {str(e)}")
                 # If response is not valid JSON, try to extract JSON from text
                 import re
                 json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response) or re.search(r'{[\s\S]*}', response)
                 if json_match:
-                    response_data = json.loads(json_match.group(1))
+                    try:
+                        response_data = json.loads(json_match.group(1))
+                        self.logger.info("Successfully extracted and parsed JSON from response text")
+                    except json.JSONDecodeError as e2:
+                        self.logger.error(f"Failed to parse extracted JSON: {str(e2)}")
+                        self.logger.debug(f"Extracted text: {json_match.group(1)}")
+                        return {
+                            'success': False,
+                            'error': f'Found JSON-like text but failed to parse: {str(e2)}',
+                            'accuracy': 0.0,
+                            'response_excerpt': response[:1000]
+                        }
                 else:
+                    self.logger.error("Response is not valid JSON and could not extract JSON from text")
                     return {
                         'success': False,
                         'error': 'Response is not valid JSON and could not extract JSON from text',
-                        'accuracy': 0.0
+                        'accuracy': 0.0,
+                        'response_excerpt': response[:1000]
                     }
             
+            self.logger.debug(f"Parsed response data: {json.dumps(response_data, indent=2)}")
+            
             # Validate against model
-            validated_data = model_class(**response_data)
+            try:
+                validated_data = model_class(**response_data)
+                self.logger.info(f"Successfully validated response against {model_class.__name__}")
+            except Exception as model_error:
+                self.logger.error(f"Model validation error: {str(model_error)}")
+                return {
+                    'success': False,
+                    'error': f'Model validation error: {str(model_error)}',
+                    'accuracy': 0.0,
+                    'response_data': response_data
+                }
             
             # Compare with expected data
             # Use model_dump instead of dict for pydantic v2 compatibility
             try:
                 # Try model_dump first (pydantic v2)
                 validated_data_dict = validated_data.model_dump()
+                self.logger.debug("Using model_dump() (Pydantic v2)")
             except AttributeError:
                 # Fall back to dict for older pydantic versions
+                self.logger.debug("Falling back to dict() (Pydantic v1)")
                 validated_data_dict = validated_data.dict()
+            
+            # Use DateEncoder for consistent date serialization
+            try:
+                self.logger.debug(f"Validated data: {json.dumps(validated_data_dict, indent=2, cls=DateEncoder)}")
+            except TypeError as e:
+                self.logger.warning(f"Could not serialize validated data: {str(e)}")
+                self.logger.debug("Validated data could not be fully serialized to JSON for logging")
                 
             accuracy = self._calculate_accuracy(validated_data_dict, expected_data)
+            self.logger.info(f"Calculated accuracy: {accuracy:.2f}%")
             
             return {
                 'success': True,
@@ -288,10 +329,12 @@ class LLMTester:
                 'accuracy': accuracy
             }
         except Exception as e:
+            self.logger.error(f"Unexpected error during validation: {str(e)}", exc_info=True)
             return {
                 'success': False,
                 'error': str(e),
-                'accuracy': 0.0
+                'accuracy': 0.0,
+                'response_excerpt': response[:1000] if isinstance(response, str) else str(response)[:1000]
             }
     
     def _calculate_accuracy(self, actual: Dict[str, Any], expected: Dict[str, Any]) -> float:
@@ -305,40 +348,81 @@ class LLMTester:
         Returns:
             Accuracy as a percentage
         """
+        self.logger.info("Calculating accuracy between actual and expected data")
+        
         if not expected:
+            self.logger.warning("Expected data is empty, returning 100% accuracy")
             return 100.0
             
+        # Handle date objects in comparison by normalizing both dictionaries
+        def normalize_dates(obj):
+            """Normalize dates and date strings for comparison"""
+            if isinstance(obj, dict):
+                return {k: normalize_dates(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [normalize_dates(i) for i in obj]
+            elif hasattr(obj, 'isoformat'):  # This catches date, datetime, etc.
+                return obj.isoformat()
+            elif isinstance(obj, str):
+                # Try to parse as ISO date
+                try:
+                    from datetime import datetime, date
+                    # Try ISO format for date
+                    if len(obj) == 10 and obj[4] == '-' and obj[7] == '-':
+                        d = date.fromisoformat(obj)
+                        return obj  # Return as string for comparison
+                    # Try ISO format for datetime
+                    if len(obj) >= 19 and obj[4] == '-' and obj[7] == '-' and obj[10] == 'T':
+                        dt = datetime.fromisoformat(obj.replace('Z', '+00:00'))
+                        return obj  # Return as string for comparison
+                except (ValueError, TypeError):
+                    pass
+            return obj
+            
+        # Normalize both dictionaries for comparison
+        actual_normalized = normalize_dates(actual)
+        expected_normalized = normalize_dates(expected)
+            
         # Special case for identical dicts
-        if actual == expected:
+        if actual_normalized == expected_normalized:
+            self.logger.info("Actual and expected data are identical, returning 100% accuracy")
             return 100.0
             
         # Initialize points system
         total_points = 0
         earned_points = 0
+        field_results = {}
         
         # Go through each expected field
-        for key, expected_value in expected.items():
+        for key, expected_value in expected_normalized.items():
             field_weight = 1.0  # Each field is worth 1 point by default
             
             # Check if field exists in actual
-            if key in actual:
-                actual_value = actual[key]
+            if key in actual_normalized:
+                actual_value = actual_normalized[key]
+                self.logger.debug(f"Comparing field '{key}': expected={expected_value}, actual={actual_value}")
                 
                 # Compare based on type
                 if isinstance(expected_value, dict) and isinstance(actual_value, dict):
                     # Recursively calculate accuracy for nested objects
-                    field_accuracy = self._calculate_accuracy(actual_value, expected_value)
+                    field_accuracy = self._calculate_accuracy(actual[key], expected[key])  # Use original dicts for nested comparison
                     earned_points += field_weight * (field_accuracy / 100.0)
+                    field_results[key] = f"{field_accuracy:.1f}% (nested object)"
+                    self.logger.debug(f"Field '{key}' (nested object): {field_accuracy:.1f}% accuracy")
                 elif isinstance(expected_value, list) and isinstance(actual_value, list):
                     # For lists, compare items
                     if len(expected_value) == 0:
                         # Empty lists match if actual is also empty
-                        earned_points += field_weight if len(actual_value) == 0 else 0
+                        list_match = len(actual_value) == 0
+                        earned_points += field_weight if list_match else 0
+                        field_results[key] = f"{100.0 if list_match else 0.0}% (empty list)"
+                        self.logger.debug(f"Field '{key}' (empty list): matched={list_match}")
                     else:
                         # For non-empty lists, calculate similarity
                         if len(actual_value) == 0:
                             # No points if actual is empty but expected is not
-                            pass
+                            field_results[key] = "0.0% (actual list empty)"
+                            self.logger.debug(f"Field '{key}': actual list is empty, expected has {len(expected_value)} items")
                         else:
                             # Calculate similarity based on matching items
                             # This is a simple implementation that could be improved
@@ -346,27 +430,56 @@ class LLMTester:
                             matches = 0
                             
                             # Count exact matches
+                            match_details = []
                             for i in range(max_matches):
                                 if i < len(expected_value) and i < len(actual_value):
-                                    if expected_value[i] == actual_value[i]:
+                                    is_match = expected_value[i] == actual_value[i]
+                                    if is_match:
                                         matches += 1
+                                    match_details.append(f"Item {i}: {'✓' if is_match else '✗'}")
                             
                             list_similarity = matches / len(expected_value)
                             earned_points += field_weight * list_similarity
+                            field_results[key] = f"{list_similarity * 100.0:.1f}% ({matches}/{len(expected_value)} items matched)"
+                            self.logger.debug(f"Field '{key}' (list): {matches}/{len(expected_value)} items matched ({list_similarity * 100.0:.1f}%)")
+                            self.logger.debug(f"List match details: {', '.join(match_details)}")
                 else:
                     # Simple field comparison
-                    if str(expected_value).lower() == str(actual_value).lower():
+                    string_match = str(expected_value).lower() == str(actual_value).lower()
+                    if string_match:
                         earned_points += field_weight
+                        field_results[key] = "100.0% (exact match)"
+                        self.logger.debug(f"Field '{key}': exact match")
                     else:
                         # Partial match for strings
                         if isinstance(expected_value, str) and isinstance(actual_value, str):
-                            if expected_value.lower() in actual_value.lower() or actual_value.lower() in expected_value.lower():
+                            partial_match = expected_value.lower() in actual_value.lower() or actual_value.lower() in expected_value.lower()
+                            if partial_match:
                                 earned_points += field_weight * 0.5  # Partial credit
+                                field_results[key] = "50.0% (partial match)"
+                                self.logger.debug(f"Field '{key}': partial match (50%)")
+                            else:
+                                field_results[key] = "0.0% (no match)"
+                                self.logger.debug(f"Field '{key}': no match")
+                        else:
+                            field_results[key] = "0.0% (no match, different types)"
+                            self.logger.debug(f"Field '{key}': no match, different types or values")
+            else:
+                field_results[key] = "0.0% (missing field)"
+                self.logger.debug(f"Field '{key}' is missing in actual data")
             
             total_points += field_weight
         
         # Calculate final percentage
-        return (earned_points / total_points) * 100.0 if total_points > 0 else 0.0
+        accuracy = (earned_points / total_points) * 100.0 if total_points > 0 else 0.0
+        
+        # Log detailed results
+        self.logger.info(f"Overall accuracy: {accuracy:.2f}% ({earned_points:.1f}/{total_points} points)")
+        self.logger.info("Field-by-field results:")
+        for field, result in field_results.items():
+            self.logger.info(f"  {field}: {result}")
+        
+        return accuracy
     
     def run_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
                   modules: Optional[List[str]] = None,

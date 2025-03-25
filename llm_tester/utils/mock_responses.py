@@ -463,34 +463,50 @@ def get_mock_response(module: str, source: str, model_name: Optional[str] = None
     Returns:
         A mock response as a JSON string
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Generating mock response for module: {module}")
+    
     # Default to job_ads if module not found
     if module not in MOCK_RESPONSES:
+        logger.warning(f"Module '{module}' not found in MOCK_RESPONSES, defaulting to 'job_ads'")
         module = "job_ads"
     
     # Select the appropriate response template based on source text
     if module == "job_ads":
         if "FULL STACK" in source.upper() or "FRONTEND" in source.upper() or "BACKEND" in source.upper():
             response_key = "full_stack"
+            logger.info(f"Selected template: {module}/{response_key} based on keywords")
         elif "SOFTWARE ENGINEER" in source.upper() or "SOFTWARE DEVELOPER" in source.upper():
             response_key = "software_engineer"
+            logger.info(f"Selected template: {module}/{response_key} based on keywords")
         else:
             response_key = "default"
+            logger.info(f"Selected template: {module}/{response_key} (default)")
     elif module == "product_descriptions":
         if any(keyword in source.upper() for keyword in ["ULTRABOOK", "LAPTOP", "COMPUTER", "NOTEBOOK"]):
             response_key = "laptop"
+            logger.info(f"Selected template: {module}/{response_key} based on keywords")
         elif any(keyword in source.upper() for keyword in ["SMARTPHONE", "PHONE", "MOBILE"]):
             response_key = "smartphone"
+            logger.info(f"Selected template: {module}/{response_key} based on keywords")
         else:
             response_key = "default"
+            logger.info(f"Selected template: {module}/{response_key} (default)")
     else:
         response_key = "default"
+        logger.info(f"Selected template: {module}/{response_key} (default)")
     
     # Get the response template
     response_template = MOCK_RESPONSES[module].get(response_key, MOCK_RESPONSES[module]["default"])
+    template_preview = response_template.strip()[:100] + "..." if len(response_template) > 100 else response_template
+    logger.debug(f"Template preview: {template_preview}")
     
     # Parse the template to create a customizable copy
     try:
         response_data = json.loads(response_template)
+        logger.info(f"Successfully parsed template JSON")
         
         # Customize the response based on the source text
         # Extract potential values from source using regex patterns
@@ -499,27 +515,40 @@ def get_mock_response(module: str, source: str, model_name: Optional[str] = None
         if module == "job_ads":
             title_match = re.search(r'(POSITION|JOB TITLE|ROLE):\s*([^\n]+)', source, re.IGNORECASE)
             if title_match:
-                response_data["title"] = title_match.group(2).strip().upper()
+                title_value = title_match.group(2).strip().upper()
+                logger.info(f"Extracted title from source: '{title_value}'")
+                response_data["title"] = title_value
                 
             # Look for company name
             company_match = re.search(r'(COMPANY|ORGANIZATION):\s*([^\n]+)', source, re.IGNORECASE)
             if company_match:
-                response_data["company"] = company_match.group(2).strip()
+                company_value = company_match.group(2).strip()
+                logger.info(f"Extracted company from source: '{company_value}'")
+                response_data["company"] = company_value
         
         # For product descriptions, look for product name
         elif module == "product_descriptions":
             name_match = re.search(r'(PRODUCT|ITEM|MODEL):\s*([^\n]+)', source, re.IGNORECASE)
             if name_match:
-                response_data["name"] = name_match.group(2).strip()
+                name_value = name_match.group(2).strip()
+                logger.info(f"Extracted product name from source: '{name_value}'")
+                response_data["name"] = name_value
                 
             # Look for brand
             brand_match = re.search(r'(BRAND|MANUFACTURER):\s*([^\n]+)', source, re.IGNORECASE)
             if brand_match:
-                response_data["brand"] = brand_match.group(2).strip()
+                brand_value = brand_match.group(2).strip()
+                logger.info(f"Extracted brand from source: '{brand_value}'")
+                response_data["brand"] = brand_value
         
-        return json.dumps(response_data, indent=2)
-    except json.JSONDecodeError:
+        response_json = json.dumps(response_data, indent=2)
+        logger.info(f"Generated customized JSON response ({len(response_json)} chars)")
+        logger.debug(f"Response preview: {response_json[:100]}...")
+        return response_json
+    except json.JSONDecodeError as e:
         # If template parsing fails, return the template as is
+        logger.error(f"Failed to parse template JSON: {str(e)}")
+        logger.debug(f"Template that failed to parse: {response_template}")
         return response_template
 
 
@@ -536,14 +565,29 @@ def mock_get_response(provider: str, prompt: str, source: str, model_name: Optio
     Returns:
         A mock response
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Mock response requested for provider: {provider}, model: {model_name}")
+    logger.debug(f"Prompt snippet: {prompt[:100]}...")
+    logger.debug(f"Source snippet: {source[:100]}...")
+    
     # Determine the module type from the prompt or source
     if "job" in prompt.lower() or "position" in prompt.lower() or "company" in prompt.lower():
         module = "job_ads"
+        logger.info(f"Detected module from prompt keywords: {module}")
     elif "product" in prompt.lower() or "item" in prompt.lower() or "specifications" in prompt.lower():
         module = "product_descriptions"
+        logger.info(f"Detected module from prompt keywords: {module}")
     elif "MACHINE LEARNING ENGINEER" in source or "job" in source.lower() or "software engineer" in source.lower():
         module = "job_ads"
+        logger.info(f"Detected module from source keywords: {module}")
     else:
         module = "product_descriptions"
+        logger.info(f"Using default module: {module}")
     
-    return get_mock_response(module, source, model_name)
+    response = get_mock_response(module, source, model_name)
+    logger.info(f"Generated mock response for module: {module} ({len(response)} chars)")
+    logger.debug(f"Response snippet: {response[:100]}...")
+    
+    return response

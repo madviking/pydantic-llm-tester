@@ -22,7 +22,7 @@
     }
   },
   "test_settings": {
-    "output_dir": "tester",
+    "output_dir": "test_results",
     "save_optimized_prompts": true,
     "default_modules": [
       "job_ads"

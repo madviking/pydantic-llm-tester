@@ -20,6 +20,7 @@ sys.path.append(str(Path(__file__).parent))
 
 from llm_tester import LLMTester
 from llm_tester.utils.config_manager import load_config, save_config, get_enabled_providers, get_test_setting, update_test_setting
+from llm_tester.utils.provider_manager import ProviderManager
 
 # Import mock responses
 from llm_tester.utils.mock_responses import mock_get_response
@@ -973,6 +974,24 @@ You can replace this with actual content to extract information from.
 
 def main(args=None):
     """Main function for the interactive runner"""
+    # Setup logging
+    import logging
+    
+    # Create logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    
+    # Create console handler and set level
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)  # Default level is INFO
+
+    # Create formatter
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    
+    # Add handler to logger
+    logger.addHandler(ch)
+    
     parser = argparse.ArgumentParser(description="Interactive LLM Tester Runner")
     parser.add_argument(
         "--env", 
@@ -994,8 +1013,18 @@ def main(args=None):
         type=str,
         help="Create a new model with the given name"
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging"
+    )
     
     parsed_args = parser.parse_args(args)
+    
+    # Configure debug logging if requested
+    if parsed_args.debug:
+        ch.setLevel(logging.DEBUG)
+        logger.info("Debug logging enabled")
     
     # Load environment variables
     if parsed_args.env:
