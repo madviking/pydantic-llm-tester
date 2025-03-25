@@ -65,10 +65,8 @@ class BaseLLM(ABC):
             self.logger.error("No model configuration found")
             raise ValueError("No model configuration found")
             
-        # Clean model name to remove provider prefix if present
+        # Use the original model name from the config to preserve any provider prefix
         clean_model_name = model_config.name
-        if ':' in clean_model_name:
-            clean_model_name = clean_model_name.split(':')[-1]
         
         # Get system prompt from config
         system_prompt = self.config.system_prompt if self.config else ""
@@ -97,9 +95,11 @@ class BaseLLM(ABC):
                     model=clean_model_name,
                     prompt_tokens=usage.get("prompt_tokens", 0),
                     completion_tokens=usage.get("completion_tokens", 0),
-                    total_tokens=usage.get("total_tokens", 0),
-                    elapsed_time=elapsed_time
+                    total_tokens=usage.get("total_tokens", 0)
                 )
+                
+                # Add elapsed time as an attribute
+                usage_data.elapsed_time = elapsed_time
                 
                 # Calculate costs based on model config
                 prompt_cost = (usage_data.prompt_tokens / 1000000) * model_config.cost_input

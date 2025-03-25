@@ -8,12 +8,17 @@ import inspect
 
 from pydantic import BaseModel, Field
 
+# Define a global variable for pydantic_ai availability and LLMRunner
+PYDANTIC_AI_AVAILABLE = False
+LLMRunner = None
+
+# Try to import pydantic_ai
 try:
     import pydantic_ai
     from pydantic_ai import LLMRunner
     PYDANTIC_AI_AVAILABLE = True
 except ImportError:
-    PYDANTIC_AI_AVAILABLE = False
+    pass
     
 from ..base import BaseLLM, ModelConfig
 from ...utils.cost_manager import UsageData
@@ -38,7 +43,7 @@ class PydanticAIProvider(BaseLLM):
         # We'll initialize runners on demand based on the model requested
         self.runners = {}
         
-    def _get_runner(self, provider: str, model: str) -> LLMRunner:
+    def _get_runner(self, provider: str, model: str) -> Any:
         """Get or create a runner for the specified provider and model
         
         Args:
@@ -48,6 +53,9 @@ class PydanticAIProvider(BaseLLM):
         Returns:
             A PydanticAI LLMRunner instance
         """
+        if not PYDANTIC_AI_AVAILABLE:
+            self.logger.error("PydanticAI not available")
+            raise ValueError("PydanticAI not available")
         runner_key = f"{provider}:{model}"
         
         # Check if runner already exists

@@ -1,40 +1,51 @@
-"""
-Manager for LLM provider connections
-"""
+# ProviderManager Refactoring Implementation Guide
 
-import os
-import logging
-from typing import Dict, Any, List, Optional, Tuple
-from pathlib import Path
-from dotenv import load_dotenv
+This document provides a detailed implementation plan for refactoring the `ProviderManager` class to fully utilize the pluggable LLM system in the `llms/` directory.
 
-from .cost_manager import UsageData
+## Current Issues
 
-# Load environment variables from .env file
-env_path = Path(__file__).parent.parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+The current `ProviderManager` implementation has several issues:
 
+1. Provider-specific code is duplicated in multiple methods (`_get_openai_response`, `_get_anthropic_response`, etc.)
+2. Adding a new provider requires modifying this class in multiple places
+3. The same API client creation logic exists here and in the provider classes in `llms/`
+4. There's a parallel code path for mocked providers that's handled differently
 
+## Refactoring Strategy
+
+The refactored `ProviderManager` will:
+
+1. Utilize the LLM registry system to load providers
+2. Delegate all API interactions to the provider instances
+3. Standardize the interface for all providers, including mocks
+4. Remove all provider-specific code
+
+## Implementation Details
+
+### Updated Class Structure
+
+```python
 class ProviderManager:
     """
-    Manages connections to LLM providers using the pluggable LLM system
+    Manages LLM provider interfaces using the pluggable LLM system
     """
     
     def __init__(self, providers: List[str]):
         """
-        Initialize the provider manager
+        Initialize the provider manager with specified providers
         
         Args:
             providers: List of provider names to initialize
         """
         self.providers = providers
         self.logger = logging.getLogger(__name__)
-        self.provider_instances = {}
-        self.initialization_errors = {}
         self._initialize_providers()
     
     def _initialize_providers(self) -> None:
         """Initialize provider instances from the LLM registry"""
+        self.provider_instances = {}
+        self.initialization_errors = {}
+        
         # Import here to avoid circular imports
         from ..llms.llm_registry import get_llm_provider, discover_providers
         
@@ -86,35 +97,6 @@ class ProviderManager:
         Returns:
             Tuple of (response_text, usage_data)
         """
-        # Check if this is a mock provider but not properly initialized
-        if provider.startswith("mock_") and provider not in self.provider_instances:
-            # Import here to avoid circular imports
-            from .mock_responses import get_mock_response
-            
-            self.logger.info(f"Falling back to legacy mock provider for {provider}")
-            
-            # Create mock usage data
-            mock_model = "mock-model"
-            # Estimate token count for the mock response
-            prompt_tokens = len(prompt.split()) + len(source.split())
-            completion_tokens = 500  # Rough estimate for mock responses
-            
-            # Determine which mock to use based on source content
-            if "MACHINE LEARNING ENGINEER" in source or "job" in source.lower() or "software engineer" in source.lower() or "developer" in source.lower():
-                mock_response = get_mock_response("job_ads", source)
-            else:
-                mock_response = get_mock_response("product_descriptions", source)
-            
-            # Create usage data for mock
-            usage_data = UsageData(
-                provider=provider,
-                model=mock_model,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens
-            )
-            
-            return mock_response, usage_data
-        
         # Check if the provider is initialized
         if provider not in self.provider_instances:
             # Check if we have a specific initialization error for this provider
@@ -145,3 +127,28 @@ class ProviderManager:
         except Exception as e:
             self.logger.error(f"Error getting response from {provider}: {str(e)}")
             raise
+```
+
+### Migration Steps
+
+1. Create the new implementation as shown above
+2. Update imports to include the LLM registry
+3. Test with various providers to ensure it works correctly
+4. Remove the old provider-specific methods
+5. Update any code that directly used those methods
+
+## Testing Strategy
+
+1. Unit test with mock LLM providers to verify correct delegation
+2. Test with real providers using small prompts
+3. Test with mock providers to ensure they still work
+4. Test error handling with invalid provider names
+5. Verify usage tracking still works correctly
+
+## Integration Points
+
+- The `LLMTester` class interfaces with `ProviderManager` directly
+- The CLI uses `ProviderManager` indirectly through `LLMTester`
+- The runner and UI interact with `ProviderManager` through wrappers
+
+All of these should continue to work without modification once the refactoring is complete, as the external interface of `ProviderManager` remains unchanged.

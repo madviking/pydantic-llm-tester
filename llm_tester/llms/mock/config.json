@@ -1,0 +1,38 @@
+{
+  "name": "mock",
+  "provider_type": "mock",
+  "env_key": "MOCK_API_KEY",
+  "system_prompt": "You are a mock LLM provider for testing purposes.",
+  "models": [
+    {
+      "name": "mock:default",
+      "default": true,
+      "preferred": false,
+      "cost_input": 0.0,
+      "cost_output": 0.0,
+      "cost_category": "free",
+      "max_input_tokens": 16000,
+      "max_output_tokens": 16000
+    },
+    {
+      "name": "mock:fast",
+      "default": false,
+      "preferred": false,
+      "cost_input": 0.0,
+      "cost_output": 0.0,
+      "cost_category": "free",
+      "max_input_tokens": 8000,
+      "max_output_tokens": 8000
+    },
+    {
+      "name": "mock:large",
+      "default": false,
+      "preferred": false,
+      "cost_input": 0.0,
+      "cost_output": 0.0,
+      "cost_category": "free",
+      "max_input_tokens": 32000,
+      "max_output_tokens": 32000
+    }
+  ]
+}

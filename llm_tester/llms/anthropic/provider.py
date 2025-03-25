@@ -66,16 +66,30 @@ class AnthropicProvider(BaseLLM):
         # Make the API call
         self.logger.info(f"Sending request to Anthropic model {model_name}")
         
-        response = self.client.messages.create(
-            model=model_name,
-            system=system_prompt,
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=max_tokens,
-            temperature=0.1,  # Lower temperature for more deterministic results
-            response_format={"type": "json_object"}  # Request JSON response
-        )
+        try:
+            # Attempt to use response_format (for newer Anthropic SDK versions)
+            response = self.client.messages.create(
+                model=model_name,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=0.1,  # Lower temperature for more deterministic results
+                response_format={"type": "json_object"}  # Request JSON response
+            )
+        except TypeError:
+            # Fall back to not using response_format for older versions
+            self.logger.info("Falling back to older Anthropic API format without response_format")
+            response = self.client.messages.create(
+                model=model_name,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=max_tokens,
+                temperature=0.1  # Lower temperature for more deterministic results
+            )
         
         # Extract response text
         response_text = response.content[0].text

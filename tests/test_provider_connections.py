@@ -57,7 +57,7 @@ class TestProviderManager:
         
         # Check usage data is returned
         assert usage_data is not None
-        assert usage_data.provider == "mock_provider"
+        assert usage_data.provider == "mock"
         assert usage_data.prompt_tokens > 0
         assert usage_data.completion_tokens > 0
         
@@ -74,7 +74,7 @@ class TestProviderManager:
         
         # Check usage data again
         assert usage_data is not None
-        assert usage_data.provider == "mock_provider"
+        assert usage_data.provider == "mock"
         assert usage_data.prompt_tokens > 0
         assert usage_data.completion_tokens > 0
     
@@ -144,7 +144,7 @@ class TestProviderManager:
                     # Log error but don't fail the test for real providers with valid credentials
                     print(f"⚠ {provider} connection failed: {str(e)}")
                     # Only fail the test if we have credentials but connection still fails
-                    if provider in manager.provider_clients:
+                    if provider in manager.provider_instances:
                         pytest.fail(f"Error connecting to {provider}: {str(e)}")
 
 

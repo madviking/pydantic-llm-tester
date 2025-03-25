@@ -57,7 +57,8 @@ class OpenAIProvider(BaseLLM):
             raise ValueError("OpenAI client not initialized")
             
         # Calculate max tokens based on model config
-        max_tokens = min(model_config.max_output_tokens, 8192)  # Default cap at 8192
+        # GPT-4 supports up to 4096 tokens, others may vary
+        max_tokens = min(model_config.max_output_tokens, 4096)  # Default cap at 4096
         
         # Ensure we have a valid system prompt
         if not system_prompt:
