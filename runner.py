@@ -52,150 +52,8 @@ DEFAULT_CONFIG = {
     }
 }
 
-# Mock responses for testing without API keys
-MOCK_RESPONSES = {
-    "job_ads": """
-    {
-      "title": "SENIOR MACHINE LEARNING ENGINEER",
-      "company": "DataVision Analytics",
-      "department": "AI Research Division",
-      "location": {
-        "city": "Boston",
-        "state": "Massachusetts",
-        "country": "United States"
-      },
-      "salary": {
-        "range": "$150,000 - $190,000",
-        "currency": "USD",
-        "period": "annually"
-      },
-      "employment_type": "Full-time",
-      "experience": {
-        "years": "5+ years",
-        "level": "Senior"
-      },
-      "required_skills": [
-        "Python",
-        "TensorFlow/PyTorch",
-        "computer vision or NLP algorithms",
-        "distributed computing",
-        "data preprocessing",
-        "feature engineering"
-      ],
-      "preferred_skills": [
-        "GPT models",
-        "fine-tuning",
-        "edge deployment"
-      ],
-      "education": [
-        {
-          "degree": "Master's degree",
-          "field": "Computer Science, AI, or related field",
-          "required": true
-        },
-        {
-          "degree": "PhD",
-          "field": "Machine Learning or related field",
-          "required": false
-        }
-      ],
-      "responsibilities": [
-        "Design and implement novel ML architectures for complex problems",
-        "Lead research projects exploring state-of-the-art approaches",
-        "Mentor junior team members on ML best practices"
-      ],
-      "benefits": [
-        {
-          "name": "Comprehensive health, dental, and vision insurance",
-          "description": "Includes coverage for dependents and domestic partners"
-        },
-        {
-          "name": "401(k) matching program",
-          "description": "Up to 5% match with immediate vesting"
-        }
-      ],
-      "description": "As a Senior ML Engineer, you will be at the forefront of our AI research initiatives.",
-      "application_deadline": "2025-04-30",
-      "contact_info": {
-        "name": "Dr. Sarah Chen",
-        "email": "ml-recruiting@datavisionanalytics.com",
-        "phone": "(617) 555-9876",
-        "website": "https://careers.datavisionanalytics.com/ml-engineer"
-      },
-      "remote": true,
-      "travel_required": "Occasional travel (10-15%) for conferences, team off-sites, and client meetings",
-      "posting_date": "2025-03-15"
-    }
-    """,
-    "product_descriptions": """
-    {
-      "id": "WE-X1-BLK",
-      "name": "Wireless Earbuds X1",
-      "brand": "TechGear",
-      "category": "Audio Accessories",
-      "price": {
-        "amount": 79.99,
-        "currency": "USD",
-        "discount_percentage": 20.0,
-        "original_amount": 99.99
-      },
-      "description": "Experience true wireless freedom with our X1 Wireless Earbuds.",
-      "features": [
-        "True wireless design",
-        "Bluetooth 5.2 connectivity",
-        "8-hour battery life (30 hours with charging case)",
-        "Active noise cancellation"
-      ],
-      "specifications": [
-        {
-          "name": "Driver Size",
-          "value": "10",
-          "unit": "mm"
-        },
-        {
-          "name": "Frequency Response",
-          "value": "20Hz-20KHz"
-        }
-      ],
-      "dimensions": {
-        "length": 2.1,
-        "width": 1.8,
-        "height": 2.5,
-        "unit": "cm"
-      },
-      "weight": {
-        "value": 5.6,
-        "unit": "g"
-      },
-      "colors": [
-        "Midnight Black",
-        "Arctic White",
-        "Navy Blue"
-      ],
-      "images": [
-        "https://techgear.com/images/wireless-earbuds-x1-black.jpg",
-        "https://techgear.com/images/wireless-earbuds-x1-case.jpg"
-      ],
-      "shipping_info": {
-        "ships_within": "1 business day",
-        "shipping_type": "Free standard shipping"
-      },
-      "warranty": "1-year limited warranty",
-      "return_policy": "30-day money-back guarantee",
-      "reviews": {
-        "rating": 4.6,
-        "count": 352
-      },
-      "release_date": "2025-01-15",
-      "is_bestseller": true,
-      "related_products": [
-        "WE-X1-TIPS",
-        "WE-X1-CASE",
-        "BT-SPK-10"
-      ]
-    }
-    """
-}
+# Import mock responses
+from llm_tester.utils.mock_responses import mock_get_response
 
 def load_config() -> Dict[str, Any]:
     """Load configuration from config.json"""
@@ -646,26 +504,9 @@ def run_tests(tester: LLMTester, providers: List[str], models: Dict[str, str] = 
     # Check if we're using mock providers
     using_mock = any(p.startswith("mock_") for p in providers)
     
-    # If using mock, set up the mock function
+    # If using mock, we'll use the imported mock_get_response
     if using_mock:
         print("Using mock providers. No API calls will be made.")
-        
-        def mock_get_response(self, provider, prompt, source, model_name=None):
-            # Determine which mock response to use based on source content
-            if "job" in source.lower() or "software engineer" in source.lower() or "developer" in source.lower():
-                mock_data = json.loads(MOCK_RESPONSES["job_ads"])
-                # Customize the response based on the source
-                if "FULL STACK" in source:
-                    mock_data["title"] = "FULL STACK DEVELOPER"
-                    mock_data["company"] = "TechInnovate Solutions"
-                return json.dumps(mock_data)
-            else:
-                mock_data = json.loads(MOCK_RESPONSES["product_descriptions"])
-                # Customize the response based on the source
-                if "ULTRABOOK" in source:
-                    mock_data["name"] = "UltraBook Pro X15 Laptop"
-                    mock_data["brand"] = "TechVantage"
-                return json.dumps(mock_data)
         
         # Patch the get_response method
         with patch('llm_tester.utils.provider_manager.ProviderManager.get_response', mock_get_response):
