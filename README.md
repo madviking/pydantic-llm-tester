@@ -25,21 +25,32 @@ A Python module for testing and comparing different LLM models using PydanticAI 
 git clone https://github.com/yourusername/llm-tester.git
 cd llm-tester
 
-# Install the package
-pip install -e .
+# Run the installation script
+chmod +x install.sh
+./install.sh
 ```
 
-## Environment Setup
+The installation script will:
+- Create a virtual environment
+- Install required dependencies
+- Create a template .env file for your API keys
 
-Create a `.env` file in the project root with your API keys:
+## Running the Interactive Tool
 
+```bash
+# Make sure the virtual environment is activated
+source venv/bin/activate
+
+# Run the interactive tool
+./runner.py
 ```
-OPENAI_API_KEY=your_openai_key
-ANTHROPIC_API_KEY=your_anthropic_key
-MISTRAL_API_KEY=your_mistral_key
-GOOGLE_PROJECT_ID=your_google_project_id
-GOOGLE_APPLICATION_CREDENTIALS=path/to/credentials.json
-```
+
+The interactive runner provides a menu-driven interface to:
+- Check your setup and API keys
+- List available test cases
+- Configure which providers and models to use
+- Run tests with or without prompt optimization
+- View and save test results
 
 ## Usage
 
@@ -61,7 +72,13 @@ optimized_results = tester.run_optimized_tests()
 optimized_report = tester.generate_report(optimized_results, optimized=True)
 ```
 
-## CLI Usage
+## Mock Testing
+
+The interactive runner includes a mock mode for testing without API keys. When configuring providers, select the "Mock" option to use the built-in mock responses.
+
+## Advanced CLI Usage
+
+While the interactive runner is recommended, you can also use the CLI directly:
 
 ```bash
 # Run basic tests
@@ -75,15 +92,6 @@ python -m llm_tester.cli --models openai:gpt-4 anthropic:claude-3-opus
 
 # Generate JSON output
 python -m llm_tester.cli --json --output results.json
-```
-
-## Mock Testing
-
-For development without API keys, use the mock test examples:
-
-```bash
-python examples/run_mock_test.py
-python examples/run_mock_test_with_products.py
 ```
 
 ## Adding New Models

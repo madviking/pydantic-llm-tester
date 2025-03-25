@@ -1,0 +1,11 @@
+1) Environment setup does not recognize that there is an API key missing
+2) Setup providers should read the providers from the configuration file
+3) Mock responses should not be in runner.py
+4) Pytest should cover also connecting to LLM providers
+5) When running a test, you should choose where to output the results
+6) Potential prompt improvements should be saved to their own files
+7) Note that PydanticAI takes care of sending the data structure, so prompt improvement should not include the model
+8) When running the tests, user should be able to choose which models (modules) to test
+9) Let's add a functionality for adding scaffolding to new model
+10) When running tests, let's provide interactive feedback on what's going on.
+11) I'm getting error: Error testing provider google: Provider google not initialized — the key is in place.

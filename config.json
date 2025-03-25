@@ -1,0 +1,29 @@
+{
+  "providers": {
+    "openai": {
+      "enabled": true,
+      "default_model": "gpt-4"
+    },
+    "anthropic": {
+      "enabled": true,
+      "default_model": "claude-3-opus-20240229"
+    },
+    "mistral": {
+      "enabled": true,
+      "default_model": "mistral-large-latest"
+    },
+    "google": {
+      "enabled": true,
+      "default_model": "gemini-pro"
+    },
+    "mock_provider": {
+      "enabled": true,
+      "default_model": "mock-model"
+    }
+  },
+  "test_settings": {
+    "output_dir": "test_results",
+    "save_optimized_prompts": true,
+    "default_modules": ["job_ads", "product_descriptions"]
+  }
+}
