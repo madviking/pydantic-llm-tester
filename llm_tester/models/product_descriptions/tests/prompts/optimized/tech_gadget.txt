@@ -1,1 +1,66 @@
-Optimized prompt
+Extract structured information from the provided product description. Parse the text and extract all the relevant information about the product. Return the result as a JSON object with the following schema:
+
+{
+  "id": "Product identifier (string)",
+  "name": "Product name (string)",
+  "brand": "Brand name (string)",
+  "category": "Product category (string)",
+  "subcategory": "Product subcategory (string, optional)",
+  "price": {
+    "amount": 0.0 (number),
+    "currency": "USD (string)",
+    "discount_percentage": 0.0 (number, optional),
+    "original_amount": 0.0 (number, optional)
+  },
+  "description": "Detailed product description (string)",
+  "features": [
+    "Feature 1 (string)",
+    "Feature 2 (string)"
+  ],
+  "specifications": [
+    {
+      "name": "Spec name (string)",
+      "value": "Spec value (string or number)",
+      "unit": "Unit (string, optional)"
+    }
+  ],
+  "dimensions": {
+    "length": 0.0 (number),
+    "width": 0.0 (number),
+    "height": 0.0 (number),
+    "unit": "units (string)"
+  },
+  "weight": {
+    "value": 0.0 (number),
+    "unit": "units (string)"
+  },
+  "colors": [
+    "Color 1 (string)",
+    "Color 2 (string)"
+  ],
+  "images": [
+    "https://example.com/image1.jpg (URL string)",
+    "https://example.com/image2.jpg (URL string)"
+  ],
+  "availability": "In stock (string)",
+  "shipping_info": {
+    "ships_within": "Shipping timeframe (string)",
+    "shipping_type": "Type of shipping (string)"
+  },
+  "warranty": "Warranty information (string)",
+  "return_policy": "Return policy details (string)",
+  "reviews": {
+    "rating": 4.5 (number),
+    "count": 100 (integer)
+  },
+  "release_date": "YYYY-MM-DD (date string)",
+  "is_bestseller": true/false (boolean),
+  "related_products": [
+    "Related product ID 1 (string)",
+    "Related product ID 2 (string)"
+  ]
+}
+
+IMPORTANT: Make sure to include ALL fields in the schema, even if you need to use your best judgment to infer values not explicitly stated in the product description. For missing information, provide reasonable defaults based on the product type. Use https://example.com URLs for any image links that aren't specified.
+
+Respond only with the JSON object, no additional text.

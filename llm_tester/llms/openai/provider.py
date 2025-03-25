@@ -67,16 +67,35 @@ class OpenAIProvider(BaseLLM):
         # Make the API call
         self.logger.info(f"Sending request to OpenAI model {model_name}")
         
-        response = self.client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=max_tokens,
-            temperature=0.1,  # Lower temperature for more deterministic results
-            response_format={"type": "json_object"}  # Request JSON response
-        )
+        # Check if model supports response_format (only newer models like gpt-4o and gpt-4-turbo support it)
+        supports_json_response_format = any(name in model_name for name in ['gpt-4o', 'gpt-4-turbo'])
+        
+        try:
+            if supports_json_response_format:
+                response = self.client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.1,  # Lower temperature for more deterministic results
+                    response_format={"type": "json_object"}  # Request JSON response
+                )
+            else:
+                # For models that don't support response_format
+                response = self.client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt + " Return the result as valid JSON."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.1  # Lower temperature for more deterministic results
+                )
+        except Exception as e:
+            self.logger.error(f"Error calling OpenAI API: {str(e)}")
+            raise ValueError(f"Error code: {getattr(e, 'status_code', 'unknown')} - {str(e)}")
         
         # Extract response text
         response_text = response.choices[0].message.content
