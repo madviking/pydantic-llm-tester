@@ -23,6 +23,14 @@ _provider_configs: Dict[str, ProviderConfig] = {}
 # Cache for external provider mappings
 _external_providers: Dict[str, Dict[str, str]] = {}
 
+# Reset caches (for development/testing - remove in production)
+def reset_caches():
+    """Reset all provider caches to force rediscovery"""
+    global _provider_classes, _provider_configs, _external_providers
+    _provider_classes = {}
+    _provider_configs = {}
+    _external_providers = {}
+
 def load_provider_config(provider_name: str) -> Optional[ProviderConfig]:
     """Load provider configuration from a JSON file
     
