@@ -213,11 +213,17 @@ You can verify your provider setup by running:
 
 This will check all discovered providers, their configurations, and available models.
 
+
+## General implementation note
+
+This package is written from the ground up using Claude Code, using only minimum manual intervention. Claude
+written code is reviewed and tested by the author. Test coverage is good, but not 100%.
+
 ## License
 
 MIT
 
 ---
 
-*Built with Claude Code - A demonstration of AI-assisted software development using Claude 3.5 Sonnet*
+*Built with the help of Claude Code - A demonstration of AI-assisted software development using Claude 3.5 Sonnet*
 © 2025 Timo Railo
