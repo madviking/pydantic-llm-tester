@@ -8,6 +8,15 @@ import json
 from typing import List, Dict, Any, Optional, Type, Tuple
 import logging
 import inspect
+import numbers
+from datetime import date, datetime
+
+# Import rapidfuzz for string similarity
+try:
+    from rapidfuzz import fuzz
+    RAPIDFUZZ_AVAILABLE = True
+except ImportError:
+    RAPIDFUZZ_AVAILABLE = False
 
 from pydantic import BaseModel
 
@@ -556,10 +565,288 @@ class LLMTester:
         self.logger.info("Field-by-field results:")
         for field, result in field_results.items():
             self.logger.info(f"  {field}: {result}")
-        
+
+        # Return just the accuracy percentage for now to maintain compatibility
+        # with _validate_response. We can modify _validate_response later
+        # to handle the detailed field_results if needed.
         return accuracy
-    
-    def run_tests(self, model_overrides: Optional[Dict[str, str]] = None, 
+
+    def _calculate_accuracy(
+        self,
+        actual: Dict[str, Any],
+        expected: Dict[str, Any],
+        field_weights: Optional[Dict[str, float]] = None,
+        numerical_tolerance: float = 0.0, # Default: exact match for numbers
+        list_comparison_mode: str = 'ordered_exact', # Options: 'ordered_exact', 'ordered_similarity', 'set_similarity'
+        string_similarity_threshold: float = 80.0 # Threshold for rapidfuzz ratio (0-100)
+    ) -> float:
+        """
+        Calculate accuracy by comparing actual and expected data with enhanced options.
+
+        Args:
+            actual: Actual data from LLM response.
+            expected: Expected data.
+            field_weights: Optional dictionary mapping field names to weights (default 1.0).
+            numerical_tolerance: Optional relative tolerance for numerical comparisons (e.g., 0.05 for 5%).
+            list_comparison_mode: How to compare lists:
+                'ordered_exact': Items must match exactly in the same order.
+                'ordered_similarity': Compare items in order using recursive similarity logic.
+                'set_similarity': Compare lists as sets, using recursive similarity for items.
+            string_similarity_threshold: Minimum fuzz.ratio() score (0-100) for a string to be considered a match.
+
+        Returns:
+            Accuracy as a percentage (float).
+        """
+        self.logger.info("Calculating accuracy with enhanced options...")
+        if not RAPIDFUZZ_AVAILABLE:
+            self.logger.warning("rapidfuzz library not found. String similarity matching will be basic. Install with 'pip install rapidfuzz'")
+
+        # Initialize weights if not provided
+        field_weights = field_weights or {}
+
+        # Base case: If expected is empty, accuracy is 100% only if actual is also empty.
+        if not expected:
+            is_match = not actual
+            self.logger.warning(f"Expected data is empty. Actual is {'empty' if is_match else 'not empty'}. Accuracy: {100.0 if is_match else 0.0}%")
+            return 100.0 if is_match else 0.0
+
+        # Normalize dates for consistent comparison (handles date objects vs ISO strings)
+        def normalize_value(obj):
+            if isinstance(obj, dict):
+                return {k: normalize_value(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [normalize_value(i) for i in obj]
+            elif isinstance(obj, (date, datetime)):
+                return obj.isoformat()
+            # Attempt to parse strings that look like dates/datetimes back for comparison consistency if needed,
+            # but direct ISO string comparison is usually sufficient if both sides are normalized.
+            return obj
+
+        actual_normalized = normalize_value(actual)
+        expected_normalized = normalize_value(expected)
+
+        # Special case for identical dicts after normalization
+        if actual_normalized == expected_normalized:
+            self.logger.info("Actual and expected data are identical after normalization. Accuracy: 100.0%")
+            return 100.0
+
+        total_weighted_points = 0
+        earned_weighted_points = 0
+        field_results_log = {} # For logging details
+
+        # Iterate through expected fields
+        for key, exp_val_norm in expected_normalized.items():
+            weight = field_weights.get(key, 1.0) # Get weight or default to 1.0
+            total_weighted_points += weight
+
+            field_score = 0.0
+            field_reason = "Field missing in actual"
+
+            if key in actual_normalized:
+                act_val_norm = actual_normalized[key]
+                field_score, field_reason = self._compare_values(
+                    act_val_norm, exp_val_norm,
+                    field_weights=field_weights, # Pass weights for potential nested use
+                    numerical_tolerance=numerical_tolerance,
+                    list_comparison_mode=list_comparison_mode,
+                    string_similarity_threshold=string_similarity_threshold
+                )
+
+            earned_weighted_points += field_score * weight
+            field_results_log[key] = f"Score={field_score:.2f}, Weight={weight}, Reason='{field_reason}'"
+
+        # Calculate final percentage
+        accuracy = (earned_weighted_points / total_weighted_points) * 100.0 if total_weighted_points > 0 else 100.0 # Avoid division by zero; 100% if no expected fields
+
+        # Log detailed results
+        self.logger.info(f"Overall accuracy: {accuracy:.2f}% ({earned_weighted_points:.2f}/{total_weighted_points:.2f} weighted points)")
+        self.logger.info("Field-by-field results (internal scoring):")
+        for field, result in field_results_log.items():
+            self.logger.info(f"  {field}: {result}")
+
+        return accuracy
+
+    # --- Accuracy Calculation Helpers ---
+
+    def _normalize_value(self, obj: Any) -> Any:
+        """Normalize dates/datetimes to ISO strings for comparison."""
+        if isinstance(obj, dict):
+            return {k: self._normalize_value(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self._normalize_value(i) for i in obj]
+        elif isinstance(obj, (date, datetime)):
+            return obj.isoformat()
+        return obj
+
+    def _compare_values(
+        self, act_val: Any, exp_val: Any, **kwargs
+    ) -> Tuple[float, str]:
+        """Dispatch comparison to type-specific helpers."""
+        score = 0.0
+        reason = "No match"
+
+        # 1. Handle None values
+        if exp_val is None:
+            return (1.0, "Exact match (None)") if act_val is None else (0.0, "Mismatch (expected None)")
+        elif act_val is None:
+            return 0.0, "Mismatch (actual is None)"
+
+        # 2. Dictionary comparison
+        if isinstance(exp_val, dict) and isinstance(act_val, dict):
+            score, reason = self._compare_dicts(act_val, exp_val, **kwargs)
+        # 3. List comparison
+        elif isinstance(exp_val, list) and isinstance(act_val, list):
+            score, reason = self._compare_lists(act_val, exp_val, **kwargs)
+        # 4. Numerical comparison
+        elif isinstance(exp_val, numbers.Number) and isinstance(act_val, numbers.Number):
+            score, reason = self._compare_numbers(act_val, exp_val, **kwargs)
+        # 5. String comparison
+        elif isinstance(exp_val, str) and isinstance(act_val, str):
+            score, reason = self._compare_strings(act_val, exp_val, **kwargs)
+        # 6. Other types (exact comparison)
+        else:
+            score, reason = self._compare_other(act_val, exp_val)
+
+        return score, reason
+
+    def _compare_dicts(
+        self, act_val: Dict, exp_val: Dict, **kwargs
+    ) -> Tuple[float, str]:
+        """Compare dictionaries recursively."""
+        # Note: field_weights passed in kwargs are for the parent level,
+        # they don't directly apply inside the nested dict comparison here.
+        # The nested call to _calculate_accuracy handles weights for its level.
+        nested_accuracy_percent = self._calculate_accuracy(
+            act_val, exp_val,
+            field_weights=kwargs.get('field_weights'), # Pass along for deeper levels
+            numerical_tolerance=kwargs.get('numerical_tolerance', 0.0),
+            list_comparison_mode=kwargs.get('list_comparison_mode', 'ordered_exact'),
+            string_similarity_threshold=kwargs.get('string_similarity_threshold', 80.0)
+        )
+        score = nested_accuracy_percent / 100.0
+        reason = f"Nested object ({nested_accuracy_percent:.1f}%)"
+        return score, reason
+
+    def _compare_lists(
+        self, act_val: List, exp_val: List, **kwargs
+    ) -> Tuple[float, str]:
+        """Compare lists based on the specified mode."""
+        list_comparison_mode = kwargs.get('list_comparison_mode', 'ordered_exact')
+        len_exp = len(exp_val)
+        len_act = len(act_val)
+        score = 0.0
+        reason = "List comparison failed"
+
+        if len_exp == 0:
+            return (1.0, "Exact match (empty list)") if len_act == 0 else (0.0, "Mismatch (expected empty list)")
+        elif len_act == 0:
+            return 0.0, "Mismatch (actual list empty)"
+
+        if list_comparison_mode == 'ordered_exact':
+            matches = sum(1 for i in range(len_exp) if i < len_act and act_val[i] == exp_val[i])
+            score = matches / len_exp
+            reason = f"Ordered exact ({matches}/{len_exp} items matched)"
+
+        elif list_comparison_mode == 'ordered_similarity':
+            total_item_score = 0
+            for i in range(len_exp):
+                item_score = 0.0
+                if i < len_act:
+                    item_score, _ = self._compare_values(act_val[i], exp_val[i], **kwargs)
+                total_item_score += item_score
+            score = total_item_score / len_exp
+            reason = f"Ordered similarity ({score*100:.1f}%)"
+
+        elif list_comparison_mode == 'set_similarity':
+            matched_actual_indices = set()
+            total_item_score = 0
+            for i in range(len_exp):
+                best_item_score = -1.0 # Use -1 to ensure any match is better
+                best_j = -1
+                for j in range(len_act):
+                    if j not in matched_actual_indices:
+                        item_score, _ = self._compare_values(act_val[j], exp_val[i], **kwargs)
+                        if item_score > best_item_score:
+                            best_item_score = item_score
+                            best_j = j
+                # Ensure we add non-negative scores
+                total_item_score += max(0.0, best_item_score)
+                if best_j != -1:
+                    matched_actual_indices.add(best_j)
+            score = total_item_score / len_exp
+            reason = f"Set similarity ({score*100:.1f}%)"
+
+        else: # Default to ordered_exact
+            matches = sum(1 for i in range(len_exp) if i < len_act and act_val[i] == exp_val[i])
+            score = matches / len_exp
+            reason = f"Ordered exact (default) ({matches}/{len_exp} items matched)"
+
+        return score, reason
+
+    def _compare_numbers(
+        self, act_val: numbers.Number, exp_val: numbers.Number, **kwargs
+    ) -> Tuple[float, str]:
+        """Compare numbers with optional tolerance."""
+        numerical_tolerance = kwargs.get('numerical_tolerance', 0.0)
+        score = 0.0
+        reason = "Numerical mismatch"
+
+        if numerical_tolerance > 0 and exp_val != 0:
+            if abs(act_val - exp_val) / abs(exp_val) <= numerical_tolerance:
+                score = 1.0
+                reason = f"Numerical match (within {numerical_tolerance*100:.1f}%)"
+            else:
+                reason = f"Numerical mismatch (outside {numerical_tolerance*100:.1f}%)"
+        elif act_val == exp_val:
+            score = 1.0
+            reason = "Numerical match (exact)"
+        else:
+             reason = "Numerical mismatch (exact)"
+
+        return score, reason
+
+    def _compare_strings(
+        self, act_val: str, exp_val: str, **kwargs
+    ) -> Tuple[float, str]:
+        """Compare strings with case-insensitivity and optional similarity."""
+        string_similarity_threshold = kwargs.get('string_similarity_threshold', 80.0)
+        score = 0.0
+        reason = "String mismatch"
+
+        if act_val.lower() == exp_val.lower():
+            score = 1.0
+            reason = "String match (case-insensitive)"
+        elif RAPIDFUZZ_AVAILABLE:
+            similarity = fuzz.ratio(act_val, exp_val)
+            if similarity >= string_similarity_threshold:
+                # Scale score between threshold and 100 for partial credit
+                score = (similarity - string_similarity_threshold) / (100.0 - string_similarity_threshold)
+                # score = 1.0 # Alternative: Full score if above threshold
+                reason = f"String similarity ({similarity:.1f}%)"
+            else:
+                reason = f"String similarity below threshold ({similarity:.1f}%)"
+        else: # Fallback if rapidfuzz not available
+            if exp_val.lower() in act_val.lower() or act_val.lower() in exp_val.lower():
+                 score = 0.5 # Basic partial match
+                 reason = "String partial match (basic)"
+            else:
+                 reason = "String mismatch (basic)"
+
+        return score, reason
+
+    def _compare_other(
+        self, act_val: Any, exp_val: Any
+    ) -> Tuple[float, str]:
+        """Compare other types using exact equality."""
+        if act_val == exp_val:
+            return 1.0, "Exact match (other type)"
+        else:
+            return 0.0, f"Mismatch (type {type(exp_val).__name__})"
+
+    # --- End Accuracy Calculation Helpers ---
+
+
+    def run_tests(self, model_overrides: Optional[Dict[str, str]] = None,
                   modules: Optional[List[str]] = None,
                   progress_callback: Optional[callable] = None) -> Dict[str, Dict[str, Any]]:
         """

@@ -8,3 +8,4 @@ python-dotenv>=1.0.0
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pydantic-ai>=0.0.44
+rapidfuzz>=3.0.0

@@ -214,10 +214,10 @@ You can verify your provider setup by running:
 This will check all discovered providers, their configurations, and available models.
 
 
-## General implementation note
+## General implementation notes
 
-This package is written from the ground up using Claude Code, using only minimum manual intervention. Claude
-written code is reviewed and tested by the author. Test coverage is good, but not 100%.
+This package is written initially using Claude Code, using only minimum manual intervention and edits. Further improvements are made with Cline, using Gemini 2.5. LLM generated code is reviewed and tested by the author and all of the architectural decisions are mine. 
+
 
 ## License
 
@@ -225,5 +225,4 @@ MIT
 
 ---
 
-*Built with the help of Claude Code - A demonstration of AI-assisted software development using Claude 3.5 Sonnet*
 © 2025 Timo Railo

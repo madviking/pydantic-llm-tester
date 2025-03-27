@@ -34,13 +34,15 @@ def test_accuracy_partial_string_match():
     """Test 50% accuracy for partial string matches."""
     actual = {"description": "This is a test description."}
     expected = {"description": "test description"} # Substring
+    # New logic: fuzz.ratio is below threshold (80), so score is 0.0
     accuracy = tester_instance._calculate_accuracy(actual, expected)
-    assert accuracy == 50.0
+    assert accuracy == 0.0 # Corrected for new logic
 
     actual_rev = {"description": "test description"}
     expected_rev = {"description": "This is a test description."} # Superstring
+    # New logic: fuzz.ratio is below threshold (80), so score is 0.0
     accuracy_rev = tester_instance._calculate_accuracy(actual_rev, expected_rev)
-    assert accuracy_rev == 50.0
+    assert accuracy_rev == 0.0 # Corrected for new logic
 
 def test_accuracy_no_string_match():
     """Test 0% accuracy for completely different strings."""
@@ -69,8 +71,9 @@ def test_accuracy_type_mismatch():
     """Test 0% accuracy for fields with type mismatches."""
     actual = {"count": "5"} # String
     expected = {"count": 5} # Integer
+    # New logic: Correctly identifies type mismatch
     accuracy = tester_instance._calculate_accuracy(actual, expected)
-    assert accuracy == 100.0 # Corrected: Compares str("5") == str(5)
+    assert accuracy == 0.0 # Corrected for new logic
 
 def test_accuracy_nested_object_match():
     """Test 100% accuracy for matching nested objects."""
@@ -172,9 +175,9 @@ def test_accuracy_empty_expected():
     """Test accuracy when expected is empty but actual is not."""
     actual = {"a": 1}
     expected = {}
-    # Based on current logic, if expected is empty, it returns 100%
+    # New logic: Returns 0% if expected is empty but actual is not
     accuracy = tester_instance._calculate_accuracy(actual, expected)
-    assert accuracy == 100.0
+    assert accuracy == 0.0 # Corrected for new logic
 
 def test_accuracy_complex_nested():
     """Test a more complex nested structure."""
