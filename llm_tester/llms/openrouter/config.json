@@ -1,0 +1,31 @@
+{
+  "name": "openrouter",
+  "provider_type": "openrouter",
+  "env_key": "OPENROUTER_KEY",
+  "env_key_secret": null,
+  "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
+  "models": [
+    {
+      "name": "google/gemini-pro-1.5",
+      "default": true,
+      "preferred": true,
+      "enabled": true,
+      "cost_input": 0.50,
+      "cost_output": 1.50,
+      "cost_category": "standard",
+      "max_input_tokens": 1048576,
+      "max_output_tokens": 8192
+    },
+    {
+      "name": "mistralai/mistral-7b-instruct:free",
+      "default": false,
+      "preferred": false,
+      "enabled": true,
+      "cost_input": 0.0,
+      "cost_output": 0.0,
+      "cost_category": "free",
+      "max_input_tokens": 32000,
+      "max_output_tokens": 2048
+    }
+  ]
+}

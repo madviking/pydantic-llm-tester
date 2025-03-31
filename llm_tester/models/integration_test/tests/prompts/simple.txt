@@ -1,0 +1,1 @@
+Extract the animal mentioned in the source text. Respond with JSON: {"animal": "animal_name"}

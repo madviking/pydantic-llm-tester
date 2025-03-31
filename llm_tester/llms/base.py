@@ -150,20 +150,27 @@ class BaseLLM(ABC):
                 return model.name
                 
         # If no default marked, use the first one
+        # Ensure this is the last line of get_default_model before un-indenting
         return self.config.models[0].name
-        
+
+    # --- Correctly indented methods start here ---
     def get_api_key(self) -> Optional[str]:
-        """Get API key from environment variable"""
+        """Get API key from environment variable."""
         if not self.config or not self.config.env_key:
+            self.logger.debug("No config or env_key defined for get_api_key.")
             return None
-            
-        return os.environ.get(self.config.env_key)
-        
+
+        # Directly get from environment; loading should happen externally (e.g., conftest or cli)
+        api_key = os.environ.get(self.config.env_key)
+        if api_key is None:
+             self.logger.debug(f"API key '{self.config.env_key}' not found in environment.")
+
+        return api_key
+
     def get_api_secret(self) -> Optional[str]:
         """Get API secret/secondary key from environment variable"""
         if not self.config or not self.config.env_key_secret:
             return None
-            
         return os.environ.get(self.config.env_key_secret)
         
     def get_model_config(self, model_name: Optional[str] = None) -> Optional[ModelConfig]:

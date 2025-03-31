@@ -9,6 +9,25 @@ import sys
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
+from dotenv import load_dotenv # Import load_dotenv
+import logging # Import logging
+
+# Configure basic logging early
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# --- Load .env file at module level ---
+# Assume .env is inside the llm_tester directory, relative to this cli.py file
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_dotenv_path = os.path.join(_script_dir, '.env') # Path is llm_tester/.env
+if os.path.exists(_dotenv_path):
+    # Force override in case variable exists but is empty in parent environment
+    load_dotenv(dotenv_path=_dotenv_path, override=True)
+    logger.info(f"Loaded environment variables from: {_dotenv_path} (override=True)")
+else:
+    logger.warning(f"Default .env file not found at {_dotenv_path}")
+# --- End .env loading ---
+
 
 from llm_tester import LLMTester
 
@@ -25,8 +44,14 @@ DEFAULT_MODELS = {
 def main():
     """Main CLI entry point"""
     parser = argparse.ArgumentParser(description="Test LLM performance with pydanticAI models")
+    # Add a verbosity argument
     parser.add_argument(
-        "--providers", 
+        '-v', '--verbose',
+        action='count', default=0,
+        help="Increase verbosity level (e.g., -v for INFO, -vv for DEBUG)"
+    )
+    parser.add_argument(
+        "--providers",
         type=str, 
         nargs="+", 
         default=["openai", "anthropic", "mistral", "google"],
@@ -71,11 +96,36 @@ def main():
     parser.add_argument(
         "--env",
         type=str,
-        help="Path to .env file with API keys (default: .env in project root)"
+        help="Path to .env file with API keys (will override default loading if specified)"
     )
 
+    # Parse arguments fully now
     args = parser.parse_args()
-    
+
+    # --- Setup Logging Level based on verbosity ---
+    if args.verbose == 1:
+        logging.getLogger().setLevel(logging.INFO)
+        logging.getLogger('llm_tester').setLevel(logging.INFO)
+        logger.info("Logging level set to INFO")
+    elif args.verbose >= 2:
+        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('llm_tester').setLevel(logging.DEBUG)
+        logger.info("Logging level set to DEBUG")
+    else:
+        # Default level (can be INFO or WARNING depending on basicConfig)
+        pass
+    # --- End Logging Setup ---
+
+    # --- Handle explicit --env argument (overrides module-level load) ---
+    if args.env:
+        if os.path.exists(args.env):
+            load_dotenv(dotenv_path=args.env, override=True)
+            logger.info(f"Loaded/Overridden environment variables from specified --env file: {args.env}")
+        else:
+            logger.warning(f"Specified --env file not found: {args.env}. Using previously loaded environment.")
+    # --- End explicit --env handling ---
+
+
     # Handle model specifications
     models = parse_model_args(args.models)
     
@@ -119,10 +169,17 @@ def main():
         output = tester.generate_report(results, optimized=args.optimize)
     
     # Write output
+    output_str = str(output) # Ensure output is a string, even if it's an error dict/object
     if args.output:
-        with open(args.output, "w") as f:
-            f.write(output)
-        print(f"Results written to {args.output}")
+        try:
+            with open(args.output, "w") as f:
+                f.write(output_str)
+            print(f"Results written to {args.output}")
+        except Exception as e:
+            logger.error(f"Failed to write report to {args.output}: {e}")
+            print("\n--- Report / Results ---")
+            print(output_str) # Print to stdout as fallback
+            print("--- End Report / Results ---")
     else:
         print("\n" + output)
     
