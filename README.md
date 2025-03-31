@@ -81,66 +81,85 @@ Make sure your API keys are set in `llm_tester/.env` or as environment variables
 
 ## Running via CLI
 
-The primary way to run tests and manage the tool is via the command-line interface.
+The primary way to run tests and manage the tool is via the `llm-tester` command-line interface (after installation via `pip install -e .`).
 
 ```bash
 # Make sure the virtual environment is activated
 source venv/bin/activate
 
-# --- Running Tests (Default Command) ---
+# Show help and available commands
+llm-tester --help
+
+# --- Running Tests ---
 
 # Run tests using all enabled providers and their default models
-python -m llm_tester.cli
+llm-tester run
 
 # Run tests for specific providers
-python -m llm_tester.cli --providers openai anthropic
+llm-tester run --providers openai anthropic
 
-# Run tests using specific models for providers
-python -m llm_tester.cli --providers openai openrouter --models openai:gpt-4o openrouter/google/gemini-pro-1.5
+# Run tests using specific LLM models for providers
+llm-tester run --providers openai openrouter --models openai:gpt-4o --models openrouter/google/gemini-pro-1.5
 
 # Run tests and save report to a file
-python -m llm_tester.cli --output my_report.md
+llm-tester run --output my_report.md
 
 # Run tests with prompt optimization
-python -m llm_tester.cli --optimize
+llm-tester run --optimize
 
-# List available test cases and configured providers/models without running
-python -m llm_tester.cli --list
+# Output test results as JSON instead of Markdown
+llm-tester run --json
 
-# Filter tests by name (e.g., only 'simple' tests in 'job_ads')
-python -m llm_tester.cli --filter job_ads/simple
+# Filter tests by name (e.g., only 'simple' tests in 'job_ads') - Note: Filtering not fully implemented yet
+# llm-tester run --filter job_ads/simple
 
 # Increase verbosity for debugging
-python -m llm_tester.cli -vv
+llm-tester run -vv
+
+# --- Listing Information ---
+
+# List available extraction schemas (test modules)
+llm-tester schemas list
+
+# List available test cases and configured providers/models without running tests
+llm-tester list
+
+# List specific providers and their models for the list command
+llm-tester list --providers openai --models openai:gpt-4o
 
 # --- Configuration & Management ---
 
 # Configure API Keys (Interactive Prompt)
-python -m llm_tester.cli configure keys
-
-# Update Model Info (e.g., pricing/limits) from OpenRouter API
-python -m llm_tester.cli update-models --provider openrouter
+llm-tester configure keys
 
 # List all discoverable providers and their enabled/disabled status
-python -m llm_tester.cli providers list
+llm-tester providers list
 
 # Enable a provider (adds to or creates enabled_providers.json)
-python -m llm_tester.cli providers enable openrouter
+llm-tester providers enable openrouter
 
 # Disable a provider (removes from enabled_providers.json)
-python -m llm_tester.cli providers disable google
+llm-tester providers disable google
 
-# List models within a specific provider's config and their status
-python -m llm_tester.cli models list --provider openrouter
+# List LLM models within a specific provider's config and their status
+llm-tester providers manage list openrouter
 
-# Enable a specific model within a provider's config
-python -m llm_tester.cli models enable openrouter/anthropic/claude-3-haiku
+# Enable a specific LLM model within a provider's config
+llm-tester providers manage enable openrouter anthropic/claude-3-haiku
 
-# Disable a specific model within a provider's config
-python -m llm_tester.cli models disable openai:gpt-3.5-turbo
+# Disable a specific LLM model within a provider's config
+llm-tester providers manage disable openai gpt-3.5-turbo
+
+# Update LLM Model Info (e.g., pricing/limits) from OpenRouter API
+llm-tester providers manage update openrouter
 
 # Get LLM-assisted model recommendations for a task (Interactive Prompt)
-python -m llm_tester.cli recommend-model
+llm-tester recommend-model
+
+# --- Interactive Mode ---
+
+# Launch the interactive menu
+llm-tester interactive
 ```
 
 ## Usage
@@ -226,16 +245,19 @@ NOTE: you can add new model / module also with the CLI tool.
 
 ## Verifying Provider Setup
 
-You can verify your provider setup, check configurations, and see model availability using the CLI:
+You can verify your provider setup, check configurations, and see LLM model availability using the CLI:
 
 ```bash
 # List discovered providers and enabled status
-python -m llm_tester.cli providers list
+llm-tester providers list
 
-# List models within a specific provider's config
-python -m llm_tester.cli models list --provider <provider_name>
+# List LLM models within a specific provider's config
+llm-tester providers manage list <provider_name>
+
+# Check API keys (will prompt if missing)
+llm-tester configure keys
 ```
-The old `./verify_providers.py` script may still exist but the CLI commands are the recommended way to check status.
+The old `./verify_providers.py` script is no longer used; use the commands above instead.
 
 
 ## General implementation notes
