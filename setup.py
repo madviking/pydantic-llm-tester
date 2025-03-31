@@ -15,10 +15,11 @@ setup(
         "google-cloud-aiplatform>=1.36.0",
         "vertexai>=0.0.1",
         "python-dotenv>=1.0.0",
+        "typer[all]>=0.9.0", # Added Typer dependency
     ],
     entry_points={
         "console_scripts": [
-            "llm-tester=llm_tester.cli:main",
+            "llm-tester=llm_tester.cli:app", # Point to the app object in the package __init__
         ],
     },
     classifiers=[
