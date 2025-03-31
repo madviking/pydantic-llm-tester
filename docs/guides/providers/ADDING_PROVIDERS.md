@@ -150,7 +150,8 @@ Create a `config.json` file with your provider's configuration:
       "cost_output": 2.0,
       "cost_category": "standard",
       "max_input_tokens": 8000,
-      "max_output_tokens": 4000
+      "max_output_tokens": 4000,
+      "enabled": true // Add this flag to control model availability
     }
   ]
 }
@@ -161,50 +162,65 @@ Adjust the values according to your provider's specifications:
 - `provider_type`: Type identifier
 - `env_key`: Environment variable for the API key
 - `system_prompt`: Default system prompt
-- `models`: List of supported models with their configurations
+- `models`: List of supported models with their configurations. Add `"enabled": true` or `"enabled": false` to control if the model is active.
 
-### 4. Update Provider Initialization
+*(Note: For the `openrouter` provider, cost and token limit fields in `config.json` are overridden by values fetched dynamically from the OpenRouter API via the `llm-tester update-models` command or during runtime loading. However, flags like `default`, `preferred`, and `enabled` are still respected from the static config file.)*
 
-Add your provider to the initialization in `llm_tester/llms/__init__.py`:
+### 4. Ensure Provider Discovery
+
+The framework automatically discovers providers by looking for subdirectories within `llm_tester/llms/` that contain an `__init__.py` file. Ensure your `llm_tester/llms/your_provider_name/__init__.py` file exists and imports your provider class:
 
 ```python
-try:
-    from . import your_provider_name
-except ImportError:
-    pass
+# llm_tester/llms/your_provider_name/__init__.py
+from .provider import YourProviderProvider
+
+# Optional: Define __all__ if you want to be explicit
+__all__ = ['YourProviderProvider']
 ```
+No changes are needed in the parent `llm_tester/llms/__init__.py` file.
 
-### 5. Update Pricing Information
+### 5. Enable the Provider (Optional)
 
-Add your provider's pricing to `models_pricing.json`:
+By default, if no `enabled_providers.json` file exists in the project root, all discovered providers are considered enabled. If the file *does* exist, you need to add your new provider's name to it. You can do this manually or use the CLI:
 
-```json
-{
-  "your_provider_name": {
-    "your-model-name": {
-      "input": 1.0,
-      "output": 2.0
-    }
-  }
-}
+```bash
+# Activate virtual environment first
+source venv/bin/activate
+
+# Enable your new provider
+python -m llm_tester.cli providers enable your_provider_name
 ```
 
 ## Testing Your Provider Integration
 
-### 1. Verify Provider Discovery
+### 1. Verify Provider Discovery and Status
 
-Run the verification script to check if your provider is discovered:
+Use the CLI to check if your provider is discovered and enabled:
 
 ```bash
-./verify_providers.py
+# Activate virtual environment first
+source venv/bin/activate
+
+# List all providers and their status
+python -m llm_tester.cli providers list
+
+# List models configured for your provider
+python -m llm_tester.cli models list --provider your_provider_name
 ```
 
 ### 2. Test with a Simple Request
 
-Run a simple test to verify your provider works:
+Run a simple test using the CLI to verify your provider works:
 
 ```bash
-./runner.py test -p your_provider_name -m job_ads
+# Activate virtual environment first
+source venv/bin/activate
+
+# Run tests using only your provider and a specific model (optional)
+python -m llm_tester.cli --providers your_provider_name --models your_provider_name:your-model-name
+
+# Or run using the default model for your provider
+python -m llm_tester.cli --providers your_provider_name
 ```
 
 ## Best Practices

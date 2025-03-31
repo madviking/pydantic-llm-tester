@@ -8,12 +8,22 @@ import sys
 from typing import Dict, Type, List, Optional, Any, Tuple
 import inspect
 import importlib.util
+import time
+import requests # Added
 
-from .base import BaseLLM, ProviderConfig
+from .base import BaseLLM, ProviderConfig, ModelConfig # Added ModelConfig
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# --- Constants ---
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/models"
+CACHE_DURATION_SECONDS = 3600 * 6 # Cache API response for 6 hours
+
+# --- Constants ---
+ENABLED_PROVIDERS_FILENAME = "enabled_providers.json" # In project root
+
+# --- Caches ---
 # Cache for provider implementations
 _provider_classes: Dict[str, Type[BaseLLM]] = {}
 
@@ -23,13 +33,23 @@ _provider_configs: Dict[str, ProviderConfig] = {}
 # Cache for external provider mappings
 _external_providers: Dict[str, Dict[str, str]] = {}
 
+# Cache for OpenRouter API data
+_openrouter_api_cache: Dict[str, Any] = {
+    "data": None,
+    "timestamp": 0
+}
+
 # Reset caches (for development/testing - remove in production)
 def reset_caches():
     """Reset all provider caches to force rediscovery"""
     global _provider_classes, _provider_configs, _external_providers
+    """Reset all provider caches to force rediscovery"""
+    global _provider_classes, _provider_configs, _external_providers, _openrouter_api_cache
     _provider_classes = {}
     _provider_configs = {}
     _external_providers = {}
+    # Also reset OpenRouter cache if needed, or handle separately
+    _openrouter_api_cache = {"data": None, "timestamp": 0}
 
 def load_provider_config(provider_name: str) -> Optional[ProviderConfig]:
     """Load provider configuration from a JSON file
@@ -40,27 +60,238 @@ def load_provider_config(provider_name: str) -> Optional[ProviderConfig]:
     Returns:
         ProviderConfig object or None if not found
     """
-    # Check if already loaded
+    # Check cache first (covers both static and dynamically loaded)
     if provider_name in _provider_configs:
-        return _provider_configs[provider_name]
-    
-    # Look for config file in the provider's directory
+        # Check if OpenRouter cache needs refresh (if applicable)
+        if provider_name == "openrouter" and _is_cache_stale():
+             logger.info("OpenRouter cache is stale, attempting refresh.")
+             # Proceed to load and potentially refresh below
+        else:
+            # Return cached config if not OpenRouter or if cache is fresh
+            return _provider_configs[provider_name]
+
+    # Load static config first
     config_path = os.path.join(os.path.dirname(__file__), provider_name, 'config.json')
     if not os.path.exists(config_path):
         logger.warning(f"No config file found for provider {provider_name}")
         return None
-    
+
     try:
         with open(config_path, 'r') as f:
             config_data = json.load(f)
-            
-        # Parse config using Pydantic
-        config = ProviderConfig(**config_data)
-        _provider_configs[provider_name] = config
-        return config
+        static_config = ProviderConfig(**config_data)
     except Exception as e:
-        logger.error(f"Error loading config for provider {provider_name}: {str(e)}")
+        logger.error(f"Error loading static config for provider {provider_name}: {str(e)}")
         return None
+
+    # --- Dynamic Loading for OpenRouter ---
+    if provider_name == "openrouter":
+        logger.info("Attempting to dynamically load OpenRouter models...")
+        api_models_data = _fetch_openrouter_models_with_cache()
+
+        if api_models_data:
+            try:
+                updated_models = _merge_static_and_api_models(static_config.models, api_models_data)
+                static_config.models = updated_models # Replace models in the config object
+                logger.info(f"Successfully updated OpenRouter config with {len(updated_models)} models from API.")
+            except Exception as e:
+                logger.error(f"Error processing OpenRouter API data: {e}. Falling back to static config.")
+                # Fallback handled by returning static_config below
+        else:
+            logger.warning("Failed to fetch OpenRouter models from API. Using static config only.")
+            # Fallback handled by returning static_config below
+
+    # Store the final config (static or updated) in the cache and return
+    _provider_configs[provider_name] = static_config
+    return static_config
+
+
+# --- Helper Functions for OpenRouter Dynamic Loading ---
+
+def _is_cache_stale() -> bool:
+    """Check if the OpenRouter API cache is stale."""
+    return (time.time() - _openrouter_api_cache.get("timestamp", 0)) > CACHE_DURATION_SECONDS
+
+def _fetch_openrouter_models_with_cache() -> Optional[List[Dict[str, Any]]]:
+    """Fetch OpenRouter models from API, using cache."""
+    global _openrouter_api_cache
+
+    if not _is_cache_stale() and _openrouter_api_cache.get("data"):
+        logger.info("Using cached OpenRouter models data.")
+        return _openrouter_api_cache["data"]
+
+    logger.info(f"Fetching models from OpenRouter API: {OPENROUTER_API_URL}")
+    try:
+        # Add headers to mimic browser request, as requested by OpenRouter API docs
+        headers = {
+            'User-Agent': 'llm-tester (https://github.com/your-repo/llm-tester)', # Replace with actual repo URL if available
+            'Referer': 'https://your-app-domain.com' # Replace with actual domain if applicable
+        }
+        response = requests.get(OPENROUTER_API_URL, timeout=15, headers=headers)
+        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        data = response.json()
+
+        if "data" not in data or not isinstance(data["data"], list):
+             logger.error("Invalid format received from OpenRouter API.")
+             return None
+
+        _openrouter_api_cache = {
+            "data": data["data"],
+            "timestamp": time.time()
+        }
+        logger.info(f"Successfully fetched and cached {len(data['data'])} models from OpenRouter.")
+        return data["data"]
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching OpenRouter models: {e}")
+        # Optionally return stale cache data if available?
+        # if _openrouter_api_cache.get("data"):
+        #     logger.warning("Returning stale cache data due to API fetch error.")
+        #     return _openrouter_api_cache["data"]
+        return None
+    except json.JSONDecodeError as e:
+        logger.error(f"Error decoding JSON response from OpenRouter API: {e}")
+        return None
+
+
+def _merge_static_and_api_models(
+    static_models: List[ModelConfig],
+    api_models_data: List[Dict[str, Any]]
+) -> List[ModelConfig]:
+    """Merges models from static config and OpenRouter API response."""
+    static_models_dict = {model.name: model for model in static_models}
+    final_models = []
+    api_model_ids = set()
+
+    for api_model in api_models_data:
+        model_id = api_model.get("id")
+        if not model_id:
+            logger.debug("Skipping API model entry without an 'id'.")
+            continue # Skip models without an ID
+
+        api_model_ids.add(model_id)
+        static_model_config = static_models_dict.get(model_id)
+
+        try:
+            # --- Pricing ---
+            pricing = api_model.get("pricing", {})
+            cost_input_str = pricing.get("prompt", "0.0")
+            cost_output_str = pricing.get("completion", "0.0")
+            # Convert cost per token to cost per 1M tokens
+            cost_input = float(cost_input_str) * 1_000_000 if cost_input_str else 0.0
+            cost_output = float(cost_output_str) * 1_000_000 if cost_output_str else 0.0
+
+            # --- Token Limits ---
+            context_length = api_model.get("context_length")
+            # OpenRouter API often provides max_completion_tokens within top_provider details
+            max_output_tokens_api = api_model.get("top_provider", {}).get("max_completion_tokens")
+
+            # Determine max_output_tokens
+            if max_output_tokens_api is not None:
+                max_output_tokens = int(max_output_tokens_api)
+            elif static_model_config and static_model_config.max_output_tokens:
+                 max_output_tokens = static_model_config.max_output_tokens # Use static if API doesn't provide
+            else:
+                 # Fallback default if neither API nor static config provides it
+                 max_output_tokens = min(4096, int(context_length) // 2) if context_length else 4096
+
+            # Determine max_input_tokens
+            if context_length is not None:
+                 # Calculate based on context_length minus determined output tokens
+                 max_input_tokens = int(context_length) - max_output_tokens
+                 # Ensure it's positive, fallback if calculation is weird
+                 if max_input_tokens <= 0:
+                     logger.warning(f"Calculated non-positive max_input_tokens for {model_id} (context: {context_length}, output: {max_output_tokens}). Using context_length / 2.")
+                     max_input_tokens = int(context_length) // 2
+            elif static_model_config and static_model_config.max_input_tokens:
+                 max_input_tokens = static_model_config.max_input_tokens # Use static if API doesn't provide context
+            else:
+                 max_input_tokens = 8192 # Fallback default if no info available
+
+            # --- Flags (Default, Preferred, Enabled) ---
+            # Prioritize static config for these flags, default to enabled=True if new
+            default = static_model_config.default if static_model_config else False
+            preferred = static_model_config.preferred if static_model_config else False
+            enabled = static_model_config.enabled if static_model_config else True
+
+            # --- Cost Category (Infer or use static) ---
+            if static_model_config and static_model_config.cost_category:
+                cost_category = static_model_config.cost_category
+            elif cost_input == 0 and cost_output == 0:
+                cost_category = "free"
+            elif cost_input < 1.0 and cost_output < 2.0: # Simple heuristic
+                cost_category = "cheap"
+            elif cost_input > 10.0 or cost_output > 20.0: # Simple heuristic
+                cost_category = "premium"
+            else:
+                cost_category = "standard" # Default category
+
+
+            model_config = ModelConfig(
+                name=model_id,
+                default=default,
+                preferred=preferred,
+                enabled=enabled,
+                cost_input=cost_input,
+                cost_output=cost_output,
+                cost_category=cost_category,
+                max_input_tokens=max_input_tokens,
+                max_output_tokens=max_output_tokens,
+            )
+            final_models.append(model_config)
+            logger.debug(f"Processed model '{model_id}' from API.")
+
+        except (ValueError, TypeError, KeyError, AttributeError) as e:
+            logger.warning(f"Could not process model '{model_id}' from OpenRouter API: {e}. Skipping.")
+            # If it was in static config, maybe add it back? For now, skip.
+
+    # Add models from static config that were NOT in the API response
+    # This preserves manually added models or models temporarily missing from API
+    added_static_count = 0
+    for static_model in static_models:
+        if static_model.name not in api_model_ids:
+            logger.warning(f"Model '{static_model.name}' found in static config but not in OpenRouter API response. Keeping static definition.")
+            final_models.append(static_model)
+            added_static_count += 1
+    if added_static_count > 0:
+        logger.info(f"Added {added_static_count} models defined only in static config.")
+
+    # Sort models alphabetically by name for consistent ordering
+    final_models.sort(key=lambda m: m.name)
+
+    return final_models
+
+# --- End Helper Functions ---
+
+
+# --- Helper Function for Enabled Providers ---
+
+def _load_enabled_providers() -> Optional[List[str]]:
+    """Loads the list of enabled providers from enabled_providers.json in the project root."""
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    enabled_file_path = os.path.join(project_root, ENABLED_PROVIDERS_FILENAME)
+
+    if not os.path.exists(enabled_file_path):
+        logger.debug(f"'{ENABLED_PROVIDERS_FILENAME}' not found. All discovered providers are considered enabled.")
+        return None # Indicate all enabled
+
+    try:
+        with open(enabled_file_path, 'r') as f:
+            data = json.load(f)
+        if isinstance(data, list) and all(isinstance(item, str) for item in data):
+            logger.info(f"Loaded {len(data)} enabled providers from {enabled_file_path}")
+            return data
+        else:
+            logger.warning(f"Invalid format in '{enabled_file_path}'. Expected a list of strings. Ignoring file.")
+            return None # Treat invalid format as all enabled
+    except json.JSONDecodeError:
+        logger.warning(f"Error decoding JSON from '{enabled_file_path}'. Ignoring file.")
+        return None # Treat invalid JSON as all enabled
+    except Exception as e:
+        logger.error(f"Error reading '{enabled_file_path}': {e}. Ignoring file.")
+        return None # Treat other errors as all enabled
+
+# --- End Enabled Providers Helper ---
 
 def discover_provider_classes() -> Dict[str, Type[BaseLLM]]:
     """Discover all provider classes in the llms directory
@@ -400,8 +631,18 @@ def get_available_providers() -> List[str]:
     # Update the cache
     _external_providers.update(external_providers)
     
-    # Combine both types of providers
-    providers = list(provider_classes.keys())
-    providers.extend(list(external_providers.keys()))
-    
-    return providers
+    # Combine internal and external provider names
+    all_providers = sorted(list(set(list(provider_classes.keys()) + list(external_providers.keys()))))
+
+    # Load the list of enabled providers
+    enabled_providers_list = _load_enabled_providers()
+
+    if enabled_providers_list is None:
+        # If file doesn't exist or is invalid, return all discovered providers
+        logger.debug("Returning all discovered providers as enabled list is not configured.")
+        return all_providers
+    else:
+        # Filter the discovered providers based on the enabled list
+        filtered_providers = [p for p in all_providers if p in enabled_providers_list]
+        logger.debug(f"Returning filtered list of enabled providers: {', '.join(filtered_providers)}")
+        return filtered_providers

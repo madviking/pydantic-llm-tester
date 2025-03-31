@@ -34,6 +34,17 @@
       "cost_category": "standard",
       "max_input_tokens": 32000,
       "max_output_tokens": 8192
+    },
+    {
+      "name": "mistral-tiny",
+      "default": false,
+      "preferred": false,
+      "enabled": true,
+      "cost_input": 0.25,
+      "cost_output": 0.25,
+      "cost_category": "cheap",
+      "max_input_tokens": 32000,
+      "max_output_tokens": 2000 # Assuming lower output for tiny
     }
   ]
 }

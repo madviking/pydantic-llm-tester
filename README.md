@@ -23,9 +23,9 @@ LLM Tester features a flexible, pluggable architecture that supports multiple in
 
 The system supports three types of provider implementations:
 
-1. **Native Implementations**: Direct integration with provider APIs (OpenAI, Anthropic, Mistral, Google)
+1. **Native Implementations**: Direct integration with provider APIs (OpenAI, Anthropic, Mistral, Google, OpenRouter)
    - Provider-specific code is encapsulated in dedicated classes
-   - Each provider has standardized configuration in `config.json`
+   - Each provider has standardized configuration in `config.json` (Note: OpenRouter dynamically fetches model details like cost/limits from its API, overriding static config values).
    - Token usage and costs are automatically tracked
 
 2. **PydanticAI Integration**: Use the PydanticAI library as an abstraction layer
@@ -63,66 +63,85 @@ Adding a new provider requires minimal effort - just create a directory under `l
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/llm-tester.git
+# git clone https://github.com/yourusername/llm-tester.git # Replace with actual repo URL
 cd llm-tester
 
-# Run the installation script
-chmod +x install.sh
-./install.sh
+# Create and activate virtual environment (recommended)
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure API Keys (Interactive)
+python -m llm_tester.cli configure keys
+# This will prompt for missing keys found in provider configs and offer to save them to llm_tester/.env
 ```
+Make sure your API keys are set in `llm_tester/.env` or as environment variables. The `configure keys` command helps with this.
 
-The installation script will:
-- Create a virtual environment
-- Install required dependencies
-- Create a template .env file for your API keys
+## Running via CLI
 
-## Running the Tool
-
-### Interactive Mode
+The primary way to run tests and manage the tool is via the command-line interface.
 
 ```bash
 # Make sure the virtual environment is activated
 source venv/bin/activate
 
-# Run the interactive tool
-./runner.py
+# --- Running Tests (Default Command) ---
+
+# Run tests using all enabled providers and their default models
+python -m llm_tester.cli
+
+# Run tests for specific providers
+python -m llm_tester.cli --providers openai anthropic
+
+# Run tests using specific models for providers
+python -m llm_tester.cli --providers openai openrouter --models openai:gpt-4o openrouter/google/gemini-pro-1.5
+
+# Run tests and save report to a file
+python -m llm_tester.cli --output my_report.md
+
+# Run tests with prompt optimization
+python -m llm_tester.cli --optimize
+
+# List available test cases and configured providers/models without running
+python -m llm_tester.cli --list
+
+# Filter tests by name (e.g., only 'simple' tests in 'job_ads')
+python -m llm_tester.cli --filter job_ads/simple
+
+# Increase verbosity for debugging
+python -m llm_tester.cli -vv
+
+# --- Configuration & Management ---
+
+# Configure API Keys (Interactive Prompt)
+python -m llm_tester.cli configure keys
+
+# Update Model Info (e.g., pricing/limits) from OpenRouter API
+python -m llm_tester.cli update-models --provider openrouter
+
+# List all discoverable providers and their enabled/disabled status
+python -m llm_tester.cli providers list
+
+# Enable a provider (adds to or creates enabled_providers.json)
+python -m llm_tester.cli providers enable openrouter
+
+# Disable a provider (removes from enabled_providers.json)
+python -m llm_tester.cli providers disable google
+
+# List models within a specific provider's config and their status
+python -m llm_tester.cli models list --provider openrouter
+
+# Enable a specific model within a provider's config
+python -m llm_tester.cli models enable openrouter/anthropic/claude-3-haiku
+
+# Disable a specific model within a provider's config
+python -m llm_tester.cli models disable openai:gpt-3.5-turbo
+
+# Get LLM-assisted model recommendations for a task (Interactive Prompt)
+python -m llm_tester.cli recommend-model
 ```
-
-The interactive runner provides a menu-driven interface to:
-- Check your setup and API keys
-- List available test cases
-- Configure which providers and models to use
-- Run tests with or without prompt optimization
-- View and save test results
-
-### Non-Interactive Mode
-
-You can also run tests directly using default settings without any prompts:
-
-```bash
-# Run with default settings (providers from config)
-./runner.py --non-interactive
-
-# Run with specific providers
-./runner.py -n -p openai -p anthropic
-
-# Run optimized tests
-./runner.py -n --optimize
-
-# Run specific modules
-./runner.py -n -m job_ads -m product_descriptions
-
-# Specify output directory
-./runner.py -n --output-dir ./my_results
-```
-
-Command line options for non-interactive mode:
-- `-n, --non-interactive`: Run in non-interactive mode using defaults
-- `-o, --optimize`: Run with prompt optimization
-- `-p, --provider`: Provider to use (can be specified multiple times)
-- `-m, --module`: Module to test (can be specified multiple times)
-- `--output-dir`: Directory to save results
-- `--debug`: Enable debug logging
 
 ## Usage
 
@@ -181,9 +200,11 @@ Mock providers simulate responses based on the test case structure.
 ## Adding New Providers
 
 1. Create a new directory in `llm_tester/llms/your_provider/`
-2. Implement a provider class that inherits from `BaseLLM`
-3. Create a `config.json` file with model configurations
-4. Add initialization code in the provider's `__init__.py`
+2. Implement a provider class that inherits from `BaseLLM` (see `llm_tester/llms/base.py`).
+3. Create a `config.json` file with provider settings (`name`, `env_key`, etc.) and a list of `models` with their details (cost, tokens). See existing provider configs for examples.
+   *(Note: For OpenRouter, costs and token limits are fetched dynamically via `update-models` or on load, overriding static values in `config.json`)*.
+4. Add `from .provider import YourProviderClass` to the provider's `__init__.py` to ensure discovery.
+5. Optionally, enable the provider using `python -m llm_tester.cli providers enable your_provider`.
 
 ## Adding New Extraction Models
 
@@ -205,13 +226,16 @@ NOTE: you can add new model / module also with the CLI tool.
 
 ## Verifying Provider Setup
 
-You can verify your provider setup by running:
+You can verify your provider setup, check configurations, and see model availability using the CLI:
 
 ```bash
-./verify_providers.py
-```
+# List discovered providers and enabled status
+python -m llm_tester.cli providers list
 
-This will check all discovered providers, their configurations, and available models.
+# List models within a specific provider's config
+python -m llm_tester.cli models list --provider <provider_name>
+```
+The old `./verify_providers.py` script may still exist but the CLI commands are the recommended way to check status.
 
 
 ## General implementation notes

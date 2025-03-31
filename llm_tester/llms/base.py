@@ -19,6 +19,7 @@ class ModelConfig(BaseModel):
     name: str = Field(..., description="Full name of the model including provider prefix")
     default: bool = Field(False, description="Whether this is the default model for the provider")
     preferred: bool = Field(False, description="Whether this model is preferred for production use")
+    enabled: bool = Field(True, description="Whether this model is enabled for use") # Added
     cost_input: float = Field(..., description="Cost per 1M input tokens in USD")
     cost_output: float = Field(..., description="Cost per 1M output tokens in USD")
     cost_category: str = Field("standard", description="Cost category (cheap, standard, expensive)")
@@ -144,14 +145,19 @@ class BaseLLM(ABC):
         if not self.config or not self.config.models:
             return None
             
-        # Find the model marked as default
-        for model in self.config.models:
-            if model.default:
-                return model.name
-                
-        # If no default marked, use the first one
-        # Ensure this is the last line of get_default_model before un-indenting
-        return self.config.models[0].name
+        # Find the *enabled* model marked as default
+        enabled_default = next((model.name for model in self.config.models if model.default and model.enabled), None)
+        if enabled_default:
+            return enabled_default
+
+        # If no enabled default, find the first *enabled* model
+        first_enabled = next((model.name for model in self.config.models if model.enabled), None)
+        if first_enabled:
+            return first_enabled
+
+        # If no models are enabled at all
+        self.logger.warning(f"No enabled models found for provider {self.name}.")
+        return None
 
     # --- Correctly indented methods start here ---
     def get_api_key(self) -> Optional[str]:
@@ -189,16 +195,27 @@ class BaseLLM(ABC):
         if not model_name:
             model_name = self.get_default_model()
             
+        found_model: Optional[ModelConfig] = None
         # Find model by name
         for model in self.config.models:
             if model.name == model_name:
-                return model
-                
+                found_model = model
+                break
+
         # If model name has no provider prefix, try with provider prefix
-        if model_name and ':' not in model_name:
-            prefixed_name = f"{self.name}:{model_name}"
+        if not found_model and model_name and ':' not in model_name:
+            prefixed_name = f"{self.name}:{model_name}" # Assuming self.name is the provider name
             for model in self.config.models:
                 if model.name == prefixed_name:
-                    return model
-                    
-        return None
+                    found_model = model
+                    break
+
+        # Return the model only if it's found AND enabled
+        if found_model and found_model.enabled:
+            return found_model
+        elif found_model and not found_model.enabled:
+            self.logger.warning(f"Model '{model_name}' found but is disabled.")
+            return None
+        else:
+             self.logger.warning(f"Model '{model_name}' not found for provider {self.name}.")
+             return None

@@ -34,6 +34,17 @@
       "cost_category": "standard",
       "max_input_tokens": 8192,
       "max_output_tokens": 1024
+    },
+    {
+      "name": "gemini-1.0-pro",
+      "default": false,
+      "preferred": false,
+      "enabled": true,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 30720,
+      "max_output_tokens": 2048
     }
   ]
 }
