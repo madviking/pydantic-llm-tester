@@ -16,6 +16,7 @@ setup(
         "vertexai>=0.0.1",
         "python-dotenv>=1.0.0",
         "typer[all]>=0.9.0", # Added Typer dependency
+        "pydantic-ai>=0.0.44", # Added pydantic-ai dependency
     ],
     entry_points={
         "console_scripts": [
