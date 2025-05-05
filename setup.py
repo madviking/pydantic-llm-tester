@@ -7,7 +7,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(
-    name="llm_tester",
+    name="pydantic-llm-tester", # Corrected package name for PyPI
     version="0.1.0",
     description="A framework for testing LLM performance using pydanticAI",
     long_description=long_description,
