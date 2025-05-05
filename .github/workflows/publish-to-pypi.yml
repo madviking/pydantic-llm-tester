@@ -37,14 +37,3 @@ jobs:
     - name: Publish package to PyPI using trusted publishing
       uses: pypa/gh-action-pypi-publish@release/v1
       # This action uses PyPI's OIDC trusted publishing.
-      # You need to configure this publisher on PyPI for your project:
-      # 1. Go to your project's settings on PyPI (https://pypi.org/manage/project/YOUR_PACKAGE_NAME/settings/publishing/).
-      # 2. Add a new "Pending publisher".
-      # 3. Enter the details:
-      #    - Owner: Your GitHub username or organization name
-      #    - Repository: Your repository name
-      #    - Workflow name: publish-to-pypi.yml
-      #    - Environment: (leave blank unless using environments)
-      # No API token secret (like PYPI_API_TOKEN) is needed in GitHub Actions secrets.
-      # with:
-        # skip_existing: true # Optional: uncomment to prevent errors if the version already exists
