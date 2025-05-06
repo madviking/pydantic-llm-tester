@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from .utils.prompt_optimizer import PromptOptimizer
 from .utils.report_generator import ReportGenerator, DateEncoder
 from .utils.provider_manager import ProviderManager
-from .utils.config_manager import load_config, get_test_setting, get_provider_model
+from .utils.config_manager import ConfigManager
 from .utils.cost_manager import cost_tracker, UsageData
 
 

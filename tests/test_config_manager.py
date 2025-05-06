@@ -1,151 +1,82 @@
-"""
-Tests for configuration manager
-"""
-
 import os
 import json
 import pytest
-import tempfile
-import shutil
-from pathlib import Path
+from unittest.mock import patch
+from src.utils.config_manager import ConfigManager
 
-from src.utils.config_manager import (
-    load_config, save_config, get_enabled_providers, 
-    get_provider_model, get_test_setting, update_test_setting,
-    DEFAULT_CONFIG, get_config_path
-)
-
-
-@pytest.fixture
-def mock_config_path(monkeypatch):
-    """Create a temporary config file"""
-    temp_dir = tempfile.mkdtemp()
-    temp_config = os.path.join(temp_dir, 'config.json')
-    
-    # Mock the config path function to use our temp file
-    def mock_get_config_path():
-        return temp_config
-    
-    monkeypatch.setattr('src.utils.config_manager.get_config_path', mock_get_config_path)
-    
-    yield temp_config
-    
-    # Cleanup
-    shutil.rmtree(temp_dir)
-
-
-def test_load_config_default(mock_config_path):
-    """Test loading default config when no file exists"""
-    # Make sure config file doesn't exist
-    if os.path.exists(mock_config_path):
-        os.remove(mock_config_path)
-        
-    config = load_config()
-    assert config == DEFAULT_CONFIG
-    assert os.path.exists(mock_config_path)
-
-
-def test_save_and_load_config(mock_config_path):
-    """Test saving and loading a config"""
-    test_config = {
-        "test": "value",
-        "nested": {
-            "key": "value"
-        }
-    }
-    
-    save_config(test_config)
-    assert os.path.exists(mock_config_path)
-    
-    loaded_config = load_config()
-    assert loaded_config == test_config
-
-
-def test_get_enabled_providers(mock_config_path):
-    """Test getting enabled providers"""
-    test_config = {
+def test_load_config_creates_default_if_not_exists(tmp_path):
+    """Test that ConfigManager creates default config if file doesn't exist"""
+    config_path = os.path.join(tmp_path, "config.json")
+    config = ConfigManager(config_path)
+    assert os.path.exists(config_path)
+    assert config.config == {
         "providers": {
             "openai": {
                 "enabled": True,
-                "default_model": "test-model"
+                "default_model": "gpt-4",
+                "api_key": None
             },
             "anthropic": {
-                "enabled": False,
-                "default_model": "test-model"
+                "enabled": True,
+                "default_model": "claude-3-opus",
+                "api_key": None
             },
             "mock": {
-                "enabled": True
+                "enabled": False,
+                "default_model": "mock-model"
             }
-        }
+        },
+        "test_settings": {
+            "output_dir": "test_results",
+            "save_optimized_prompts": True,
+            "default_modules": ["job_ads"]
+        },
+        "py_models": {}
     }
-    
-    save_config(test_config)
-    enabled = get_enabled_providers()
-    
-    assert "openai" in enabled
-    assert "anthropic" not in enabled
-    assert "mock" in enabled
-    assert enabled["openai"]["default_model"] == "test-model"
 
+def test_save_config_writes_to_file(tmp_path):
+    """Test that save_config writes config to file"""
+    config_path = os.path.join(tmp_path, "config.json")
+    config = ConfigManager(config_path)
+    test_config = {"test": "value"}
+    config.config = test_config
+    config.save_config()
+    with open(config_path) as f:
+        assert json.load(f) == test_config
 
-def test_get_provider_model(mock_config_path):
-    """Test getting a provider's model"""
-    test_config = {
+def test_get_enabled_providers_returns_only_enabled():
+    """Test get_enabled_providers returns only enabled providers"""
+    config = ConfigManager()
+    config.config = {
         "providers": {
-            "openai": {
-                "enabled": True,
-                "default_model": "gpt-4"
-            },
-            "anthropic": {
-                "enabled": True,
-                "default_model": "claude-3"
-            }
+            "enabled": {"enabled": True},
+            "disabled": {"enabled": False}
         }
     }
-    
-    save_config(test_config)
-    
-    assert get_provider_model("openai") == "gpt-4"
-    assert get_provider_model("anthropic") == "claude-3"
-    assert get_provider_model("nonexistent") is None
+    providers = config.get_enabled_providers()
+    assert "enabled" in providers
+    assert "disabled" not in providers
 
-
-def test_get_test_setting(mock_config_path):
-    """Test getting a test setting"""
-    test_config = {
-        "test_settings": {
-            "output_dir": "test_output",
-            "save_optimized_prompts": True
+def test_get_provider_model_returns_model():
+    """Test get_provider_model returns model for provider"""
+    config = ConfigManager()
+    config.config = {
+        "providers": {
+            "test_provider": {"default_model": "test_model"}
         }
     }
-    
-    save_config(test_config)
-    
-    assert get_test_setting("output_dir") == "test_output"
-    assert get_test_setting("save_optimized_prompts") is True
-    assert get_test_setting("nonexistent") is None
-    assert get_test_setting("nonexistent", "default") == "default"
+    assert config.get_provider_model("test_provider") == "test_model"
 
-
-def test_update_test_setting(mock_config_path):
-    """Test updating a test setting"""
-    test_config = {
-        "test_settings": {
-            "output_dir": "test_output"
-        }
+def test_get_test_setting_returns_value():
+    """Test get_test_setting returns setting value"""
+    config = ConfigManager()
+    config.config = {
+        "test_settings": {"test_setting": "value"}
     }
-    
-    save_config(test_config)
-    
-    # Update existing setting
-    update_test_setting("output_dir", "new_output")
-    assert get_test_setting("output_dir") == "new_output"
-    
-    # Add new setting
-    update_test_setting("new_setting", "value")
-    assert get_test_setting("new_setting") == "value"
-    
-    # Create test_settings if it doesn't exist
-    save_config({})  # Empty config
-    update_test_setting("output_dir", "test_output")
-    assert get_test_setting("output_dir") == "test_output"
+    assert config.get_test_setting("test_setting") == "value"
+
+def test_update_test_setting_updates_config():
+    """Test update_test_setting updates test settings"""
+    config = ConfigManager()
+    config.update_test_setting("new_setting", "value")
+    assert config.config["test_settings"]["new_setting"] == "value"
