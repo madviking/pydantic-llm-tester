@@ -18,9 +18,9 @@ from ...utils.cost_manager import UsageData
 class OpenAIProvider(BaseLLM):
     """Provider implementation for OpenAI"""
     
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models: Optional[List[str]] = None):
         """Initialize the OpenAI provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models)
         
         # Check if OpenAI SDK is available
         if not OPENAI_AVAILABLE:

@@ -17,22 +17,29 @@ logger = logging.getLogger(__name__)
 _provider_instances: Dict[str, BaseLLM] = {}
 
 
-def get_llm_provider(provider_name: str) -> Optional[BaseLLM]:
+def get_llm_provider(provider_name: str, llm_models: Optional[List[str]] = None) -> Optional[BaseLLM]:
     """
     Get an LLM provider instance by name, creating it if needed.
     
     Args:
         provider_name: The name of the provider
+        llm_models: Optional list of specific LLM model names to test
         
     Returns:
         The provider instance or None if not found/created
     """
     # Check cache first
     if provider_name in _provider_instances:
+        # If llm_models filter is provided, we might need to re-initialize
+        # or ensure the cached instance is compatible. For simplicity now,
+        # if a filter is provided and the instance is cached, we'll assume
+        # the cached instance is sufficient or will handle filtering internally.
+        # A more robust approach might involve caching based on provider+models.
+        # For now, just return the cached instance.
         return _provider_instances[provider_name]
     
-    # Create new provider instance
-    provider = create_provider(provider_name)
+    # Create new provider instance, passing the llm_models filter
+    provider = create_provider(provider_name, llm_models=llm_models)
     if provider:
         _provider_instances[provider_name] = provider
         return provider

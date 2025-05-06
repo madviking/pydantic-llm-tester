@@ -121,6 +121,7 @@ def list_available_tests_and_providers(
 def run_test_suite(
     providers: Optional[List[str]] = None,
     model_overrides: Optional[Dict[str, str]] = None,
+    llm_models: Optional[List[str]] = None,
     test_dir: Optional[str] = None,
     output_file: Optional[str] = None,
     output_json: bool = False,
@@ -204,6 +205,7 @@ def run_test_suite(
         # Initialize tester with the *usable* providers and test_dir
         tester = LLMTester(
             providers=usable_providers,
+            llm_models=llm_models,
             test_dir=test_dir
         )
 

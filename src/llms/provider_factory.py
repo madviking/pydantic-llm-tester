@@ -447,17 +447,18 @@ def validate_provider_implementation(provider_class: Type) -> bool:
     return True
 
 
-def create_provider(provider_name: str, config: Optional[ProviderConfig] = None) -> Optional[BaseLLM]:
+def create_provider(provider_name: str, config: Optional[ProviderConfig] = None, llm_models: Optional[List[str]] = None) -> Optional[BaseLLM]:
     """Create a provider instance by name
     
     Args:
         provider_name: Name of the provider
         config: Optional ProviderConfig object to use instead of loading internally
+        llm_models: Optional list of specific LLM model names to test
         
     Returns:
         Provider instance or None if not found
     """
-    logger.info(f"Creating provider instance for {provider_name}")
+    logger.info(f"Creating provider instance for {provider_name} with models filter: {llm_models}")
     
     # Check if this is an external provider
     if provider_name in _external_providers:
@@ -496,7 +497,8 @@ def create_provider(provider_name: str, config: Optional[ProviderConfig] = None)
     
     # Create instance
     try:
-        provider = provider_class(config)
+        # Pass the llm_models list to the provider class constructor
+        provider = provider_class(config, llm_models=llm_models)
         logger.info(f"Created provider instance for {provider_name}")
         return provider
     except Exception as e:

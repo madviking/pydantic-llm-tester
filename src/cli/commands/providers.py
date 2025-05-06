@@ -1,3 +1,5 @@
+import os
+
 import typer
 import logging
 from typing import List, Optional, Dict, Any # Added Optional, Dict, Any

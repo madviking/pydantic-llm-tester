@@ -20,14 +20,16 @@ class ProviderManager:
     Manages connections to LLM providers using the pluggable LLM system
     """
     
-    def __init__(self, providers: List[str]):
+    def __init__(self, providers: List[str], llm_models: Optional[List[str]] = None):
         """
         Initialize the provider manager
         
         Args:
             providers: List of provider names to initialize
+            llm_models: Optional list of specific LLM model names to test
         """
         self.providers = providers
+        self.llm_models = llm_models # Store the list of desired LLM models
         self.logger = logging.getLogger(__name__)
         self.provider_instances = {}
         self.initialization_errors = {}

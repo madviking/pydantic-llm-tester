@@ -66,145 +66,169 @@ class ReportGenerator:
                 report_lines.append("")
                 report_lines.append("| Provider | Model | Original Accuracy | Optimized Accuracy | Improvement |")
                 report_lines.append("|----------|-------|------------------|-------------------|------------|")
-                
-                for provider in original_results.keys():
-                    original_result = original_results.get(provider, {})
-                    optimized_result = optimized_results.get(provider, {})
-                    
-                    original_accuracy = self._get_accuracy(original_result)
-                    optimized_accuracy = self._get_accuracy(optimized_result)
-                    improvement = optimized_accuracy - original_accuracy
-                    
-                    # Get model information
-                    model = optimized_result.get('model') or original_result.get('model') or "default"
-                    
-                    report_lines.append(f"| {provider} | {model} | {original_accuracy:.2f}% | {optimized_accuracy:.2f}% | {improvement:+.2f}% |")
-                
+
+                # Iterate through providers and then models for optimized results
+                for provider_name, model_results in optimized_results.items():
+                    # Ensure model_results is a dictionary before iterating
+                    if not isinstance(model_results, dict):
+                         continue # Skip if not the expected format
+
+                    for model_name, result_data in model_results.items():
+                        original_result = original_results.get(provider_name, {}).get(model_name, {}) # Get corresponding original result
+                        optimized_result = result_data # This is the optimized result
+
+                        original_accuracy = self._get_accuracy(original_result)
+                        optimized_accuracy = self._get_accuracy(optimized_result)
+                        improvement = optimized_accuracy - original_accuracy
+
+                        report_lines.append(f"| {provider_name} | {model_name} | {original_accuracy:.2f}% | {optimized_accuracy:.2f}% | {improvement:+.2f}% |")
+
                 report_lines.append("")
-                
-                # Show original and optimized prompts
+
+                # Show original and optimized prompts (assuming one prompt per test case)
                 report_lines.append("#### Prompt Optimization")
                 report_lines.append("")
                 report_lines.append("Original Prompt:")
                 report_lines.append("```")
+                # Assuming original_prompt is stored at the test_name level in optimized results
                 report_lines.append(test_results.get('original_prompt', 'N/A'))
                 report_lines.append("```")
                 report_lines.append("")
                 report_lines.append("Optimized Prompt:")
                 report_lines.append("```")
+                # Assuming optimized_prompt is stored at the test_name level in optimized results
                 report_lines.append(test_results.get('optimized_prompt', 'N/A'))
                 report_lines.append("```")
                 report_lines.append("")
-                
+
                 # Provider-specific details
                 report_lines.append("#### Provider Details")
                 report_lines.append("")
-                
-                for provider in optimized_results.keys():
-                    report_lines.append(f"##### {provider}")
+
+                # Iterate through providers and then models for optimized results details
+                for provider_name, model_results in optimized_results.items():
+                    # Ensure model_results is a dictionary before iterating
+                    if not isinstance(model_results, dict):
+                         continue # Skip if not the expected format
+
+                    report_lines.append(f"##### {provider_name}")
                     report_lines.append("")
-                    
-                    provider_result = optimized_results.get(provider, {})
-                    validation = provider_result.get('validation', {})
-                    
-                    if 'error' in provider_result:
-                        report_lines.append(f"Error: {provider_result['error']}")
-                    elif not validation.get('success', False):
-                        report_lines.append(f"Validation failed: {validation.get('error', 'Unknown error')}")
-                    else:
-                        report_lines.append(f"Accuracy: {validation.get('accuracy', 0.0):.2f}%")
-                        
-                        # Show validated data
-                        validated_data = validation.get('validated_data', {})
-                        if validated_data:
-                            report_lines.append("")
-                            report_lines.append("Extracted Data:")
-                            report_lines.append("```json")
-                            report_lines.append(json.dumps(validated_data, indent=2, cls=DateEncoder))
-                            report_lines.append("```")
-                    
-                    report_lines.append("")
+
+                    for model_name, result_data in model_results.items():
+                        report_lines.append(f"###### Model: {model_name}")
+                        report_lines.append("")
+
+                        validation = result_data.get('validation', {})
+
+                        if 'error' in result_data:
+                            report_lines.append(f"Error: {result_data['error']}")
+                        elif not validation.get('success', False):
+                            report_lines.append(f"Validation failed: {validation.get('error', 'Unknown error')}")
+                        else:
+                            report_lines.append(f"Accuracy: {validation.get('accuracy', 0.0):.2f}%")
+
+                            # Show validated data
+                            validated_data = validation.get('validated_data', {})
+                            if validated_data:
+                                report_lines.append("")
+                                report_lines.append("Extracted Data:")
+                                report_lines.append("```json")
+                                report_lines.append(json.dumps(validated_data, indent=2, cls=DateEncoder))
+                                report_lines.append("```")
+
+                        report_lines.append("") # Add a blank line after each model's details
+
         else:
             report_lines.append("## Standard Performance Report")
             report_lines.append("")
-            
+
             # Generate report for standard tests
             for test_name, test_results in results.items():
+                # Skip 'model_class' entry if it exists at the test_name level (shouldn't after refactor)
+                if test_name == 'model_class':
+                    continue
+
                 report_lines.append(f"### Test: {test_name}")
                 report_lines.append("")
-                
+
                 # Summary table
                 report_lines.append("#### Performance Summary")
                 report_lines.append("")
                 report_lines.append("| Provider | Model | Accuracy |")
                 report_lines.append("|----------|-------|----------|")
-                
-                for provider, provider_result in test_results.items():
-                    if provider == 'model_class':
-                        continue
-                    accuracy = self._get_accuracy(provider_result)
-                    model = provider_result.get('model', 'default')
-                    report_lines.append(f"| {provider} | {model} | {accuracy:.2f}% |")
-                
+
+                # Iterate through providers and then models for standard results
+                for provider_name, model_results in test_results.items():
+                    # Ensure model_results is a dictionary before iterating
+                    if not isinstance(model_results, dict):
+                         continue # Skip if not the expected format
+
+                    for model_name, result_data in model_results.items():
+                        accuracy = self._get_accuracy(result_data)
+                        report_lines.append(f"| {provider_name} | {model_name} | {accuracy:.2f}% |")
+
                 report_lines.append("")
-                
+
                 # Provider-specific details
                 report_lines.append("#### Provider Details")
                 report_lines.append("")
-                
-                for provider, provider_result in test_results.items():
-                    if provider == 'model_class':
-                        continue
-                    report_lines.append(f"##### {provider}")
-                    report_lines.append("")
-                    
-                    # Ensure provider_result is a dict before accessing .get, though _get_accuracy handles it.
-                    # The main issue is accessing .get on ModelMetaclass or doing 'in' operator.
-                    # The `isinstance` check in `_get_accuracy` handles non-dicts for accuracy calculation.
-                    # For other operations, we rely on `provider_result` being a dict due to the filter.
-                    validation = provider_result.get('validation', {})
-                    
-                    if 'error' in provider_result: # This is safe if provider_result is a dict
-                        report_lines.append(f"Error: {provider_result['error']}")
-                    elif not validation.get('success', False):
-                        report_lines.append(f"Validation failed: {validation.get('error', 'Unknown error')}")
-                    else:
-                        report_lines.append(f"Accuracy: {validation.get('accuracy', 0.0):.2f}%")
-                        
-                        # Show validated data
-                        validated_data = validation.get('validated_data', {})
-                        if validated_data:
-                            report_lines.append("")
-                            report_lines.append("Extracted Data:")
-                            report_lines.append("```json")
-                            report_lines.append(json.dumps(validated_data, indent=2, cls=DateEncoder))
-                            report_lines.append("```")
-                    
-                    report_lines.append("")
-        
-        return "\n".join(report_lines)
-    
-    def _get_accuracy(self, provider_result: Dict[str, Any]) -> float:
-        """
-        Get accuracy from provider result
-        
-        Args:
-            provider_result: Provider test result
-            
-        Returns:
-            Accuracy percentage
-        """
-        if not isinstance(provider_result, dict):
-            # TODO: Add logging here if a logger becomes available in this class
-            # print(f"WARNING: _get_accuracy called with non-dict type: {type(provider_result)}", file=sys.stderr)
-            return 0.0 # Return 0.0 for non-dict inputs, as it's an error state for accuracy
 
-        if 'error' in provider_result:
+                # Iterate through providers and then models for standard results details
+                for provider_name, model_results in test_results.items():
+                    # Ensure model_results is a dictionary before iterating
+                    if not isinstance(model_results, dict):
+                         continue # Skip if not the expected format
+
+                    report_lines.append(f"##### {provider_name}")
+                    report_lines.append("")
+
+                    for model_name, result_data in model_results.items():
+                        report_lines.append(f"###### Model: {model_name}")
+                        report_lines.append("")
+
+                        validation = result_data.get('validation', {})
+
+                        if 'error' in result_data:
+                            report_lines.append(f"Error: {result_data['error']}")
+                        elif not validation.get('success', False):
+                            report_lines.append(f"Validation failed: {validation.get('error', 'Unknown error')}")
+                        else:
+                            report_lines.append(f"Accuracy: {validation.get('accuracy', 0.0):.2f}%")
+
+                            # Show validated data
+                            validated_data = validation.get('validated_data', {})
+                            if validated_data:
+                                report_lines.append("")
+                                report_lines.append("Extracted Data:")
+                                report_lines.append("```json")
+                                report_lines.append(json.dumps(validated_data, indent=2, cls=DateEncoder))
+                                report_lines.append("```")
+
+                        report_lines.append("") # Add a blank line after each model's details
+
+
+        return "\n".join(report_lines)
+
+    def _get_accuracy(self, result_data: Dict[str, Any]) -> float:
+        """
+        Get accuracy from result data (for a specific model run).
+
+        Args:
+            result_data: Dictionary containing the result for a single model run.
+
+        Returns:
+            Accuracy percentage.
+        """
+        if not isinstance(result_data, dict):
+            # This should ideally not happen with the new structure, but keep for safety.
             return 0.0
-        
-        validation = provider_result.get('validation', {})
-        
+
+        if 'error' in result_data:
+            return 0.0
+
+        validation = result_data.get('validation', {})
+
         if not validation.get('success', False):
             return 0.0
-        
+
         return validation.get('accuracy', 0.0)

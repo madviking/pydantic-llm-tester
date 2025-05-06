@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from typing import Optional, List # Added List
 
+from src.utils.config_manager import ConfigManager
+
 # --- Logging Setup ---
 # Configure basic logging early
 # Levels: DEBUG=10, INFO=20, WARNING=30, ERROR=40, CRITICAL=50
@@ -107,7 +109,8 @@ from .commands.run import run_tests, list_items
 def run_command(
     # Re-declare options here, matching run.py's run_tests signature
     providers: Optional[List[str]] = typer.Option(None, "--providers", "-p", help="LLM providers to test (default: all enabled)."),
-    models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models as 'provider:model_name' or 'provider/model_name'. Can be used multiple times."),
+    py_models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models as 'provider:model_name' or 'provider/model_name'. Can be used multiple times."),
+    llm_models: Optional[List[str]] = typer.Option(None, "--llm_models", "-l", help="Specify llm_models as 'model_name'. Can be used multiple times."),
     test_dir: Optional[str] = typer.Option(None, "--test-dir", help="Directory containing test files (default: uses LLMTester default)."),
     output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file for report/JSON (default: stdout)."),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON instead of Markdown report."),
@@ -121,7 +124,8 @@ def run_command(
     # Directly call the implementation function from run.py
     run_tests(
         providers=providers,
-        models=models,
+        llm_models=llm_models,
+        py_models=py_models,
         test_dir=test_dir,
         output_file=output_file,
         json_output=json_output,
@@ -134,7 +138,8 @@ def run_command(
 def list_command(
      # Re-declare options here, matching run.py's list_items signature
     providers: Optional[List[str]] = typer.Option(None, "--providers", "-p", help="LLM providers to list (default: all enabled)."),
-    models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models to consider for provider listing."),
+    py_models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models to consider for provider listing."),
+    llm_models: Optional[List[str]] = typer.Option(None, "--llm_models", "-m", help="Specify llm_models to consider for provider listing."),
     test_dir: Optional[str] = typer.Option(None, "--test-dir", help="Directory containing test files to list.")
 ):
     """
@@ -143,7 +148,8 @@ def list_command(
     # Directly call the implementation function from run.py
     list_items(
         providers=providers,
-        models=models,
+        py_models=py_models,
+        llm_models=llm_models,
         test_dir=test_dir
     )
 

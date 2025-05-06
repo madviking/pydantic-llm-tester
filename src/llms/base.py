@@ -38,9 +38,10 @@ class ProviderConfig(BaseModel):
 class BaseLLM(ABC):
     """Base class for all LLM providers"""
     
-    def __init__(self, config: Optional[ProviderConfig] = None):
-        """Initialize provider with optional config"""
+    def __init__(self, config: Optional[ProviderConfig] = None, llm_models: Optional[List[str]] = None):
+        """Initialize provider with optional config and model filter"""
         self.config = config
+        self.llm_models_filter = llm_models # Store the list of desired LLM models
         self.name = config.name if config else self.__class__.__name__.lower().replace('provider', '')
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
     
@@ -189,6 +190,14 @@ class BaseLLM(ABC):
         Returns:
             ModelConfig object or None if not found
         """
+        """Get configuration for a specific model
+        
+        Args:
+            model_name: Name of the model to get config for, or None for default
+            
+        Returns:
+            ModelConfig object or None if not found
+        """
         if not self.config or not self.config.llm_models:
             return None
             
@@ -197,16 +206,35 @@ class BaseLLM(ABC):
             model_name = self.get_default_model()
             
         found_model: Optional[ModelConfig] = None
-        # Find model by name
-        for model in self.config.llm_models:
+        
+        # Filter models based on self.llm_models_filter if it exists
+        available_models = self.config.llm_models
+        if self.llm_models_filter is not None:
+            # Filter models whose names are in the llm_models_filter list
+            available_models = [
+                model for model in self.config.llm_models
+                if model.name in self.llm_models_filter
+            ]
+            self.logger.debug(f"Filtered models for provider {self.name} based on filter {self.llm_models_filter}: {[m.name for m in available_models]}")
+            
+            # If the requested model_name is not in the filter, and a specific model was requested,
+            # we should not find it. If no specific model was requested (using default),
+            # we should only consider models in the filter.
+            if model_name and model_name not in self.llm_models_filter:
+                 self.logger.warning(f"Requested model '{model_name}' is not in the specified LLM models filter {self.llm_models_filter}.")
+                 return None # Requested model is not allowed by the filter
+
+        # Find model by name in the potentially filtered list
+        for model in available_models:
             if model.name == model_name:
                 found_model = model
                 break
 
-        # If model name has no provider prefix, try with provider prefix
+        # If model name has no provider prefix, try with provider prefix in the filtered list
         if not found_model and model_name and ':' not in model_name:
             prefixed_name = f"{self.name}:{model_name}" # Assuming self.name is the provider name
-            for model in self.config.llm_models:
+            # Search the available_models (which are already filtered by the user's list)
+            for model in available_models:
                 if model.name == prefixed_name:
                     found_model = model
                     break
@@ -215,8 +243,34 @@ class BaseLLM(ABC):
         if found_model and found_model.enabled:
             return found_model
         elif found_model and not found_model.enabled:
-            self.logger.warning(f"Model '{model_name}' found but is disabled.")
+            self.logger.warning(f"Model '{model_name}' found but is disabled in config.")
             return None
         else:
-             self.logger.warning(f"Model '{model_name}' not found for provider {self.name}.")
+             # This warning might be redundant if the model was filtered out earlier,
+             # but it covers cases where the model isn't in the original config at all.
+             if model_name:
+                 self.logger.warning(f"Model '{model_name}' not found or not enabled for provider {self.name}.")
              return None
+
+    def get_available_models(self) -> List[ModelConfig]:
+        """
+        Get a list of available ModelConfig objects for this provider,
+        respecting the llm_models_filter and enabled flags.
+
+        Returns:
+            List of available ModelConfig objects.
+        """
+        if not self.config or not self.config.llm_models:
+            return []
+
+        available_models = [model for model in self.config.llm_models if model.enabled]
+
+        if self.llm_models_filter is not None:
+            # Filter models whose names are in the llm_models_filter list
+            available_models = [
+                model for model in available_models
+                if model.name in self.llm_models_filter
+            ]
+            self.logger.debug(f"Filtered available models for provider {self.name} based on filter {self.llm_models_filter}: {[m.name for m in available_models]}")
+
+        return available_models

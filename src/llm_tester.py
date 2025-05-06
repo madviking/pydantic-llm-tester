@@ -33,17 +33,20 @@ class LLMTester:
     Main class for testing LLM py_models against pydantic schemas
     """
 
-    def __init__(self, providers: List[str], test_dir: Optional[str] = None):
+    def __init__(self, providers: List[str], llm_models: Optional[List[str]] = None, test_dir: Optional[str] = None):
         """
         Initialize the LLM tester
 
         Args:
             providers: List of LLM provider names to test
+            llm_models: Optional list of specific LLM model names to test
             test_dir: Directory containing test files
         """
         self.providers = providers
+        self.llm_models = llm_models
         self.test_dir = test_dir or os.path.join(os.path.dirname(__file__), "tests")
-        self.provider_manager = ProviderManager(providers)
+        # Pass the llm_models list to ProviderManager so it can filter loaded models
+        self.provider_manager = ProviderManager(providers, llm_models=llm_models)
         self.prompt_optimizer = PromptOptimizer()
         self.report_generator = ReportGenerator()
         self.logger = logging.getLogger(__name__)
@@ -495,72 +498,109 @@ class LLMTester:
         model_class = test_case['model_class']
         model_path = test_case.get('model_path') # Get model_path from test_case
 
-        # Run test for each provider
-        results = {}
-        for provider in self.providers:
+        # Run test for each provider and its available models
+        test_results_for_case: Dict[str, Dict[str, Any]] = {} # Structure: {provider_name: {model_name: result_data}}
+
+        for provider_name in self.providers:
             if progress_callback:
-                progress_callback(f"  Testing provider: {provider}")
+                progress_callback(f"  Testing provider: {provider_name}")
 
-            try:
-                # Get model name from overrides if available
-                model_name = None
-                if model_overrides and provider in model_overrides:
-                    model_name = model_overrides[provider]
+            provider_instance = self.provider_manager.provider_instances.get(provider_name)
 
+            if not provider_instance:
+                self.logger.warning(f"Provider instance not found for {provider_name}. Skipping.")
                 if progress_callback:
-                    model_info = f" with model {model_name}" if model_name else ""
-                    progress_callback(f"  Sending request to {provider}{model_info}...")
+                    progress_callback(f"  Skipping {provider_name}: Instance not found.")
+                continue # Skip if provider instance is not available
 
-                # Get response from provider
-                response, usage_data = self.provider_manager.get_response(
-                    provider=provider,
-                    prompt=prompt_text,
-                    source=source_text,
-                    model_name=model_name
-                )
+            # Get available models for this provider (already filtered by llm_models_filter)
+            available_models = provider_instance.get_available_models()
 
+            if not available_models:
+                self.logger.warning(f"No enabled or filtered models found for provider {provider_name}. Skipping.")
                 if progress_callback:
-                    progress_callback(f"  Validating {provider} response...")
+                    progress_callback(f"  Skipping {provider_name}: No enabled or filtered models.")
+                continue # Skip if no models are available for this provider
 
-                # Validate response against model
-                validation_result = self._validate_response(response, model_class, expected_data)
+            test_results_for_case[provider_name] = {} # Initialize nested dict for this provider
 
-                # Record cost data
-                if usage_data:
-                    cost_tracker.add_test_result(
-                        test_id=test_id,
-                        provider=provider,
-                        model=usage_data.model,
-                        usage_data=usage_data,
-                        run_id=self.run_id
-                    )
+            for model_config in available_models:
+                model_name = model_config.name
+                if progress_callback:
+                    progress_callback(f"    Testing model: {model_name}")
+
+                try:
+                    # Check for model override for this specific model name
+                    # This allows overriding a specific model within the filtered list
+                    override_model_name = model_overrides.get(provider_name)
+                    if override_model_name and override_model_name != model_name:
+                         self.logger.debug(f"Model override '{override_model_name}' specified for provider '{provider_name}', but current model is '{model_name}'. Skipping this model.")
+                         if progress_callback:
+                              progress_callback(f"    Skipping model {model_name}: Override '{override_model_name}' specified.")
+                         continue # Skip this model if a different override is specified for the provider
+
+                    # If an override is specified and matches the current model, use it.
+                    # Otherwise, use the current model_name from the loop.
+                    model_to_use = override_model_name if override_model_name == model_name else model_name
+
+
                     if progress_callback:
-                        progress_callback(f"  {provider} tokens: {usage_data.prompt_tokens} prompt, {usage_data.completion_tokens} completion, cost: ${usage_data.total_cost:.6f}")
+                        progress_callback(f"    Sending request to {model_to_use}...")
 
-                if progress_callback:
-                    accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
-                    progress_callback(f"  {provider} accuracy: {accuracy:.2f}%")
+                    # Get response from provider for the specific model
+                    response, usage_data = self.provider_manager.get_response(
+                        provider=provider_name,
+                        prompt=prompt_text,
+                        source=source_text,
+                        model_name=model_to_use # Pass the specific model name
+                    )
 
-                results[provider] = {
-                    'response': response,
-                    'validation': validation_result,
-                    'model': model_name,
-                    'usage': usage_data.to_dict() if usage_data else None
-                }
-            except Exception as e:
-                self.logger.error(f"Error testing provider {provider}: {str(e)}")
-                if progress_callback:
-                    progress_callback(f"  Error with {provider}: {str(e)}")
+                    if progress_callback:
+                        progress_callback(f"    Validating {model_to_use} response...")
 
-                results[provider] = {
-                    'error': str(e),
-                    'model': model_name if 'model_name' in locals() else None
-                }
+                    # Validate response against model
+                    validation_result = self._validate_response(response, model_class, expected_data)
+
+                    # Record cost data
+                    if usage_data:
+                        cost_tracker.add_test_result(
+                            test_id=test_id,
+                            provider=provider_name,
+                            model=usage_data.model, # Use the model name from usage data (actual model used)
+                            usage_data=usage_data,
+                            run_id=self.run_id
+                        )
+                        if progress_callback:
+                            progress_callback(f"    {model_to_use} tokens: {usage_data.prompt_tokens} prompt, {usage_data.completion_tokens} completion, cost: ${usage_data.total_cost:.6f}")
+
+                    if progress_callback:
+                        accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
+                        progress_callback(f"    {model_to_use} accuracy: {accuracy:.2f}%")
+
+                    # Store result under provider and model name
+                    test_results_for_case[provider_name][model_name] = {
+                        'response': response,
+                        'validation': validation_result,
+                        'model': model_name, # Store the model name used
+                        'usage': usage_data.to_dict() if usage_data else None
+                    }
+
+                except Exception as e:
+                    self.logger.error(f"Error testing model {model_name} for provider {provider_name}: {str(e)}")
+                    if progress_callback:
+                        progress_callback(f"    Error with {model_name}: {str(e)}")
+
+                    # Store error result under provider and model name
+                    test_results_for_case[provider_name][model_name] = {
+                        'error': str(e),
+                        'model': model_name
+                    }
 
         if progress_callback:
             progress_callback(f"Completed test: {test_id}")
 
-        return results
+        # Return the structured results for this test case
+        return test_results_for_case
 
     def _validate_response(self, response: str, model_class: Type[BaseModel], expected_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -974,14 +1014,26 @@ class LLMTester:
             if progress_callback:
                 progress_callback(f"[{i}/{len(test_cases)}] Running test: {test_id}")
 
-            results[test_id] = self.run_test(test_case, model_overrides, progress_callback)
+            # run_test now returns {provider_name: {model_name: result_data}}
+            test_case_results = self.run_test(test_case, model_overrides, progress_callback)
 
             if progress_callback:
                 progress_callback(f"Completed test: {test_id}")
                 progress_callback(f"Progress: {i}/{len(test_cases)} tests completed")
 
-            # Add model_class to the results for this test_id
-            results[test_id]['model_class'] = test_case['model_class']
+            # Store the results for this test case under its test_id
+            results[test_id] = test_case_results
+
+            # Add model_class to the results for this test_id (can be stored once per test_id)
+            # We can attach it at the test_id level or within each model result.
+            # Storing it at the test_id level seems cleaner.
+            # However, the report generator expects it within the provider/model structure.
+            # Let's add it to each model result for now, although it's redundant.
+            # A better approach might be to pass test_cases list to report generator.
+            # For now, let's add it to each model result.
+            for provider_name, model_results in results[test_id].items():
+                 for model_name in model_results:
+                      results[test_id][provider_name][model_name]['model_class'] = test_case['model_class']
 
 
         # Generate cost summary after all tests are complete
