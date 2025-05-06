@@ -150,11 +150,31 @@ def list_command(
 # --- Register recommend command ---
 from .commands.recommend import recommend_model_command
 # Register recommend_model_command as the 'recommend-model' command
-app.command("recommend-model")(recommend_model_command)
+# Add a check for py_models enabled before running this command
+@app.command("recommend-model")
+def recommend_model_command_wrapper(
+    ctx: typer.Context, # Add ctx to access config
+    # Pass through arguments from the original command if any
+):
+    config_manager = ConfigManager()
+    if not config_manager.is_py_models_enabled():
+        logger.error("PyModels directory not found. Cannot recommend models.")
+        raise typer.Exit(code=1)
+    recommend_model_command() # Call the original command function
 
 # --- Register interactive command ---
 from .commands.interactive import start_interactive_command
-app.command("interactive")(start_interactive_command)
+# Add a check for py_models enabled before running this command
+@app.command("interactive")
+def start_interactive_command_wrapper(
+     ctx: typer.Context # Add ctx to access config
+     # Pass through arguments from the original command if any
+):
+    config_manager = ConfigManager()
+    if not config_manager.is_py_models_enabled():
+        logger.error("PyModels directory not found. Cannot start interactive mode.")
+        raise typer.Exit(code=1)
+    start_interactive_command() # Call the original command function
 
 
 # --- Default Action (if no command given) ---

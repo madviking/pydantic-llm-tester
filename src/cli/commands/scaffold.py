@@ -4,8 +4,9 @@ from typing import Optional
 
 # Import core scaffolding logic
 from src.cli.core.scaffold_logic import scaffold_provider_files, scaffold_model_files
-# Import core config logic to update config after scaffolding
+# Import core config logic and ConfigManager to update config after scaffolding
 from src.cli.core import config_logic, provider_logic
+from src.utils.config_manager import ConfigManager
 
 app = typer.Typer(help="Commands for scaffolding new providers and py_models.")
 
@@ -64,7 +65,7 @@ def scaffold_provider(
 @app.command("model")
 def scaffold_model(
     model_name: Optional[str] = typer.Argument(None, help="The name of the new model to scaffold (optional if using interactive mode)."),
-    models_dir: Optional[str] = typer.Option(None, "--py_models-dir", help="Directory to create the model in (defaults to ./py_models)."),
+    path: Optional[str] = typer.Option(None, "--path", help="Directory to create the model in."),
     interactive: bool = typer.Option(False, "--interactive", "-i", help="Enable interactive mode for scaffolding.")
 ):
     """
@@ -76,22 +77,27 @@ def scaffold_model(
         if not model_name:
             typer.echo("Model name cannot be empty.", err=True)
             raise typer.Exit(code=1)
-        # Optionally prompt for models_dir in interactive mode
-        # models_dir = typer.prompt("Enter the directory to create the model in (default: ./py_models)", default="./py_models")
-    elif not model_name:
-        typer.echo("Error: Model name must be provided in non-interactive mode.", err=True)
+        path = typer.prompt("Enter the directory to create the model in")
+        if not path:
+             typer.echo("Model directory path cannot be empty in interactive mode.", err=True)
+             raise typer.Exit(code=1)
+    elif not model_name or not path:
+        typer.echo("Error: Both model name and path must be provided in non-interactive mode.", err=True)
         raise typer.Exit(code=1)
 
     # Determine the base directory for py_models
-    base_dir = models_dir or "./py_models" # Default to a 'py_models' directory in the current working directory
+    base_dir = path
 
     # Call the core scaffolding logic
     success, message = scaffold_model_files(model_name, base_dir)
 
     if success:
         typer.echo(message)
-        # Note: Models are not automatically enabled in a central config like providers.
-        # They are discovered based on the test_dir. No config update needed here.
+        # Register the new model with its path in the config
+        config_path = os.environ.get("PYLLM_CONFIG_PATH")
+        config_manager = ConfigManager(config_path=config_path)
+        config_manager.register_py_model(model_name, {"path": base_dir, "enabled": True})
+        typer.echo(f"Model '{model_name}' registered in pyllm_config.json with path '{base_dir}'.")
     else:
         typer.echo(message, err=True)
         raise typer.Exit(code=1)

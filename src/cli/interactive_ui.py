@@ -300,10 +300,10 @@ def _scaffold_model_interactive():
             typer.pause("Press Enter to continue...")
             return
 
-        # Determine the base directory for models (same logic as scaffold.py)
-        base_dir = "./py_models" # Default to a 'py_models' directory in the current working directory
+        path = typer.prompt("Enter the directory to create the model in (default: ./py_models)", default="./py_models")
 
-        success, message = scaffold_model_files(model_name, base_dir)
+        # Call the core scaffolding logic
+        success, message = scaffold_model_files(model_name, path)
         print(message)
 
         if success:

@@ -30,7 +30,9 @@ class ConfigManager:
         "test_settings": {
             "output_dir": "test_results",
             "save_optimized_prompts": True,
-            "default_modules": ["job_ads"]
+            "default_modules": ["job_ads"],
+            "py_models_path": "./py_models",
+            "py_models_enabled": True # Added py_models_enabled flag
         },
         "py_models": {}
     }
@@ -44,7 +46,9 @@ class ConfigManager:
         self.config = self._load_config()
 
         # Discover built-in py models and register them if not in config
-        self._register_builtin_py_models()
+        # This should only happen if py_models are enabled
+        if self.is_py_models_enabled():
+             self._register_builtin_py_models()
 
     def _discover_builtin_py_models(self) -> List[str]:
         """Discovers the names of built-in py models."""
@@ -86,7 +90,7 @@ class ConfigManager:
         with open(temp_path, 'w') as f:
             json.dump(self.DEFAULT_CONFIG, f)
         return temp_path
-        
+
     def cleanup_temp_config(self) -> None:
         """Remove temporary config file if in temp mode"""
         if self.temp_mode and os.path.exists(self.config_path):
@@ -121,22 +125,14 @@ class ConfigManager:
     def get_enabled_providers(self) -> Dict[str, Any]:
         """Get only enabled providers"""
         return {
-            name: config 
-            for name, config in self.get_providers().items() 
+            name: config
+            for name, config in self.get_providers().items()
             if config.get("enabled", False)
         }
 
-    def register_provider(self, name: str, config: Dict[str, Any]) -> None:
-        """Register a new provider"""
-        if name not in self.config["providers"]:
-            self.config["providers"][name] = config
-            self.save_config()
-
-    def update_provider(self, name: str, updates: Dict[str, Any]) -> None:
-        """Update an existing provider"""
-        if name in self.config["providers"]:
-            self.config["providers"][name].update(updates)
-            self.save_config()
+    def is_py_models_enabled(self) -> bool:
+        """Check if py_models functionality is enabled."""
+        return self.config.get("test_settings", {}).get("py_models_enabled", True)
 
     # Model management
     def get_available_models(self) -> List[str]:
@@ -162,6 +158,17 @@ class ConfigManager:
         if "test_settings" not in self.config:
             self.config["test_settings"] = {}
         self.config["test_settings"][setting_name] = value
+        self.save_config()
+
+    def get_py_models_path(self) -> str:
+        """Get the configured path for py_models"""
+        return self.config.get("test_settings", {}).get("py_models_path", "./py_models") # Default if not set
+
+    def update_py_models_path(self, path: str) -> None:
+        """Update the configured path for py_models"""
+        if "test_settings" not in self.config:
+            self.config["test_settings"] = {}
+        self.config["test_settings"]["py_models_path"] = path
         self.save_config()
 
     # Scaffolding registration

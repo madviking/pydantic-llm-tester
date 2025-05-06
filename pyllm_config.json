@@ -19,15 +19,10 @@
     "default_modules": [
       "job_ads"
     ],
+    "py_models_path": "./py_models",
     "new_setting": "value"
   },
   "py_models": {
-    "dummy_test_model": {
-      "enabled": true
-    },
-    "winnie": {
-      "enabled": false
-    },
     "integration_test": {
       "enabled": true
     },
@@ -35,6 +30,13 @@
       "enabled": true
     },
     "product_descriptions": {
+      "enabled": true
+    },
+    "config_test_model": {
+      "enabled": true
+    },
+    "default_path_model": {
+      "path": ".",
       "enabled": true
     }
   }

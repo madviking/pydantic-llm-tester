@@ -62,7 +62,7 @@ llm-tester scaffold model [OPTIONS] [MODEL_NAME]
 
 Options:
 
-- `--models-dir TEXT`: Directory to create the model in (defaults to `./models`).
+- `--path TEXT`: Directory to create the model in (defaults to `./py_models`).
 - `--interactive, -i`: Enable interactive mode. If this flag is used, you will be prompted for the model name and other details.
 
 ### Interactive Model Scaffolding
@@ -93,7 +93,7 @@ llm-tester scaffold model your_model_name
 This will immediately scaffold the model with the given name without prompting for input. You can optionally specify a different output directory using the `--models-dir` option:
 
 ```bash
-llm-tester scaffold model your_model_name --py_models-dir /path/to/custom/py_models
+llm-tester scaffold model your_model_name --path /path/to/custom/py_models
 ```
 
 ## What gets created?
