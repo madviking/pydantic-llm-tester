@@ -50,8 +50,8 @@ Extracted Data:
     "Mathematics in statistics and linear algebra"
   ],
   "preferred_skills": [
-    "Experience with GPT models and fine-tuning",
-    "Edge deployment of ML models",
+    "Experience with GPT py_models and fine-tuning",
+    "Edge deployment of ML py_models",
     "ML infrastructure and MLOps",
     "Cloud platform expertise (AWS SageMaker, Google AI Platform)",
     "Data annotation workflows"
@@ -74,7 +74,7 @@ Extracted Data:
     "Mentor junior team members",
     "Collaborate with product teams",
     "Stay updated with ML research and evaluate new techniques",
-    "Optimize models for performance and deployment",
+    "Optimize py_models for performance and deployment",
     "Contribute to research papers and patents"
   ],
   "benefits": [
@@ -148,8 +148,8 @@ Extracted Data:
     "Strong mathematical foundation in statistics and linear algebra"
   ],
   "preferred_skills": [
-    "Experience with GPT models and fine-tuning",
-    "Familiarity with edge deployment of ML models",
+    "Experience with GPT py_models and fine-tuning",
+    "Familiarity with edge deployment of ML py_models",
     "Knowledge of ML infrastructure and MLOps",
     "Cloud platform expertise (AWS SageMaker, Google AI Platform)",
     "Experience with data annotation workflows"
@@ -172,7 +172,7 @@ Extracted Data:
     "Mentor junior team members on ML best practices",
     "Collaborate with product teams to translate research into valuable features",
     "Stay current with ML research and evaluate new techniques",
-    "Optimize models for performance and deployment constraints",
+    "Optimize py_models for performance and deployment constraints",
     "Contribute to research papers and patents"
   ],
   "benefits": [
@@ -252,8 +252,8 @@ Extracted Data:
     "Linear algebra"
   ],
   "preferred_skills": [
-    "GPT models and fine-tuning",
-    "Edge deployment of ML models",
+    "GPT py_models and fine-tuning",
+    "Edge deployment of ML py_models",
     "ML infrastructure and MLOps",
     "AWS SageMaker",
     "Google AI Platform",
@@ -277,7 +277,7 @@ Extracted Data:
     "Mentor junior team members",
     "Collaborate with product teams",
     "Stay current with ML research",
-    "Optimize models for performance",
+    "Optimize py_models for performance",
     "Contribute to research papers and patents"
   ],
   "benefits": [

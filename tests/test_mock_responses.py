@@ -5,7 +5,7 @@ Tests for mock response system
 import json
 import pytest
 
-from llm_tester.utils.mock_responses import (
+from src.utils.mock_responses import (
     get_mock_response, 
     mock_get_response
 )

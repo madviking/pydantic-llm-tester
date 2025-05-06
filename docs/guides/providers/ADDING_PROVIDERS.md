@@ -14,15 +14,31 @@ This guide focuses on creating a native integration.
 
 ## Steps to Add a New Provider
 
+You can manually create the necessary files and directories, or use the `llm-tester scaffold provider` command to generate the basic structure and template files automatically.
+
+**Using the `llm-tester scaffold provider` command:**
+
+```bash
+# Scaffold a new provider interactively
+llm-tester scaffold provider --interactive
+
+# Scaffold a new provider non-interactively
+llm-tester scaffold provider <provider_name>
+```
+
+This will create the directory structure and template files described in step 1 and partially complete steps 2 and 3.
+
+**Manual Steps:**
+
 ### 1. Create Provider Directory Structure
 
 Create a new directory for your provider in the `llm_tester/llms/` directory:
 
 ```bash
-mkdir -p llm_tester/llms/your_provider_name
-touch llm_tester/llms/your_provider_name/__init__.py
-touch llm_tester/llms/your_provider_name/provider.py
-touch llm_tester/llms/your_provider_name/config.json
+mkdir -p src/llms/your_provider_name
+touch src/llms/your_provider_name/__init__.py
+touch src/llms/your_provider_name/provider.py
+touch src/llms/your_provider_name/config.json
 ```
 
 ### 2. Implement the Provider Class
@@ -141,7 +157,7 @@ Create a `config.json` file with your provider's configuration:
   "env_key": "YOUR_PROVIDER_API_KEY",
   "env_key_secret": "",
   "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
-  "models": [
+  "llm_models": [
     {
       "name": "your-model-name",
       "default": true,
@@ -171,7 +187,7 @@ Adjust the values according to your provider's specifications:
 The framework automatically discovers providers by looking for subdirectories within `llm_tester/llms/` that contain an `__init__.py` file. Ensure your `llm_tester/llms/your_provider_name/__init__.py` file exists and imports your provider class:
 
 ```python
-# llm_tester/llms/your_provider_name/__init__.py
+# src/llms/your_provider_name/__init__.py
 from .provider import YourProviderProvider
 
 # Optional: Define __all__ if you want to be explicit
@@ -188,7 +204,7 @@ By default, if no `enabled_providers.json` file exists in the project root, all 
 source venv/bin/activate
 
 # Enable your new provider
-python -m llm_tester.cli providers enable your_provider_name
+python -m src.cli providers enable your_provider_name
 ```
 
 ## Testing Your Provider Integration
@@ -202,10 +218,10 @@ Use the CLI to check if your provider is discovered and enabled:
 source venv/bin/activate
 
 # List all providers and their status
-python -m llm_tester.cli providers list
+python -m src.cli providers list
 
-# List models configured for your provider
-python -m llm_tester.cli models list --provider your_provider_name
+# List py_models configured for your provider
+python -m src.cli py_models list --provider your_provider_name
 ```
 
 ### 2. Test with a Simple Request
@@ -217,10 +233,10 @@ Run a simple test using the CLI to verify your provider works:
 source venv/bin/activate
 
 # Run tests using only your provider and a specific model (optional)
-python -m llm_tester.cli --providers your_provider_name --models your_provider_name:your-model-name
+python -m src.cli --providers your_provider_name --py_models your_provider_name:your-model-name
 
 # Or run using the default model for your provider
-python -m llm_tester.cli --providers your_provider_name
+python -m src.cli --providers your_provider_name
 ```
 
 ## Best Practices
@@ -238,6 +254,89 @@ Your provider implementation must:
 1. Inherit from `BaseLLM`
 2. Implement the `_call_llm_api` method
 3. Return a tuple of (response_text, usage_data)
+
+## Adding External Providers
+
+Developers using the installed `llm_tester` package may want to add custom providers without modifying the installed package files. This can be done by placing your provider implementation outside the `llm_tester` package directory and configuring `llm_tester` to discover it.
+
+**Steps to Add an External Provider:**
+
+1.  **Create Provider Directory:** Create a directory for your external provider anywhere on your system. For example:
+    ```bash
+    mkdir -p /path/to/your/custom_providers/your_provider_name
+    touch /path/to/your/custom_providers/your_provider_name/__init__.py
+    touch /path/to/your/custom_providers/your_provider_name/provider.py
+    touch /path/to/your/custom_providers/your_provider_name/config.json
+    ```
+2.  **Implement Provider and Config:** Implement your provider class in `provider.py` and create the `config.json` file, following the same structure and requirements as described in steps 2 and 3 of the "Steps to Add a New Provider" section above.
+3.  **Configure LLM Tester to Discover External Providers:** You need to tell `llm_tester` where to look for external providers. This can be done by creating or modifying the `external_providers.json` file in the root of your project where you are using `llm_tester`. This file should contain a list of paths to your external provider directories.
+
+    ```json
+    [
+      "/path/to/your/custom_providers"
+    ]
+    ```
+    `llm_tester` will recursively search the directories listed in `external_providers.json` for valid provider implementations.
+
+4.  **Ensure Provider Discovery:** Similar to internal providers, ensure your external provider directory has an `__init__.py` file that imports your provider class.
+
+    ```python
+    # /path/to/your/custom_providers/your_provider_name/__init__.py
+    from .provider import YourProviderProvider
+
+    # Optional: Define __all__ if you want to be explicit
+    __all__ = ['YourProviderProvider']
+    ```
+
+5.  **Enable the Provider (Optional):** If you are using an `enabled_providers.json` file, you will need to add your external provider's name to it.
+
+    ```bash
+    # Activate virtual environment first
+    source venv/bin/activate
+
+    # Enable your new provider
+    llm-tester providers enable your_provider_name
+    ```
+
+## Testing Your Provider Integration
+
+### 1. Verify Provider Discovery and Status
+
+Use the CLI to check if your provider is discovered and enabled:
+
+```bash
+# Activate virtual environment first
+source venv/bin/activate
+
+# List all providers and their status
+llm-tester providers list
+
+# List py_models configured for your provider
+llm-tester py_models list --provider your_provider_name
+```
+
+### 2. Test with a Simple Request
+
+Run a simple test using the CLI to verify your provider works:
+
+```bash
+# Activate virtual environment first
+source venv/bin/activate
+
+# Run tests using only your provider and a specific model (optional)
+llm-tester --providers your_provider_name --py_models your_provider_name:your-model-name
+
+# Or run using the default model for your provider
+llm-tester --providers your_provider_name
+```
+
+## Best Practices
+
+1. **Error Handling**: Implement robust error handling for API calls
+2. **Logging**: Use the logger for meaningful log messages
+3. **Validation**: Validate inputs before sending to the API
+4. **Documentation**: Document any provider-specific behaviors
+5. **Testing**: Create tests for your provider implementation
 
 ## Example Implementations
 

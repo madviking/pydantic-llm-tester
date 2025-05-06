@@ -12,16 +12,32 @@ Examples of existing models:
 
 ## Steps to Add a New Model
 
+You can manually create the necessary files and directories, or use the `llm-tester scaffold model` command to generate the basic structure and template files automatically.
+
+**Using the `llm-tester scaffold model` command:**
+
+```bash
+# Scaffold a new model interactively
+llm-tester scaffold model --interactive
+
+# Scaffold a new model non-interactively
+llm-tester scaffold model <model_name>
+```
+
+This will create the directory structure and template files described in step 1 and partially complete steps 2 and 3.
+
+**Manual Steps:**
+
 ### 1. Create Model Directory Structure
 
 Create a new directory for your model in the `llm_tester/models/` directory:
 
 ```bash
-mkdir -p llm_tester/models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
-mkdir -p llm_tester/models/your_model_name/reports
-touch llm_tester/models/your_model_name/__init__.py
-touch llm_tester/models/your_model_name/model.py
-touch llm_tester/models/your_model_name/tests/__init__.py
+mkdir -p src/py_models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
+mkdir -p src/py_models/your_model_name/reports
+touch src/py_models/your_model_name/__init__.py
+touch src/py_models/your_model_name/model.py
+touch src/py_models/your_model_name/tests/__init__.py
 ```
 
 ### 2. Implement the Model Class
@@ -157,7 +173,7 @@ class YourModelName(BaseModel):
                 "total_tokens": 0,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
-                "models": {}
+                "py_models": {}
             }
         }
         
@@ -177,8 +193,8 @@ class YourModelName(BaseModel):
                 
                 # Add to model-specific summary
                 model_name = provider_data.get("model", "unknown")
-                if model_name not in module_cost_data["summary"]["models"]:
-                    module_cost_data["summary"]["models"][model_name] = {
+                if model_name not in module_cost_data["summary"]["py_models"]:
+                    module_cost_data["summary"]["py_models"][model_name] = {
                         "total_cost": 0,
                         "total_tokens": 0,
                         "prompt_tokens": 0,
@@ -186,7 +202,7 @@ class YourModelName(BaseModel):
                         "test_count": 0
                     }
                 
-                model_summary = module_cost_data["summary"]["models"][model_name]
+                model_summary = module_cost_data["summary"]["py_models"][model_name]
                 model_summary["total_cost"] += provider_data.get("total_cost", 0)
                 model_summary["total_tokens"] += provider_data.get("total_tokens", 0)
                 model_summary["prompt_tokens"] += provider_data.get("prompt_tokens", 0)
@@ -291,6 +307,87 @@ Your model implementation must:
 2. Define class variables for module configuration (MODULE_NAME, TEST_DIR, REPORT_DIR)
 3. Implement the `get_test_cases()` class method
 4. Implement the reporting methods (`save_module_report()` and `save_module_cost_report()`)
+
+## Adding External Models
+
+Developers using the installed `llm_tester` package will typically define their custom LLM tasks as "models" outside of the installed package directory. This allows you to manage your task definitions and test data separately from the library code.
+
+`llm_tester` can discover and run tests for models located in a directory you specify.
+
+**Recommended Directory Structure for External Models:**
+
+Organize your custom models in a dedicated directory. Each model should reside in its own subdirectory, containing the `model.py` file and a `tests/` subdirectory with your test cases.
+
+```
+/path/to/your/custom/models/
+└── your_model_name/
+    ├── __init__.py
+    ├── model.py          # Defines Pydantic model and get_test_cases()
+    └── tests/
+        ├── __init__.py
+        ├── prompts/
+        │   └── test1.txt
+        ├── sources/
+        │   └── test1.txt
+        └── expected/
+            └── test1.json
+```
+
+**Implementing Your External Model:**
+
+The `model.py` file for an external model follows the same structure and requirements as described in step 2 of the "Steps to Add a New Model" section above, including inheriting from `BaseModel` and implementing the `get_test_cases()` class method.
+
+**Using External Models with LLM Tester:**
+
+When using the `LLMTester` class programmatically or the `llm-tester` CLI, you specify the path to the directory containing your custom models using the `test_dir` parameter (for the API) or the `--test-dir` option (for the CLI).
+
+**API Example:**
+
+```python
+from src import LLMTester
+
+# Initialize the tester with the path to your custom py_models directory
+tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/py_models")
+
+# Discover and run tests from your external py_models
+test_cases = tester.discover_test_cases()
+results = tester.run_tests()
+# ... generate reports
+```
+
+**CLI Example:**
+
+```bash
+# Run tests using py_models from your custom directory
+llm-tester run --test-dir /path/to/your/custom/py_models --providers openai
+```
+
+`llm_tester` will scan the specified `test_dir` for subdirectories containing `model.py` files with the `get_test_cases()` method to discover your test cases.
+
+## Testing Your Model
+
+### 1. Verify Model Discovery
+
+Run the CLI with your custom test directory to check if your model is discovered:
+
+```bash
+llm-tester py_models list --test-dir /path/to/your/custom/py_models
+```
+
+### 2. Test with Different Providers
+
+Test your model with different providers using the CLI:
+
+```bash
+llm-tester run --test-dir /path/to/your/custom/py_models --providers openai anthropic
+```
+
+## Best Practices
+
+1. **Field Definitions**: Use descriptive field names and add clear descriptions
+2. **Validation Rules**: Add validation rules to fields where appropriate
+3. **Test Cases**: Create diverse test cases of varying complexity
+4. **Documentation**: Document your model's purpose and usage
 
 ## Example Models
 

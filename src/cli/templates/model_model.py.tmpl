@@ -1,0 +1,82 @@
+"""
+{{model_name}} model type definition
+"""
+
+import os
+import json
+from typing import List, Optional, Dict, Any, ClassVar
+from pydantic import BaseModel, Field
+from datetime import date
+
+
+class {{model_name_capitalized}}Model(BaseModel):
+    """
+    Model for extracting structured information for {{model_name}}
+    """
+
+    # Class variables for module configuration
+    MODULE_NAME: ClassVar[str] = "{{model_name}}"
+    TEST_DIR: ClassVar[str] = os.path.join(os.path.dirname(__file__), "tests")
+    REPORT_DIR: ClassVar[str] = os.path.join(os.path.dirname(__file__), "reports")
+
+    # Define model fields - REPLACE WITH YOUR SCHEMA
+    example_field: str = Field(..., description="An example field")
+    another_field: int = Field(0, description="Another example field")
+
+    @classmethod
+    def get_test_cases(cls) -> List[Dict[str, Any]]:
+        """Discover test cases for this module"""
+        test_cases = []
+
+        # Example of discovering file-based test cases (more common)
+        sources_dir = os.path.join(cls.TEST_DIR, "sources")
+        prompts_dir = os.path.join(cls.TEST_DIR, "prompts")
+        expected_dir = os.path.join(cls.TEST_DIR, "expected")
+
+        if os.path.exists(sources_dir):
+            for source_file in os.listdir(sources_dir):
+                if not source_file.endswith(".txt"):
+                    continue
+
+                base_name = os.path.splitext(source_file)[0]
+                prompt_file = f"{base_name}.txt"
+                expected_file = f"{base_name}.json"
+
+                prompt_path = os.path.join(prompts_dir, prompt_file)
+                expected_path = os.path.join(expected_dir, expected_file)
+
+                if not os.path.exists(prompt_path):
+                    print(f"Warning: Missing prompt file for {cls.MODULE_NAME}/{base_name} at {prompt_path}")
+                    continue
+
+                if not os.path.exists(expected_path):
+                    print(f"Warning: Missing expected file for {cls.MODULE_NAME}/{base_name} at {expected_path}")
+                    continue
+
+                test_case = {
+                    "module": cls.MODULE_NAME,
+                    "name": base_name,
+                    "model_class": cls,
+                    "source_path": os.path.join(sources_dir, source_file),
+                    "prompt_path": prompt_path,
+                    "expected_path": expected_path
+                }
+
+                test_cases.append(test_case)
+
+        return test_cases
+
+    # Add placeholder methods for reporting
+    @classmethod
+    def save_module_report(cls, results: Dict[str, Any], run_id: str) -> str:
+        """Placeholder for saving module-specific reports."""
+        print(f"Placeholder: Generating module report for {cls.MODULE_NAME} (Run ID: {run_id})")
+        # Implement report generation logic here
+        return f"path/to/{cls.MODULE_NAME}_report_{run_id}.md"
+
+    @classmethod
+    def save_module_cost_report(cls, cost_data: Dict[str, Any], run_id: str) -> str:
+        """Placeholder for saving module-specific cost reports."""
+        print(f"Placeholder: Generating module cost report for {cls.MODULE_NAME} (Run ID: {run_id})")
+        # Implement cost report generation logic here
+        return f"path/to/{cls.MODULE_NAME}_cost_report_{run_id}.json"

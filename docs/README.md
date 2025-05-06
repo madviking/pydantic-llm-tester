@@ -18,11 +18,11 @@ The documentation is organized into the following sections:
 - **Models**
   - [Adding Models](guides/models/ADDING_MODELS.md) - Guide for adding new extraction models
 
-- **Testing**
-  - [Running Tests](guides/testing/RUNNING_TESTS.md) - Guide for running tests
-
 - **Configuration**
   - [Configuration Reference](guides/configuration/CONFIG_REFERENCE.md) - Reference for configuration options
+
+- **CLI Commands**
+  - [Scaffolding](guides/cli_commands/SCAFFOLDING.md) - Guide for scaffolding new providers and models
 
 ### Architecture
 
@@ -33,10 +33,6 @@ The documentation is organized into the following sections:
 
 - [Basic Usage](examples/BASIC_USAGE.md) - Basic usage examples
 - [Advanced Usage](examples/ADVANCED_USAGE.md) - Advanced usage examples
-
-### Roadmap
-
-- [Future Enhancements](roadmap/FUTURE_ENHANCEMENTS.md) - Planned enhancements and features
 
 ## Getting Started
 

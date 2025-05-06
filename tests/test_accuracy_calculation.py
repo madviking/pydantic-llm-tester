@@ -8,7 +8,7 @@ from datetime import date, datetime
 # Assuming LLMTester can be imported; adjust if necessary
 # If LLMTester has significant dependencies, we might need a fixture
 # For now, let's try instantiating it directly or using a minimal mock
-from llm_tester import LLMTester
+from src import LLMTester
 
 # Minimal LLMTester instance for testing the method
 # We only need the _calculate_accuracy method, so providers list can be empty

@@ -39,7 +39,7 @@ Each provider has its own configuration file:
   "env_key": "PROVIDER_API_KEY",
   "env_key_secret": "",
   "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
-  "models": [
+  "llm_models": [
     {
       "name": "model-name",
       "default": true,
@@ -51,7 +51,7 @@ Each provider has its own configuration file:
       "max_output_tokens": 4096,
       "enabled": true
     }
-    // ... other models
+    // ... other py_models
   ]
 }
 ```
@@ -192,7 +192,7 @@ Use the CLI commands to check your setup:
 # Check discovered providers and enabled status
 llm-tester providers list
 
-# Check LLM models within a specific provider
+# Check LLM py_models within a specific provider
 llm-tester providers manage list <provider_name>
 
 # Check API keys (will prompt if missing)
@@ -205,3 +205,12 @@ llm-tester configure keys
 2. **Provider Enablement**: Use `enabled_providers.json` (via `llm-tester providers enable/disable`) to control which providers are active, especially if you don't have keys for all of them.
 3. **LLM Model Enablement**: Use `llm-tester providers manage enable/disable` to fine-tune which specific LLM models within a provider are used for testing or recommendations.
 4. **OpenRouter Updates**: Regularly use `llm-tester providers manage update openrouter` to keep pricing and token limits accurate.
+
+### Test Settings
+
+The `test_settings` section in `pyllm_config.json` controls various aspects of the test runner:
+
+- `output_dir`: (string) The directory where test reports and results are saved (defaults to `test_results`).
+- `save_optimized_prompts`: (boolean) Whether to save optimized prompts generated during optimization runs (defaults to `true`).
+- `default_modules`: (array of strings) List of default py model modules to run if none are specified.
+- `py_models_path`: (string) The default directory where py_models are expected to be found or scaffolded (defaults to `./py_models`).

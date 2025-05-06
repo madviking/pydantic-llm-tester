@@ -1,0 +1,39 @@
+{
+  "name": "openai",
+  "provider_type": "openai",
+  "env_key": "OPENAI_API_KEY",
+  "env_key_secret": "",
+  "system_prompt": "You are a helpful data extraction assistant. Extract the requested information accurately from the provided text in JSON format.",
+  "llm_models": [
+    {
+      "name": "gpt-4",
+      "default": true,
+      "preferred": true,
+      "cost_input": 15,
+      "cost_output": 60,
+      "cost_category": "expensive",
+      "max_input_tokens": 8000,
+      "max_output_tokens": 4000
+    },
+    {
+      "name": "gpt-3.5-turbo",
+      "default": false,
+      "preferred": false,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 4000,
+      "max_output_tokens": 2000
+    },
+    {
+      "name": "gpt-4o",
+      "default": false,
+      "preferred": true,
+      "cost_input": 5.0,
+      "cost_output": 15.0,
+      "cost_category": "expensive",
+      "max_input_tokens": 8000,
+      "max_output_tokens": 4000
+    }
+  ]
+}

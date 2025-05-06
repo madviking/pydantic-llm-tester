@@ -14,7 +14,7 @@ from pathlib import Path
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from llm_tester.llms.base import BaseLLM, ProviderConfig, ModelConfig
+from src.llms.base import BaseLLM, ProviderConfig, ModelConfig
 
 
 class MockValidProvider(BaseLLM):
@@ -55,7 +55,7 @@ class TestProviderFactory(unittest.TestCase):
         # Create a provider.py file
         with open(os.path.join(self.provider_dir, "provider.py"), "w") as f:
             f.write("""
-from llm_tester.llms.base import BaseLLM
+from src.llms.base import BaseLLM
 
 class MockProvider(BaseLLM):
     def __init__(self, config=None):
@@ -90,7 +90,7 @@ class InvalidProvider:
             "provider_type": "invalid",
             "env_key": "INVALID_API_KEY",
             "system_prompt": "You are an invalid provider",
-            "models": [
+            "llm_models": [
                 {
                     "name": "invalid:model1",
                     "default": True,
@@ -116,7 +116,7 @@ class InvalidProvider:
         # Create a provider.py file for external provider
         with open(os.path.join(self.external_dir, "external_provider.py"), "w") as f:
             f.write("""
-from llm_tester.llms.base import BaseLLM
+from src.llms.base import BaseLLM
 
 class ExternalProvider(BaseLLM):
     def __init__(self, config=None):
@@ -132,7 +132,7 @@ class ExternalProvider(BaseLLM):
             "provider_type": "external",
             "env_key": "EXTERNAL_API_KEY",
             "system_prompt": "You are an external provider",
-            "models": [
+            "llm_models": [
                 {
                     "name": "external:model1",
                     "default": True,
@@ -153,7 +153,7 @@ class ExternalProvider(BaseLLM):
             "provider_type": "mock",
             "env_key": "MOCK_API_KEY",
             "system_prompt": "You are a mock provider",
-            "models": [
+            "llm_models": [
                 {
                     "name": "mock:model1",
                     "default": True,
@@ -169,7 +169,7 @@ class ExternalProvider(BaseLLM):
             json.dump(config, f, indent=2)
         
         # Patch the llms directory
-        self.llms_dir_patcher = patch('llm_tester.llms.provider_factory.os.path.dirname')
+        self.llms_dir_patcher = patch('src.llms.provider_factory.os.path.dirname')
         self.mock_dirname = self.llms_dir_patcher.start()
         self.mock_dirname.return_value = self.temp_dir
     
@@ -182,10 +182,12 @@ class ExternalProvider(BaseLLM):
     
     def test_load_provider_config(self):
         """Test loading provider configuration"""
-        from llm_tester.llms.provider_factory import load_provider_config
+        from src.llms.provider_factory import load_provider_config
         
         # Call the function
         config = load_provider_config("mock_provider")
+
+
         
         # Check that the config was loaded correctly
         self.assertIsNotNone(config)
@@ -193,13 +195,13 @@ class ExternalProvider(BaseLLM):
         self.assertEqual(config.provider_type, "mock")
         self.assertEqual(config.env_key, "MOCK_API_KEY")
         self.assertEqual(config.system_prompt, "You are a mock provider")
-        self.assertEqual(len(config.models), 1)
-        self.assertEqual(config.models[0].name, "mock:model1")
-        self.assertEqual(config.models[0].default, True)
+        self.assertEqual(len(config.llm_models), 1)
+        self.assertEqual(config.llm_models[0].name, "mock:model1")
+        self.assertEqual(config.llm_models[0].default, True)
     
     def test_discover_provider_classes(self):
         """Test discovering provider classes"""
-        from llm_tester.llms.provider_factory import discover_provider_classes, register_provider_class
+        from src.llms.provider_factory import discover_provider_classes, register_provider_class
         
         # Register a mock provider directly for testing
         register_provider_class("mock_provider", MockValidProvider)
@@ -213,7 +215,7 @@ class ExternalProvider(BaseLLM):
     
     def test_get_available_providers(self):
         """Test getting available providers"""
-        from llm_tester.llms.provider_factory import get_available_providers, register_provider_class
+        from src.llms.provider_factory import get_available_providers, register_provider_class
         
         # Register a mock provider directly for testing
         register_provider_class("mock_provider", MockValidProvider)
@@ -226,20 +228,20 @@ class ExternalProvider(BaseLLM):
     
     def test_create_provider(self):
         """Test creating a provider instance"""
-        from llm_tester.llms.provider_factory import create_provider, register_provider_class
+        from src.llms.provider_factory import create_provider, register_provider_class
         
         # Register a mock provider directly for testing
         register_provider_class("mock_provider", MockValidProvider)
         
         # Patch the load_provider_config function to return a mock config
-        with patch('llm_tester.llms.provider_factory.load_provider_config') as mock_load_config:
+        with patch('src.llms.provider_factory.load_provider_config') as mock_load_config:
             # Create a mock config
             mock_config = ProviderConfig(
                 name="mock_provider",
                 provider_type="mock",
                 env_key="MOCK_API_KEY",
                 system_prompt="You are a mock provider",
-                models=[
+                llm_models=[
                     ModelConfig(
                         name="mock:model1",
                         default=True,
@@ -265,7 +267,7 @@ class ExternalProvider(BaseLLM):
         """Test validating a provider implementation"""
         # This test requires the new validate_provider_implementation function
         # that we'll implement in the provider_factory.py
-        from llm_tester.llms.provider_factory import validate_provider_implementation
+        from src.llms.provider_factory import validate_provider_implementation
         
         # Test with valid provider
         valid_result = validate_provider_implementation(MockValidProvider)
@@ -278,7 +280,7 @@ class ExternalProvider(BaseLLM):
     def test_invalid_provider_creation(self):
         """Test creating an invalid provider"""
         # This test expects the create_provider function to check validity
-        from llm_tester.llms.provider_factory import create_provider
+        from src.llms.provider_factory import create_provider
         
         # Try to create an invalid provider
         provider = create_provider("invalid_provider")
@@ -307,11 +309,11 @@ class ExternalProvider(BaseLLM):
                 json.dump(external_providers_config, f, indent=2)
             
             # Patch the function that loads external provider configs
-            with patch('llm_tester.llms.provider_factory.load_external_providers') as mock_load:
+            with patch('src.llms.provider_factory.load_external_providers') as mock_load:
                 mock_load.return_value = external_providers_config
                 
                 # Import and test the new register_external_provider function
-                from llm_tester.llms.provider_factory import register_external_provider, create_provider
+                from src.llms.provider_factory import register_external_provider, create_provider
                 
                 # Register the external provider
                 success = register_external_provider("external", "external_module", "ExternalProvider")

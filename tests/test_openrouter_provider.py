@@ -7,8 +7,8 @@ import importlib
 # Mock base classes from the project if they are not directly importable in tests
 # This avoids complex path manipulation in the test file itself
 try:
-    from llm_tester.llms.base import BaseLLM, ProviderConfig, ModelConfig
-    from llm_tester.utils.cost_manager import UsageData
+    from src.llms.base import BaseLLM, ProviderConfig, ModelConfig
+    from src.utils.cost_manager import UsageData
 except ImportError:
     # Define dummy base classes if imports fail (e.g., running tests standalone)
     class BaseModel:
@@ -28,7 +28,7 @@ except ImportError:
 
 # Import the actual provider
 try:
-    from llm_tester.llms.openrouter.provider import OpenRouterProvider
+    from src.llms.openrouter.provider import OpenRouterProvider
 except ImportError as e:
     # If the provider itself can't be imported, skip all tests in this file
     pytest.skip(f"Could not import OpenRouterProvider: {e}", allow_module_level=True)
@@ -68,7 +68,7 @@ def mock_provider_config():
         env_key="TEST_OPENROUTER_API_KEY",
         env_key_secret=None,
         system_prompt="Test system prompt",
-        models=[
+        llm_models=[
             ModelConfig(
                 name="openrouter/test-model",
                 default=True,
@@ -97,8 +97,8 @@ def mock_model_config():
 # --- Test Cases ---
 
 @patch.dict(os.environ, {"TEST_OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger for this test too
+@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.llms.openrouter.provider.logging.getLogger') # Patch getLogger for this test too
 def test_openrouter_provider_init_success(mock_get_logger, mock_openai_class, mock_provider_config):
     """Test successful initialization of OpenRouterProvider."""
     mock_logger = MagicMock()
@@ -119,8 +119,8 @@ def test_openrouter_provider_init_success(mock_get_logger, mock_openai_class, mo
 
 
 @patch.dict(os.environ, {}, clear=True) # No API key
-@patch('llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger
+@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.llms.openrouter.provider.logging.getLogger') # Patch getLogger
 def test_openrouter_provider_init_no_api_key(mock_get_logger, mock_openai_class, mock_provider_config):
     """Test initialization failure when API key is missing."""
     mock_logger = MagicMock()
@@ -137,7 +137,7 @@ def test_openrouter_provider_init_no_api_key(mock_get_logger, mock_openai_class,
 
 
 @patch.dict(os.environ, {"TEST_OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
 def test_openrouter_provider_call_llm_api_success(mock_openai_class, mock_provider_config, mock_model_config):
     """Test successful _call_llm_api call."""
     # Mock the response structure from openai.chat.completions.create
@@ -194,8 +194,8 @@ def test_openrouter_provider_call_llm_api_success(mock_openai_class, mock_provid
 
 
 @patch.dict(os.environ, {"TEST_OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
+@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
 def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openai_class, mock_provider_config, mock_model_config):
     """Test error handling during _call_llm_api call."""
     mock_logger = MagicMock()
@@ -232,7 +232,7 @@ def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openai_cla
 
 
 @patch.dict(os.environ, {}, clear=True) # No API key
-@patch('llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
 def test_openrouter_provider_call_llm_api_no_client(mock_openai_class, mock_provider_config, mock_model_config):
     """Test calling _call_llm_api when client is not initialized."""
     provider = OpenRouterProvider(config=mock_provider_config)
