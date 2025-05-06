@@ -1,7 +1,1 @@
-{
-  "example_provider": {
-    "module": "example_llm_provider",
-    "class": "ExampleProvider",
-    "config_path": "/path/to/config.json"
-  }
-}
+{}

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import os
 
-class IntegrationTestModel(BaseModel):
+class IntegrationTest(BaseModel):
     """Simple model to extract one field."""
     animal: str = Field(..., description="The animal mentioned in the text")
 
@@ -19,7 +19,7 @@ class IntegrationTestModel(BaseModel):
         # Define the single test case
         test_case_name = "simple"
         test_case = {
-            'module': 'integration_test',
+            'module': 'integration_tests',
             'name': test_case_name,
             'model_class': cls,
             'source_path': os.path.join(test_dir, "sources", f"{test_case_name}.txt"),
@@ -32,5 +32,5 @@ class IntegrationTestModel(BaseModel):
             return [test_case]
         else:
             # Log a warning or raise an error if files are missing
-            print(f"Warning: Missing files for integration_test/{test_case_name}")
+            print(f"Warning: Missing files for integration_tests/{test_case_name}")
             return []

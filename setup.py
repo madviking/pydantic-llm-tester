@@ -27,6 +27,7 @@ setup(
         "pydantic-ai>=0.0.44", # Added pydantic-ai dependency
         "rapidfuzz>=3.0.0",
         "requests>=2.20.0",
+        "google-generativeai>=0.8.5",
     ],
     entry_points={
         "console_scripts": [

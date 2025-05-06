@@ -1,7 +1,7 @@
 {
   "name": "mock",
   "provider_type": "mock",
-  "env_key": "MOCK_API_KEY",
+  "env_key": "",
   "system_prompt": "You are a mock LLM provider for testing purposes.",
   "llm_models": [
     {

@@ -58,5 +58,11 @@
       "input": 0.5,
       "output": 1.5
     }
+  },
+  "openrouter": {
+    "google/gemini-pro-1.5": {
+      "input": 7.0,
+      "output": 21.0
+    }
   }
 }

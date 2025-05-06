@@ -1,11 +1,12 @@
 import json
 import logging
 import os
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Type
 
 # Use absolute imports
 from src import LLMTester # The main class
 from src.cli.core.provider_logic import get_available_providers_from_factory # To get default providers
+from pydantic import BaseModel # Import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -143,18 +144,66 @@ def run_test_suite(
     """
     if model_overrides is None:
         model_overrides = {}
+    # Determine the list of providers to attempt to use
     if providers is None:
-        providers = get_available_providers_from_factory()
-        logger.info(f"No providers specified, running tests for all available: {', '.join(providers)}")
-        if not providers:
-             print("Error: No providers are enabled or available. Cannot run tests.")
-             print("Use 'llm-tester providers list' and 'llm-tester providers enable <name>'.")
-             return False
+        # Get all available providers if none are specified
+        all_available_providers = get_available_providers_from_factory()
+        logger.info(f"No providers specified, considering all available: {', '.join(all_available_providers)}")
+        providers_to_check = all_available_providers
+    else:
+        # Use the providers specified by the user
+        providers_to_check = providers
+        logger.info(f"Providers specified: {', '.join(providers_to_check)}")
+
+    if not providers_to_check:
+        print("Error: No providers specified or available to check.")
+        print("Use 'llm-tester providers list' and 'llm-tester providers enable <name>'.")
+        return False
+
+    # Check for required API keys and build a list of usable providers
+    usable_providers = []
+    from src.llms.provider_factory import load_provider_config # Local import
+
+    print("\nChecking provider configurations and API keys...")
+    for provider_name in providers_to_check:
+        try:
+            config = load_provider_config(provider_name)
+            if config and config.env_key:
+                # Check if the required environment variable is set and not empty
+                api_key = os.environ.get(config.env_key)
+                if api_key:
+                    usable_providers.append(provider_name)
+                    logger.info(f"Provider '{provider_name}' enabled (API key found for {config.env_key}).")
+                else:
+                    print(f"Skipping provider '{provider_name}': Required environment variable '{config.env_key}' not set.")
+                    logger.warning(f"Skipping provider '{provider_name}': Required environment variable '{config.env_key}' not set.")
+            else:
+                # Provider does not require an API key (e.g., mock provider) or config not found
+                if config:
+                    usable_providers.append(provider_name)
+                    logger.info(f"Provider '{provider_name}' enabled (no API key required or config loaded).")
+                else:
+                    print(f"Skipping provider '{provider_name}': Configuration not found.")
+                    logger.warning(f"Skipping provider '{provider_name}': Configuration not found.")
+
+        except Exception as e:
+            print(f"Error checking config for provider '{provider_name}': {e}")
+            logger.error(f"Error checking config for provider '{provider_name}': {e}", exc_info=True)
+            print(f"Skipping provider '{provider_name}' due to configuration error.")
+
+
+    if not usable_providers:
+        print("\nError: No usable providers found with required API keys set.")
+        print("Please ensure your API keys are set in your environment or in a .env file.")
+        print("Use 'llm-tester configure keys' to help set up keys.")
+        return False
+
+    print(f"\nRunning tests with usable providers: {', '.join(usable_providers)}")
 
     try:
-        # Initialize tester with the selected providers and test_dir
+        # Initialize tester with the *usable* providers and test_dir
         tester = LLMTester(
-            providers=providers,
+            providers=usable_providers,
             test_dir=test_dir
         )
 
@@ -176,7 +225,51 @@ def run_test_suite(
             serializable_results = _make_serializable(results)
             output_content = json.dumps(serializable_results, indent=2)
         else:
-            output_content = tester.generate_report(results, optimized=optimize)
+            # Generate module-specific reports
+            reports = {}
+            modules_processed = set()
+            for test_id, test_result_data in results.items():
+                module_name = test_id.split('/')[0]
+
+                # Skip if already processed or is the test module
+                if module_name in modules_processed or module_name == 'test':
+                    continue
+
+                modules_processed.add(module_name)
+
+                # Get model class from the results for this module
+                model_class: Optional[Type[BaseModel]] = test_result_data.get('model_class')
+
+                if not model_class:
+                    logger.warning(f"Could not find model class in results for module {module_name}. Skipping module report.")
+                    continue
+
+                # Generate module-specific report if the model class has the method
+                if hasattr(model_class, 'save_module_report'):
+                    try:
+                        # Pass only results relevant to this module to the module's report generator
+                        module_results = {tid: data for tid, data in results.items() if tid.startswith(f"{module_name}/")}
+                        module_report_path = model_class.save_module_report(module_results, tester.run_id)
+                        logger.info(f"Module report for {module_name} saved to {module_report_path}")
+
+                        # Read the report content
+                        try:
+                            with open(module_report_path, 'r', encoding='utf-8') as f:
+                                reports[module_name] = f.read()
+                        except Exception as e:
+                            logger.error(f"Error reading module report for {module_name}: {str(e)}")
+
+                    except Exception as e:
+                        logger.error(f"Error generating module report for {module_name}: {str(e)}")
+
+            # Generate main report including cost summary and module reports
+            output_content = tester.report_generator.generate_report(results, optimized=optimize)
+
+            # Append module reports to the main report
+            for module_name, report_content in reports.items():
+                 output_content += f"\n\n---\n\n## Module Report: {module_name}\n\n"
+                 output_content += report_content
+
 
         # Write or print output
         if output_file:
@@ -189,13 +282,13 @@ def run_test_suite(
                 print(f"\nError writing output to file: {e}")
                 print("\n--- Results ---")
                 print(output_content) # Print to stdout as fallback
-                print("--- End Results ---") # Corrected indentation
-                return False # Indicate failure to write file # Corrected indentation
+                print("--- End Results ---")
+                return False # Indicate failure to write file
         else:
             # Ensure output_content is a string before printing
-            print("\n" + str(output_content)) # Corrected indentation
+            print("\n" + str(output_content))
 
-        return True # Completed successfully # Corrected indentation relative to the main try block
+        return True # Completed successfully
 
     except Exception as e:
         logger.error(f"An error occurred during testing: {e}", exc_info=True)

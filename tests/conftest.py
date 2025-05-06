@@ -1,6 +1,18 @@
 import pytest
 import os
 from unittest.mock import Mock, MagicMock
+from dotenv import load_dotenv # Import load_dotenv
+
+# Load environment variables from .env file
+# Use dotenv_values to get a dictionary of loaded variables
+from dotenv import dotenv_values
+config_values = dotenv_values()
+
+# Explicitly set loaded variables in os.environ
+if config_values:
+    for key, value in config_values.items():
+        os.environ[key] = value
+
 # from src.llm_tester import LLMTester # No longer need to import the actual class for spec
 from src.utils.config_manager import ConfigManager
 from src.py_models.job_ads.model import JobAd

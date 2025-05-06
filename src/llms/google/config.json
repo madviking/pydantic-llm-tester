@@ -26,6 +26,17 @@
       "max_output_tokens": 8192
     },
     {
+      "name": "gemini-1.5-flash-latest",
+      "default": false,
+      "preferred": true,
+      "enabled": true,
+      "cost_input": 0.35,
+      "cost_output": 1.05,
+      "cost_category": "cheap",
+      "max_input_tokens": 100000,
+      "max_output_tokens": 8192
+    },
+    {
       "name": "text-bison",
       "default": false,
       "preferred": false,
@@ -39,6 +50,17 @@
       "name": "gemini-1.0-pro",
       "default": false,
       "preferred": false,
+      "enabled": true,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 30720,
+      "max_output_tokens": 2048
+    },
+    {
+      "name": "gemini-pro",
+      "default": false,
+      "preferred": true,
       "enabled": true,
       "cost_input": 0.5,
       "cost_output": 1.5,

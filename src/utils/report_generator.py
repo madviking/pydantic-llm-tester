@@ -140,6 +140,8 @@ class ReportGenerator:
                 report_lines.append("|----------|-------|----------|")
                 
                 for provider, provider_result in test_results.items():
+                    if provider == 'model_class':
+                        continue
                     accuracy = self._get_accuracy(provider_result)
                     model = provider_result.get('model', 'default')
                     report_lines.append(f"| {provider} | {model} | {accuracy:.2f}% |")
@@ -151,12 +153,18 @@ class ReportGenerator:
                 report_lines.append("")
                 
                 for provider, provider_result in test_results.items():
+                    if provider == 'model_class':
+                        continue
                     report_lines.append(f"##### {provider}")
                     report_lines.append("")
                     
+                    # Ensure provider_result is a dict before accessing .get, though _get_accuracy handles it.
+                    # The main issue is accessing .get on ModelMetaclass or doing 'in' operator.
+                    # The `isinstance` check in `_get_accuracy` handles non-dicts for accuracy calculation.
+                    # For other operations, we rely on `provider_result` being a dict due to the filter.
                     validation = provider_result.get('validation', {})
                     
-                    if 'error' in provider_result:
+                    if 'error' in provider_result: # This is safe if provider_result is a dict
                         report_lines.append(f"Error: {provider_result['error']}")
                     elif not validation.get('success', False):
                         report_lines.append(f"Validation failed: {validation.get('error', 'Unknown error')}")
@@ -186,6 +194,11 @@ class ReportGenerator:
         Returns:
             Accuracy percentage
         """
+        if not isinstance(provider_result, dict):
+            # TODO: Add logging here if a logger becomes available in this class
+            # print(f"WARNING: _get_accuracy called with non-dict type: {type(provider_result)}", file=sys.stderr)
+            return 0.0 # Return 0.0 for non-dict inputs, as it's an error state for accuracy
+
         if 'error' in provider_result:
             return 0.0
         

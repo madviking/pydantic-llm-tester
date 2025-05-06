@@ -44,7 +44,7 @@
       "cost_output": 0.25,
       "cost_category": "cheap",
       "max_input_tokens": 32000,
-      "max_output_tokens": 2000 # Assuming lower output for tiny
+      "max_output_tokens": 2000
     }
   ]
 }

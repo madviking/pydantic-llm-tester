@@ -23,16 +23,13 @@
     "new_setting": "value"
   },
   "py_models": {
-    "integration_test": {
+    "integration_tests": {
       "enabled": true
     },
     "job_ads": {
       "enabled": true
     },
     "product_descriptions": {
-      "enabled": true
-    },
-    "config_test_model": {
       "enabled": true
     },
     "default_path_model": {

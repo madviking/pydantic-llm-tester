@@ -199,10 +199,12 @@ def _merge_static_and_api_models(
             if context_length is not None:
                  # Calculate based on context_length minus determined output tokens
                  max_input_tokens = int(context_length) - max_output_tokens
-                 # Ensure it's positive, fallback if calculation is weird
+                 # Ensure it's positive and at least 1, fallback if calculation is weird
                  if max_input_tokens <= 0:
-                     logger.warning(f"Calculated non-positive max_input_tokens for {model_id} (context: {context_length}, output: {max_output_tokens}). Using context_length / 2.")
-                     max_input_tokens = int(context_length) // 2
+                     # Use context_length // 2, but ensure it's at least 1
+                     fallback_input_tokens = max(1, int(context_length) // 2)
+                     logger.warning(f"Calculated non-positive max_input_tokens for {model_id} (context: {context_length}, output: {max_output_tokens}). Using max(1, context_length // 2) = {fallback_input_tokens}.")
+                     max_input_tokens = fallback_input_tokens
             elif static_model_config and static_model_config.max_input_tokens:
                  max_input_tokens = static_model_config.max_input_tokens # Use static if API doesn't provide context
             else:
@@ -445,11 +447,12 @@ def validate_provider_implementation(provider_class: Type) -> bool:
     return True
 
 
-def create_provider(provider_name: str) -> Optional[BaseLLM]:
+def create_provider(provider_name: str, config: Optional[ProviderConfig] = None) -> Optional[BaseLLM]:
     """Create a provider instance by name
     
     Args:
         provider_name: Name of the provider
+        config: Optional ProviderConfig object to use instead of loading internally
         
     Returns:
         Provider instance or None if not found
@@ -460,6 +463,8 @@ def create_provider(provider_name: str) -> Optional[BaseLLM]:
     if provider_name in _external_providers:
         logger.info(f"Provider {provider_name} is an external provider")
         try:
+            # For external providers, we still rely on their internal config loading for now
+            # If needed, we could extend _create_external_provider to accept config
             return _create_external_provider(provider_name)
         except Exception as e:
             logger.error(f"Error creating external provider {provider_name}: {str(e)}")
@@ -481,8 +486,13 @@ def create_provider(provider_name: str) -> Optional[BaseLLM]:
         logger.error(f"Provider {provider_name} has an invalid implementation")
         return None
     
-    # Load config for provider
-    config = load_provider_config(provider_name)
+    # Use provided config or load internally
+    if config is None:
+        config = load_provider_config(provider_name)
+        
+    if config is None:
+        logger.error(f"Could not load or find config for provider {provider_name}")
+        return None
     
     # Create instance
     try:

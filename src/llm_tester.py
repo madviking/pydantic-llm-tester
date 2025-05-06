@@ -5,6 +5,7 @@ Main LLM Tester class for running tests and generating reports
 import os
 import importlib
 import json
+import sys
 from typing import List, Dict, Any, Optional, Type, Tuple
 import logging
 import inspect
@@ -52,77 +53,188 @@ class LLMTester:
 
         # Initialize cost tracking
         self.run_id = cost_tracker.start_new_run()
+        self.config_manager = ConfigManager() # Initialize ConfigManager
         self.logger.info(f"Started new test run with ID: {self.run_id}")
 
         self._verify_directories()
 
     def _verify_directories(self) -> None:
         """Verify that required directories exist"""
-        if not os.path.exists(self.cases_dir):
-            self.logger.warning(f"Cases directory {self.cases_dir} does not exist")
+        # Check the default test_dir (e.g., src/tests)
+        if not os.path.exists(self.test_dir):
+            self.logger.warning(f"Default test directory {self.test_dir} does not exist")
+
+        # Check the configured py_models_path if it's different from the default built-in
+        configured_py_models_path = self.config_manager.get_py_models_path()
+        builtin_py_models_dir = os.path.join(os.path.dirname(__file__), "py_models")
+
+        if configured_py_models_path and os.path.abspath(configured_py_models_path) != os.path.abspath(builtin_py_models_dir):
+             if not os.path.exists(configured_py_models_path):
+                 self.logger.warning(f"Configured py_models path {configured_py_models_path} does not exist")
+
 
     def discover_test_cases(self) -> List[Dict[str, Any]]:
         """
-        Discover available test cases by scanning model directories
+        Discover available test cases by scanning configured py_models directories.
+        Supports built-in and custom paths defined in pyllm_config.json.
 
         Returns:
             List of test case configurations
         """
         test_cases = []
+        processed_modules = set() # To avoid processing the same module from different paths
 
-        # Get all modules from the py_models directory
-        models_dir = os.path.join(os.path.dirname(__file__), "py_models")
-        self.logger.info(f"Scanning py_models directory: {models_dir}")
+        # Get configured py_models and their paths
+        configured_py_models = self.config_manager.get_py_models()
+        configured_py_models_path = self.config_manager.get_py_models_path()
+        builtin_py_models_dir = os.path.join(os.path.dirname(__file__), "py_models")
 
-        # List all potential module directories
-        module_dirs = []
-        if os.path.exists(models_dir):
-            for item in os.listdir(models_dir):
-                item_path = os.path.join(models_dir, item)
+        # List of directories to scan for py_models
+        py_models_dirs_to_scan = []
+
+        # Add the built-in py_models directory
+        if os.path.exists(builtin_py_models_dir):
+            py_models_dirs_to_scan.append(builtin_py_models_dir)
+            self.logger.info(f"Scanning built-in py_models directory: {builtin_py_models_dir}")
+
+        # Add the configured py_models_path if it's different from the built-in
+        if configured_py_models_path and os.path.abspath(configured_py_models_path) != os.path.abspath(builtin_py_models_dir):
+            if os.path.exists(configured_py_models_path):
+                py_models_dirs_to_scan.append(configured_py_models_path)
+                self.logger.info(f"Scanning configured py_models path: {configured_py_models_path}")
+            else:
+                self.logger.warning(f"Configured py_models path {configured_py_models_path} does not exist. Skipping.")
+
+
+        # Process modules from scanned directories
+        for models_dir in py_models_dirs_to_scan:
+            if not os.path.exists(models_dir):
+                continue
+
+            for item_name in os.listdir(models_dir):
+                item_path = os.path.join(models_dir, item_name)
                 # Skip non-directories, hidden directories, and special files
-                if not os.path.isdir(item_path) or item.startswith('__') or item.startswith('.'):
+                if not os.path.isdir(item_path) or item_name.startswith('__') or item_name.startswith('.'):
                     continue
-                module_dirs.append(item)
 
-        self.logger.info(f"Found potential modules: {', '.join(module_dirs)}")
+                module_name = item_name # Use directory name as module name
 
-        # Import model classes and get test cases
-        for module_name in module_dirs:
-            self.logger.info(f"Processing module: {module_name}")
+                # Check if this module is explicitly configured with a path
+                if module_name in configured_py_models and 'path' in configured_py_models[module_name]:
+                    # This module will be handled by its explicit path later
+                    continue
 
-            # Get model class and path from module
-            model_class, model_path = self._find_model_class(module_name)
-            if not model_class:
-                self.logger.warning(f"Could not find model class for module {module_name}")
-                continue
+                # Avoid processing the same module name if found in multiple scanned directories
+                if module_name in processed_modules:
+                    self.logger.debug(f"Skipping duplicate module name '{module_name}' found in '{models_dir}'")
+                    continue
 
-            # Check if model class has the get_test_cases method
-            if not hasattr(model_class, 'get_test_cases'):
-                self.logger.warning(f"Model class for module {module_name} does not have get_test_cases method")
+                processed_modules.add(module_name)
+                self.logger.info(f"Processing module from directory: {module_name} in {models_dir}")
 
-                # Fall back to legacy approach for backward compatibility
-                self.logger.info(f"Falling back to legacy test discovery for module {module_name}")
-                legacy_test_cases = self._discover_legacy_test_cases(module_name, model_class, model_path)
-                if legacy_test_cases:
-                    test_cases.extend(legacy_test_cases)
-                continue
+                # Find model class and get test cases
+                model_class, model_path = self._find_model_class_from_path(item_path, module_name)
+                if not model_class:
+                    self.logger.warning(f"Could not find model class for module {module_name} in {models_dir}")
+                    continue
 
-            # Get test cases from model class
-            try:
-                module_test_cases = model_class.get_test_cases()
+                # Get test cases from model class
+                module_test_cases = self._get_test_cases_from_model(model_class, module_name, model_path)
                 if module_test_cases:
-                    self.logger.info(f"Found {len(module_test_cases)} test cases for module {module_name}")
-                    # Add model_path to each test case
-                    for tc in module_test_cases:
-                        tc['model_path'] = model_path
                     test_cases.extend(module_test_cases)
-                else:
-                    self.logger.warning(f"No test cases found for module {module_name}")
-            except Exception as e:
-                self.logger.error(f"Error getting test cases for module {module_name}: {str(e)}")
+
+
+        # Process modules explicitly defined with a 'path' in the config
+        for module_name, config in configured_py_models.items():
+            if 'path' in config and module_name not in processed_modules:
+                module_path = config['path']
+                full_module_path = os.path.abspath(module_path) # Resolve relative paths
+
+                if not os.path.exists(full_module_path):
+                    self.logger.warning(f"Configured path for module '{module_name}' does not exist: {full_module_path}. Skipping.")
+                    continue
+
+                processed_modules.add(module_name)
+                self.logger.info(f"Processing module from configured path: {module_name} at {full_module_path}")
+
+                # Find model class and get test cases
+                model_class, model_file_path = self._find_model_class_from_path(full_module_path, module_name)
+                if not model_class:
+                    self.logger.warning(f"Could not find model class for module {module_name} at {full_module_path}")
+                    continue
+
+                # Get test cases from model class
+                module_test_cases = self._get_test_cases_from_model(model_class, module_name, model_file_path)
+                if module_test_cases:
+                    test_cases.extend(module_test_cases)
+
+
+        # Fallback to legacy test discovery (if cases_dir exists and contains modules not yet processed)
+        if os.path.exists(self.cases_dir):
+             self.logger.info(f"Checking legacy test cases directory: {self.cases_dir}")
+             for item_name in os.listdir(self.cases_dir):
+                 item_path = os.path.join(self.cases_dir, item_name)
+                 if os.path.isdir(item_path) and not item_name.startswith('__') and item_name not in processed_modules:
+                     module_name = item_name
+                     processed_modules.add(module_name) # Mark as processed to avoid conflicts
+
+                     self.logger.info(f"Processing legacy module: {module_name} in {self.cases_dir}")
+
+                     # Attempt to find a model class for this legacy module name
+                     # We need to find the model class from the built-in src.py_models
+                     # or potentially a configured path if a module with the same name exists there.
+                     # This part is tricky - how does a legacy test case know which model class to use?
+                     # Assuming legacy test cases correspond to built-in models for now.
+                     model_class, model_path = self._find_model_class_from_path(os.path.join(builtin_py_models_dir, module_name), module_name)
+
+                     if not model_class:
+                         self.logger.warning(f"Could not find corresponding model class for legacy module {module_name}. Skipping legacy tests.")
+                         continue
+
+                     self.logger.info(f"Falling back to legacy test discovery for module {module_name}")
+                     legacy_test_cases = self._discover_legacy_test_cases(module_name, model_class, model_path)
+                     if legacy_test_cases:
+                         test_cases.extend(legacy_test_cases)
+
 
         self.logger.info(f"Discovered {len(test_cases)} test cases across all modules")
         return test_cases
+
+    def _get_test_cases_from_model(self, model_class: Type[BaseModel], module_name: str, model_path: str) -> List[Dict[str, Any]]:
+        """
+        Get test cases from a model class that has the get_test_cases method.
+
+        Args:
+            model_class: The model class.
+            module_name: The name of the module.
+            model_path: The file path of the model module.
+
+        Returns:
+            List of test case configurations.
+        """
+        self.logger.debug(f"Checking model_class for module {module_name}: {model_class} (Type: {type(model_class)}) from path {model_path})")
+        # Check if the model class has a get_test_cases method
+        test_cases = []
+        if not hasattr(model_class, 'get_test_cases'):
+            self.logger.warning(f"Model class {model_class} (Type: {type(model_class)}) for module {module_name} does not have get_test_cases method. Skipping.")
+            return []
+
+        try:
+            module_test_cases = model_class.get_test_cases()
+            if module_test_cases:
+                self.logger.info(f"Found {len(module_test_cases)} test cases for module {module_name}")
+                # Add module_name and model_path to each test case
+                for tc in module_test_cases:
+                    tc['module'] = module_name # Ensure module name is set
+                    tc['model_path'] = model_path
+                test_cases.extend(module_test_cases)
+            else:
+                self.logger.warning(f"No test cases found for module {module_name}")
+        except Exception as e:
+            self.logger.error(f"Error getting test cases for module {module_name}: {str(e)}")
+
+        return test_cases
+
 
     def _discover_legacy_test_cases(self, module_name: str, model_class: Type[BaseModel], model_path: str) -> List[Dict[str, Any]]:
         """
@@ -185,60 +297,174 @@ class LLMTester:
         self.logger.info(f"Found {len(test_cases)} legacy test cases for module {module_name}")
         return test_cases
 
-    def _find_model_class(self, module_name: str) -> Tuple[Optional[Type[BaseModel]], Optional[str]]:
+    def _find_model_class_from_path(self, module_dir: str, module_name: str) -> Tuple[Optional[Type[BaseModel]], Optional[str]]:
         """
-        Find the pydantic model class and its file path for a module
+        Find the pydantic model class and its file path for a module given its directory path.
 
         Args:
-            module_name: Name of the module (e.g., 'job_ads')
+            module_dir: The directory path of the module.
+            module_name: The name of the module (e.g., 'job_ads').
 
         Returns:
-            Tuple of (Pydantic model class or None, file path of the module or None)
+            Tuple of (Pydantic model class or None, file path of the model module or None)
         """
+        # Add the module's directory to sys.path temporarily to allow importing
+        original_sys_path = list(sys.path)
+        # Add the parent directory of the module_dir to sys.path
+        parent_dir = os.path.dirname(module_dir)
+        if parent_dir not in sys.path:
+             sys.path.insert(0, parent_dir)
+             self.logger.debug(f"Added '{parent_dir}' to sys.path")
+
+        self.logger.debug(f"Attempting to find model class for module '{module_name}' in directory '{module_dir}'")
+
+        original_sys_path = list(sys.path)
+        # Add the module's directory to sys.path temporarily to allow importing
+        if module_dir not in sys.path:
+             sys.path.insert(0, module_dir)
+             self.logger.debug(f"Added '{module_dir}' to sys.path for module '{module_name}'")
+
+        model_file_path = None
+        model_class = None
+        module = None # Initialize module to None
+
         try:
-            # Try to import the module
-            module_path = f"src.py_models.{module_name}"
-            self.logger.debug(f"Importing module: {module_path}")
-            module = importlib.import_module(module_path)
+            # Try to import the 'model' file within the module directory
+            # This assumes the main model class is defined in a file named 'model.py'
+            model_module_name = 'model' # The expected file name without .py
+            self.logger.debug(f"Attempting to import '{model_module_name}' from directory: {module_dir}")
+            module = importlib.import_module(model_module_name)
+            self.logger.debug(f"Successfully imported module: {model_module_name} from {module_dir}")
 
             # Get the file path of the imported module
             model_file_path = inspect.getfile(module)
+            self.logger.debug(f"Model file path: {model_file_path}")
 
-            # First try to find specific model classes by name
-            # For job_ads, use the JobAd model
-            if module_name == 'job_ads' and hasattr(module, 'JobAd'):
-                return module.JobAd, model_file_path
-
-            # For product_descriptions, use the ProductDescription model
-            if module_name == 'product_descriptions' and hasattr(module, 'ProductDescription'):
-                return module.ProductDescription, model_file_path
-
-            # For other modules, try to find a main model class
-            # First try to find a class with the same name as the module
-            module_class_name = ''.join(word.capitalize() for word in module_name.split('_'))
-
+            # Find all BaseModel subclasses within the imported 'model' module
+            all_base_model_subclasses = []
             for name, obj in inspect.getmembers(module):
-                if inspect.isclass(obj) and issubclass(obj, BaseModel):
-                    # Look for the main class in the module
-                    if name == module_class_name or name == f"{module_class_name}Model" or name == "Model":
-                        self.logger.debug(f"Found model class by name: {name}")
-                        return obj, model_file_path
-
-            # If no matching class found, return the first BaseModel subclass
-            for name, obj in inspect.getmembers(module):
+                # Ensure it's a class, a subclass of BaseModel, and not BaseModel itself
                 if inspect.isclass(obj) and issubclass(obj, BaseModel) and obj != BaseModel:
-                    self.logger.debug(f"Found first BaseModel subclass: {name}")
-                    return obj, model_file_path
+                    # Check if the class is defined in the current module file
+                    # This helps exclude imported BaseModel subclasses
+                    if inspect.getmodule(obj) == module:
+                         self.logger.debug(f"Found potential BaseModel subclass in model file: {name}")
+                         all_base_model_subclasses.append((name, obj))
+                    else:
+                         self.logger.debug(f"Skipping imported BaseModel subclass: {name}")
 
-            self.logger.warning(f"No model class found for module {module_name}")
-            return None, model_file_path # Return path even if no class found
+
+            if not all_base_model_subclasses:
+                 self.logger.warning(f"No BaseModel subclass found in '{model_module_name}.py' within directory {module_dir}")
+                 return None, model_file_path # Return path even if no class found
+
+            model_class = None
+            # Refined capitalization logic to match common Pydantic model naming convention (singular, capitalized words)
+            # Example: 'job_ads' -> 'JobAd', 'product_descriptions' -> 'ProductDescription'
+            capitalized_module_name_singular = ''.join(word.capitalize() for word in module_name.split('_'))
+            # Simple heuristic: if the capitalized name ends with 's' and is longer than 1 character,
+            # try the singular form by removing the 's'. This is a heuristic and might not work for all cases.
+            if capitalized_module_name_singular.endswith('s') and len(capitalized_module_name_singular) > 1:
+                 capitalized_module_name_singular = capitalized_module_name_singular[:-1]
+
+
+            # Prioritize finding the main model class:
+            # 1. Look for a class whose name exactly matches the capitalized, singular module name heuristic.
+            for name, obj in all_base_model_subclasses:
+                 if name == capitalized_module_name_singular:
+                      model_class = obj
+                      self.logger.debug(f"Found main model class by capitalized singular module name heuristic: {name}")
+                      break # Found the exact match, stop searching
+
+            # 2. If not found, look for a class named "Model".
+            if model_class is None:
+                 for name, obj in all_base_model_subclasses:
+                      if name == "Model":
+                           model_class = obj
+                           self.logger.debug(f"Found main model class by name 'Model': {name}")
+                           break # Found "Model", stop searching
+
+            # 3. If still not found and there's only one BaseModel subclass, use that one.
+            if model_class is None and len(all_base_model_subclasses) == 1:
+                 model_class = all_base_model_subclasses[0][1]
+                 self.logger.debug(f"Using the single BaseModel subclass found as the main model: {all_base_model_subclasses[0][0]}")
+
+            # 4. If multiple BaseModel subclasses are found and none match the above criteria,
+            #    log a warning and indicate that the main model could not be determined automatically.
+            if model_class is None:
+                 class_names = [name for name, _ in all_base_model_subclasses]
+                 self.logger.warning(f"Could not automatically determine the main BaseModel subclass for module '{module_name}' in '{model_module_name}.py'. Found multiple candidates: {', '.join(class_names)}. Please ensure the main model is named '{capitalized_module_name_singular}' or 'Model', or configure it explicitly.")
+                 return None, model_file_path # Indicate failure to find main class
+
 
         except (ImportError, AttributeError) as e:
-            self.logger.error(f"Error loading model for {module_name}: {str(e)}")
-            return None, None # Return None for both if import fails
+            self.logger.error(f"Error loading or inspecting 'model.py' from directory {module_dir} for module name {module_name}: {str(e)}")
+            model_class = None
+            model_file_path = None # Ensure path is None if import fails
+        except Exception as e:
+             self.logger.error(f"Unexpected error finding model class in 'model.py' for module {module_name} at {module_dir}: {str(e)}", exc_info=True)
+             model_class = None
+             model_file_path = None
+        finally:
+            # Restore original sys.path
+            # Create a new list to avoid modifying the list while iterating or removing
+            current_sys_path = list(sys.path)
+            # Remove the parent directory if it was added
+            parent_dir = os.path.dirname(module_dir)
+            if parent_dir in current_sys_path:
+                 try:
+                      sys.path.remove(parent_dir)
+                      self.logger.debug(f"Removed '{parent_dir}' from sys.path")
+                 except ValueError:
+                      # Should not happen if we checked 'in current_sys_path', but defensive
+                      self.logger.debug(f"'{parent_dir}' not found in sys.path during removal attempt.")
+
+            # Remove the module directory if it was added
+            if module_dir in current_sys_path:
+                 try:
+                      sys.path.remove(module_dir)
+                      self.logger.debug(f"Removed '{module_dir}' from sys.path")
+                 except ValueError:
+                      # Should not happen if we checked 'in current_sys_path', but defensive
+                      self.logger.debug(f"'{module_dir}' not found in sys.path during removal attempt.")
+
+
+            # Ensure original sys.path is fully restored in case of unexpected changes
+            # This check might be overly strict if other parts of the application
+            # legitimately modify sys.path. A more robust approach might involve
+            # a context manager for sys.path modifications. For now, log a warning.
+            # if sys.path != original_sys_path:
+            #      self.logger.warning("sys.path was unexpectedly modified. Restoring to original state.")
+            #      sys.path = original_sys_path
+
+
+            # Clean up imported module to avoid potential conflicts on subsequent runs
+            # We imported 'model', so clean that up
+            model_module_name = 'model'
+            # Check if the module was actually imported before trying to delete
+            if model_module_name in sys.modules:
+                 try:
+                      # Check if the module object is the one we imported from the target directory
+                      # This prevents accidentally deleting a module with the same name imported from elsewhere
+                      imported_module = sys.modules[model_module_name]
+                      if hasattr(imported_module, '__file__') and imported_module.__file__ and os.path.dirname(imported_module.__file__) == module_dir:
+                           del sys.modules[model_module_name]
+                           self.logger.debug(f"Cleaned up module from sys.modules: {model_module_name}")
+                      else:
+                           self.logger.debug(f"Skipping cleanup of module '{model_module_name}' as it was not imported from the target directory.")
+                 except KeyError:
+                      pass # Module might have been removed already or wasn't fully added
+                 except Exception as e:
+                      self.logger.warning(f"Error during cleanup of module '{model_module_name}': {str(e)}")
+
+
+        self.logger.debug(f"Found model_class for module {module_name}: {model_class} (Type: {type(model_class)}) from path {model_file_path})")
+        return model_class, model_file_path
+
+
 
     def run_test(self, test_case: Dict[str, Any], model_overrides: Optional[Dict[str, str]] = None,
-                 progress_callback: Optional[callable] = None) -> Dict[str, Any]:
+                 progress_callback: Optional[callable] = None) -> Dict[str, Dict[str, Any]]:
         """
         Run a single test for all providers
 
@@ -536,9 +762,11 @@ class LLMTester:
         if isinstance(obj, dict):
             return {k: self._normalize_value(v) for k, v in obj.items()}
         elif isinstance(obj, list):
-            return [self._normalize_value(i) for i in obj]
+            return [normalize_value(i) for i in obj]
         elif isinstance(obj, (date, datetime)):
             return obj.isoformat()
+        # Attempt to parse strings that look like dates/datetimes back for comparison consistency if needed,
+        # but direct ISO string comparison is usually sufficient if both sides are normalized.
         return obj
 
     def _compare_values(
@@ -725,6 +953,8 @@ class LLMTester:
         """
         test_cases = self.discover_test_cases()
         results = {}
+        main_report = ""
+        reports = {}
 
         # Filter test cases by module if specified
         if modules:
@@ -749,6 +979,10 @@ class LLMTester:
             if progress_callback:
                 progress_callback(f"Completed test: {test_id}")
                 progress_callback(f"Progress: {i}/{len(test_cases)} tests completed")
+
+            # Add model_class to the results for this test_id
+            results[test_id]['model_class'] = test_case['model_class']
+
 
         # Generate cost summary after all tests are complete
         cost_summary = cost_tracker.get_run_summary(self.run_id)
@@ -786,9 +1020,17 @@ class LLMTester:
                 continue
 
             # Get model class
-            model_class = self._find_model_class(module_name)
+            # model_class = self._find_model_class(module_name) # Original problematic line
+            model_class = None
+            # Find the model_class from the results of a test case belonging to this module
+            for test_id_iter, test_result_iter in results.items():
+                if test_id_iter.startswith(module_name + "/"):
+                    model_class = test_result_iter.get('model_class')
+                    if model_class:
+                        break
+            
             if not model_class:
-                self.logger.warning(f"Could not find model class for module {module_name}")
+                self.logger.warning(f"Could not retrieve model class for module {module_name} from test results")
                 continue
 
             # Generate module-specific report if the model class has the method
@@ -808,7 +1050,7 @@ class LLMTester:
                 except Exception as e:
                     self.logger.error(f"Error generating module report for {module_name}: {str(e)}")
 
-        return reports
+        return results
 
     def save_cost_report(self, output_dir: Optional[str] = None) -> Dict[str, str]:
         """
@@ -856,9 +1098,33 @@ class LLMTester:
                 continue
 
             # Get model class
-            model_class = self._find_model_class(module_name)
+            # model_class = self._find_model_class(module_name) # Original problematic line
+            model_class = None
+            # Find the model_class from the test_case data associated with this module
+            # This requires access to the original test_cases list or a mapping.
+            # For simplicity, let's assume we can retrieve it if needed, or adjust logic.
+            # A more robust way would be to ensure model_class is consistently available.
+            # For now, let's try to find it from the test_case data associated with this module.
+            # This requires self.discover_test_cases() to have been called or its result stored.
+            # For now, let's assume we need to re-discover or have it available.
+            # A simpler approach for now, if this method is called after run_tests,
+            # is to pass the results from run_tests which now contain model_class.
+            # However, save_cost_report is standalone.
+
+            # Let's try to get it from the test_cases discovered at initialization or by re-discovering.
+            # This is inefficient if called multiple times.
+            # A better long-term solution might be to pass `all_test_results` (which includes model_class)
+            # to `save_cost_report` if it's meant to operate on a completed run.
+
+            # For now, let's attempt to find it by re-discovering, acknowledging this isn't optimal.
+            # This is a placeholder for a potentially better way to access model_class here.
+            discovered_test_cases = self.discover_test_cases() # Inefficient, but for fixing the direct error
+            found_tc_for_module = next((tc for tc in discovered_test_cases if tc['module'] == module_name), None)
+            if found_tc_for_module:
+                model_class = found_tc_for_module.get('model_class')
+
             if not model_class:
-                self.logger.warning(f"Could not find model class for module {module_name}")
+                self.logger.warning(f"Could not find model class for module {module_name} during cost report saving.")
                 continue
 
             # Save module-specific report if the model class has the method

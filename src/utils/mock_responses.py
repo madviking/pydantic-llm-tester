@@ -272,6 +272,7 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
             "https://techgear.com/images/wireless-earbuds-x1-black.jpg",
             "https://techgear.com/images/wireless-earbuds-x1-case.jpg"
           ],
+          "availability": "In Stock",
           "shipping_info": {
             "ships_within": "1 business day",
             "shipping_type": "Free standard shipping"
@@ -349,6 +350,7 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
             "https://techvantage.com/images/ultrabook-pro-x15-gray.jpg",
             "https://techvantage.com/images/ultrabook-pro-x15-silver.jpg"
           ],
+          "availability": "In Stock",
           "shipping_info": {
             "ships_within": "2 business days",
             "shipping_type": "Free expedited shipping"
@@ -428,6 +430,7 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
             "https://techmobile.com/images/smartphone-x-pro-black.jpg",
             "https://techmobile.com/images/smartphone-x-pro-blue.jpg"
           ],
+          "availability": "In Stock",
           "shipping_info": {
             "ships_within": "1 business day",
             "shipping_type": "Free priority shipping"
@@ -445,6 +448,13 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
             "SP-SCREEN-ARMOR",
             "SP-CHARGER-FAST"
           ]
+        }
+        """
+    },
+    "integration_tests": {
+        "default": """
+        {
+          "animal": "mock_dog"
         }
         """
     }

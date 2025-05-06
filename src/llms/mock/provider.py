@@ -69,7 +69,9 @@ class MockProvider(BaseLLM):
             from ...utils.mock_responses import get_mock_response
             
             # Determine response type based on content
-            if "MACHINE LEARNING ENGINEER" in source_text or "job" in source_text.lower() or "software engineer" in source_text.lower() or "developer" in source_text.lower():
+            if "Extract the animal" in prompt: # Check for the integration_tests/simple case
+                mock_response = get_mock_response("integration_tests", source_text)
+            elif "MACHINE LEARNING ENGINEER" in source_text or "job" in source_text.lower() or "software engineer" in source_text.lower() or "developer" in source_text.lower():
                 mock_response = get_mock_response("job_ads", source_text)
             else:
                 mock_response = get_mock_response("product_descriptions", source_text)
