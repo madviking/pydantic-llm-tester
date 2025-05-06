@@ -246,18 +246,6 @@ You can easily add new extraction models using the `llm-tester scaffold model` c
 
 Refer to the [Configuration Reference](docs/guides/configuration/CONFIG_REFERENCE.md) for details on configuring LLM Tester, including API keys and provider settings.
 
-## General implementation notes
-
-This package is written initially using Claude Code, using only minimum manual intervention and edits. Further improvements are made with Cline, using Gemini 2.5. LLM generated code is reviewed and tested by the author and all of the architectural decisions are mine.
-
-## License
-
-MIT
-
----
-
-© 2025 Timo Railo
-
 The primary way to run tests and manage the tool is via the `llm-tester` command-line interface (after installation via `pip install -e .`).
 
 ```bash
@@ -415,11 +403,9 @@ pytest tests/cli/
 For more details on testing, see the [documentation](docs/README.md). (Note: A dedicated testing guide is planned).
 
 ## General implementation notes
-
-This package is written initially using Claude Code, using only minimum manual intervention and edits. Further improvements are made with Cline, using Gemini 2.5. LLM generated code is reviewed and tested by the author and all of the architectural decisions are mine.
+This package is written initially using Claude Code, using only minimum manual intervention and edits. Further improvements are made with Cline, using Gemini 2.5 and other models. LLM generated code is reviewed and tested by the author and all of the architectural decisions are mine.
 
 ## License
-
 MIT
 
 ---

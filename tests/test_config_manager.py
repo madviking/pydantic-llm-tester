@@ -4,12 +4,10 @@ import pytest
 from unittest.mock import patch
 from src.utils.config_manager import ConfigManager
 
-def test_load_config_creates_default_if_not_exists(tmp_path):
+def test_load_config_creates_default_if_not_exists(temp_config):
     """Test that ConfigManager creates default config if file doesn't exist"""
-    config_path = os.path.join(tmp_path, "config.json")
-    config = ConfigManager(config_path)
-    assert os.path.exists(config_path)
-    assert config.config == {
+    assert os.path.exists(temp_config.config_path)
+    assert temp_config.config == {
         "providers": {
             "openai": {
                 "enabled": True,

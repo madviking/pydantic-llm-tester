@@ -35,12 +35,26 @@ class ConfigManager:
         "py_models": {}
     }
 
-    def __init__(self, config_path: str = None):
+    def __init__(self, config_path: str = None, temp_mode: bool = False):
+        self.temp_mode = temp_mode
         self.config_path = config_path or os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
             'pyllm_config.json'
         )
         self.config = self._load_config()
+        
+    def create_temp_config(self) -> str:
+        """Create a temporary config file and return its path"""
+        import tempfile
+        temp_path = os.path.join(tempfile.gettempdir(), f"pyllm_test_config_{os.getpid()}.json")
+        with open(temp_path, 'w') as f:
+            json.dump(self.DEFAULT_CONFIG, f)
+        return temp_path
+        
+    def cleanup_temp_config(self) -> None:
+        """Remove temporary config file if in temp mode"""
+        if self.temp_mode and os.path.exists(self.config_path):
+            os.remove(self.config_path)
 
     def _load_config(self) -> Dict[str, Any]:
         """Load config from file or create default if not exists"""
