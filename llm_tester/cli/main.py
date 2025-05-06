@@ -90,14 +90,12 @@ def main_options(
 # Let's add the command first, and handle the default launch later if needed.
 
 # --- Register Command Groups ---
-from .commands import providers, configure # Removed llm_models import
+from .commands import providers, configure, schemas, scaffold # Import the new scaffold module
 app.add_typer(providers.app, name="providers")
 # app.add_typer(llm_models.app, name="llm-models") # Removed registration
 app.add_typer(configure.app, name="configure")
-
-# --- Register schemas command group ---
-from .commands import schemas
 app.add_typer(schemas.app, name="schemas")
+app.add_typer(scaffold.app, name="scaffold") # Add the new scaffold command group
 
 # --- Register Top-Level Commands (from run.py) ---
 # Import the specific command functions from the run module

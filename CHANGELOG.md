@@ -1,30 +1,77 @@
-* 2c04a2d - completly refactored the cli mode and command line mode to make it easier to extend (Timo Railo, 2025-03-31)
-* 56c0f67 - cli update (Timo Railo, 2025-03-31)
-* ae02df5 - - Added support for OpenRouter - Change env loading - integration tests - handover notes for next step (Timo Railo, 2025-03-31)
-* 982177b - updated accuracy calculation (Timo Railo, 2025-03-27)
-* f3e0e9e - improved tests for current accuracy calculation, tests for upcoming accuracy improvement (Timo Railo, 2025-03-27)
-* a59e9d1 - documentation rearranged (Timo Railo, 2025-03-26)
-* cb185b6 - provider refactoring finished (Timo Railo, 2025-03-26)
-* 5c7418c - wip (Timo Railo, 2025-03-25)
-* 3bc68ee - Enhance provider factory with validation and external provider support (Timo Railo, 2025-03-25)
-* e7cd865 - refactoring pluggable system (Timo Railo, 2025-03-25)
-* a5cf1b8 - pluggable system supporting both pydanticAI and direct implementation (Timo Railo, 2025-03-25)
-* 6e42f4f - cost manager fixed (Timo Railo, 2025-03-25)
-* 7ff2ace - runner refactored (Timo Railo, 2025-03-25)
-* cb4c375 - refactored for better module structure (Timo Railo, 2025-03-25)
-* b5d10ab - cost manager + pricing report (Timo Railo, 2025-03-25)
-* 50e4380 - runner update (Timo Railo, 2025-03-25)
-* 5476265 - Bug fixing (Timo Railo, 2025-03-25)
-* 4188f62 -   1. Phase 1.1: Configuration Management     - Created a new centralized config_manager.py with utilities for loading/saving config     - Added test cases for the configuration manager in test_config_manager.py     - Updated imports in relevant files to use the new configuration module   2. Phase 1.2: Basic Test Structure Improvements     - Fixed the duplicate test running logic in llm_tester.py     - Removed redundant method code     - Improved method organization   3. Phase 1.3: Clean Up Mock Response Handling     - Restructured mock responses into a more organized format in mock_responses.py     - Added proper type hints and documentation     - Created a standardized interface for mock responses     - Added test cases for the mock response system in test_mock_responses.py (Timo Railo, 2025-03-25)
-* d1174a0 - better handling for missing models (Timo Railo, 2025-03-25)
-* 0e4222c - Add functionality for creating new model scaffolding (Timo Railo, 2025-03-25)
-* b38a0b2 - Add ability to select which modules to test (Timo Railo, 2025-03-25)
-* 201ddf9 - Remove model schema from optimized prompts (Timo Railo, 2025-03-25)
-* 53d97f3 - Save optimized prompts to their own files (Timo Railo, 2025-03-25)
-* 7537e85 - Add option to choose where to output test results (Timo Railo, 2025-03-25)
-* 2fcfad9 - Add tests for LLM provider connections (Timo Railo, 2025-03-25)
-* 3ef4d56 - Move mock responses out of runner.py (Timo Railo, 2025-03-25)
-* af966d9 - Setup providers to read from configuration file (Timo Railo, 2025-03-25)
-* 792ea05 - cleanup to move to runner py (Timo Railo, 2025-03-25)
-* 28479bd - Fix environment setup to better detect and report missing API keys (Timo Railo, 2025-03-25)
-* 0c587e9 - initial commit (Timo Railo, 2025-03-25)
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## Unreleased
+
+## 2025-05-06
+
+### Added
+- Implemented interactive and non-interactive scaffolding for new LLM providers and extraction models via the `llm-tester scaffold` command.
+- Added comprehensive documentation for the `llm-tester scaffold` command in `docs/guides/cli_commands/SCAFFOLDING.md`.
+- Added a "Testing" section to `README.md`.
+- Added a "bridge to LLM functionalities within your app" use case and a "hello world" example to `README.md`.
+- Added PyPI installation instructions to `README.md`.
+
+### Changed
+- Updated README and other documentation files (`docs/README.md`, `docs/guides/providers/ADDING_PROVIDERS.md`, `docs/guides/models/ADDING_MODELS.md`, `docs/guides/DEVELOPER_EXPERIENCE_PLAN.md`) for conciseness and clarity, moving detailed information to the `docs/` directory.
+- Changed "Supported Models" heading to "Example Models" in `README.md`.
+- Prioritized CLI usage within a virtual environment in `README.md`.
+- Emphasized starting with scaffolding in `README.md`.
+
+### Removed
+- Removed the `docs/future_planning/FUTURE_ENHANCEMENTS.md` file.
+- Removed the broken link to the non-existent "Running Tests" guide from `docs/README.md`.
+
+## 2025-03-31
+
+### Added
+- Added support for OpenRouter.
+- Added integration tests.
+
+### Changed
+- Completely refactored the CLI mode and command line mode to make it easier to extend.
+- Changed environment loading.
+
+## 2025-03-27
+
+### Changed
+- Updated accuracy calculation.
+- Improved tests for current accuracy calculation.
+- Added tests for upcoming accuracy improvement.
+
+## 2025-03-26
+
+### Changed
+- Rearranged documentation structure.
+- Finished provider refactoring.
+
+## 2025-03-25
+
+### Added
+- Enhanced provider factory with validation and external provider support.
+- Added functionality for creating new model scaffolding.
+- Added ability to select which modules to test.
+- Added option to choose where to output test results.
+- Added tests for LLM provider connections.
+- Added cost manager and pricing report.
+
+### Changed
+- Refactored pluggable system to support both PydanticAI and direct implementation.
+- Refactored runner.
+- Refactored for better module structure.
+- Implemented configuration management, basic test structure improvements, and cleaned up mock response handling.
+- Improved handling for missing models.
+- Removed model schema from optimized prompts.
+- Saved optimized prompts to their own files.
+- Moved mock responses out of `runner.py`.
+- Setup providers to read from configuration file.
+- Cleaned up to move to `runner.py`.
+- Fixed environment setup to better detect and report missing API keys.
+
+### Fixed
+- Fixed cost manager.
+- Fixed various bugs.
