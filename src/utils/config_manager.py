@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 
 class ConfigManager:
     """Centralized configuration management for LLM providers and models"""
-    
+
     DEFAULT_CONFIG = {
         "providers": {
             "openai": {
@@ -42,7 +42,43 @@ class ConfigManager:
             'pyllm_config.json'
         )
         self.config = self._load_config()
-        
+
+        # Discover built-in py models and register them if not in config
+        self._register_builtin_py_models()
+
+    def _discover_builtin_py_models(self) -> List[str]:
+        """Discovers the names of built-in py models."""
+        # Determine the directory containing the built-in py_models relative to this file
+        _current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        _src_dir = os.path.dirname(_current_file_dir) # Go up one level to src
+        builtin_models_dir = os.path.join(_src_dir, "py_models")
+
+        if not os.path.exists(builtin_models_dir):
+            return []
+
+        model_names = []
+        for item_name in os.listdir(builtin_models_dir):
+            item_path = os.path.join(builtin_models_dir, item_name)
+            # Check if it's a directory and not a special directory/file
+            if os.path.isdir(item_path) and not item_name.startswith("__") and not item_name.startswith("."):
+                model_names.append(item_name)
+        return model_names
+
+    def _register_builtin_py_models(self):
+        """Discovers built-in py models and registers them in the config if not present."""
+        builtin_models = self._discover_builtin_py_models()
+        registered_models = self.get_py_models()
+
+        needs_save = False
+        for model_name in builtin_models:
+            if model_name not in registered_models:
+                # Register and enable by default
+                self.config["py_models"][model_name] = {"enabled": True}
+                needs_save = True
+
+        if needs_save:
+            self.save_config()
+
     def create_temp_config(self) -> str:
         """Create a temporary config file and return its path"""
         import tempfile
@@ -139,3 +175,26 @@ class ConfigManager:
     def get_py_models(self) -> Dict[str, Any]:
         """Get all registered Python models"""
         return self.config.get("py_models", {})
+
+    def set_py_model_enabled_status(self, model_name: str, enabled: bool) -> bool:
+        """Set the enabled status of a specific Python model."""
+        py_models = self.config.get("py_models", {})
+        if model_name in py_models:
+            py_models[model_name]["enabled"] = enabled
+            self.config["py_models"] = py_models # Ensure the change is reflected in the main config dict
+            self.save_config()
+            return True
+        return False
+
+    def get_py_model_enabled_status(self, model_name: str) -> Optional[bool]:
+        """Get the enabled status of a specific Python model."""
+        py_models = self.config.get("py_models", {})
+        return py_models.get(model_name, {}).get("enabled")
+
+    def get_enabled_py_models(self) -> Dict[str, Any]:
+        """Get only enabled Python models"""
+        return {
+            name: config
+            for name, config in self.get_py_models().items()
+            if config.get("enabled", False)
+        }

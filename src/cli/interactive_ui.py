@@ -4,9 +4,30 @@ import os # Added import
 from typing import List, Dict, Optional
 
 # Import core logic functions that the UI will call
-from src.cli.core import provider_logic, llm_model_logic as model_logic, config_logic, test_runner_logic, recommend_logic # Renamed import
+from src.cli.core import provider_logic, llm_model_logic as model_logic, config_logic, test_runner_logic, recommend_logic
+# Import core scaffolding logic
+from src.cli.core.scaffold_logic import scaffold_provider_files, scaffold_model_files
+# Import ConfigManager directly
+from src.utils.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
+
+# --- Helper Functions ---
+
+def _discover_builtin_py_models() -> List[str]:
+    """Discovers the names of built-in py models."""
+    builtin_models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "py_models")
+    if not os.path.exists(builtin_models_dir):
+        return []
+
+    model_names = []
+    for item_name in os.listdir(builtin_models_dir):
+        item_path = os.path.join(builtin_models_dir, item_name)
+        # Check if it's a directory and not a special directory/file
+        if os.path.isdir(item_path) and not item_name.startswith("__") and not item_name.startswith("."):
+            model_names.append(item_name)
+    return model_names
+
 
 # --- Helper Functions for Interactive Display ---
 
@@ -231,6 +252,154 @@ def _run_tests_interactive():
     typer.pause("Press Enter to continue...")
 
 
+# --- Interactive Scaffolding Functions ---
+
+def _scaffold_provider_interactive():
+    """Handles interactive provider scaffolding."""
+    print("\n--- Scaffold New Provider ---")
+    try:
+        provider_name = typer.prompt("Enter the name of the new provider")
+        if not provider_name:
+            print("Provider name cannot be empty. Aborting.")
+            typer.pause("Press Enter to continue...")
+            return
+
+        # Determine the base directory for providers (same logic as scaffold.py)
+        _current_file_dir = os.path.dirname(os.path.abspath(__file__))
+        _cli_dir = os.path.dirname(_current_file_dir) # Go up one level to src/cli
+        _llm_tester_dir = os.path.dirname(_cli_dir) # Go up another level to src
+        base_dir = os.path.join(_llm_tester_dir, "llms")
+
+        success, message = scaffold_provider_files(provider_name, base_dir)
+        print(message)
+
+        if success:
+            # Attempt to enable the newly scaffolded provider in the config
+            enable_success, enable_message = provider_logic.enable_provider(provider_name)
+            if enable_success:
+                print(f"Provider '{provider_name}' automatically enabled.")
+            else:
+                print(f"Warning: Could not automatically enable provider '{provider_name}'. {enable_message}")
+                print("You may need to manually enable it using the 'Manage Providers' menu.")
+
+    except typer.Abort:
+        print("\nOperation cancelled.")
+    except Exception as e:
+        print(f"An unexpected error occurred during provider scaffolding: {e}")
+
+    typer.pause("Press Enter to continue...")
+
+
+def _scaffold_model_interactive():
+    """Handles interactive model scaffolding."""
+    print("\n--- Scaffold New Model ---")
+    try:
+        model_name = typer.prompt("Enter the name of the new model")
+        if not model_name:
+            print("Model name cannot be empty. Aborting.")
+            typer.pause("Press Enter to continue...")
+            return
+
+        # Determine the base directory for models (same logic as scaffold.py)
+        base_dir = "./py_models" # Default to a 'py_models' directory in the current working directory
+
+        success, message = scaffold_model_files(model_name, base_dir)
+        print(message)
+
+        if success:
+             # Note: Models are not automatically enabled in a central config like providers.
+             # They are discovered based on the test_dir. No config update needed here.
+             pass # Explicitly do nothing for model config update
+
+    except typer.Abort:
+        print("\nOperation cancelled.")
+    except Exception as e:
+        print(f"An unexpected error occurred during model scaffolding: {e}")
+
+    typer.pause("Press Enter to continue...")
+
+
+# --- Interactive Py Model Management ---
+
+def _display_py_model_status():
+    """Displays the current py model status from config."""
+    print("\n--- Py Model Status ---")
+    config_manager = ConfigManager() # Create an instance of ConfigManager
+    py_models = config_manager.get_py_models()
+
+    if not py_models:
+        print("No py models registered in config.")
+        # Also mention discovering models from directories?
+        print("(Note: Py models in configured test directories are discovered automatically for runs,")
+        print(" but registration here allows enabling/disabling specific ones.)")
+        return
+
+    sorted_models = sorted(py_models.keys())
+    for model_name in sorted_models:
+        config = py_models[model_name]
+        enabled = config.get("enabled", True) # Default to True if key missing
+        status = "Enabled" if enabled else "Disabled"
+        print(f"  - {model_name} ({status})")
+    print("-----------------------")
+
+def _prompt_for_py_model_name() -> Optional[str]:
+    """Prompts the user to enter a py model name, showing registered ones."""
+    config_manager = ConfigManager() # Create an instance of ConfigManager
+    py_models = config_manager.get_py_models()
+    model_names = list(py_models.keys())
+
+    if not model_names:
+        print("No py models registered in config.")
+        return None
+
+    print(f"Registered py models: {', '.join(model_names)}")
+    try:
+        model_name = typer.prompt("Enter py model name (or leave blank to cancel)", default="", show_default=False)
+        return model_name.strip() if model_name else None
+    except typer.Abort:
+        print("\nOperation cancelled.")
+        return None
+
+
+def _manage_py_models_menu():
+    """Handles the py model management submenu."""
+    while True:
+        _display_py_model_status()
+        print("\nPy Model Management Menu:")
+        print("1. Enable Py Model")
+        print("2. Disable Py Model")
+        print("0. Back to Main Menu")
+
+        try:
+            choice = typer.prompt("Enter choice", type=int)
+        except typer.Abort:
+            print("\nReturning to main menu.")
+            break
+
+        config_manager = ConfigManager() # Create an instance of ConfigManager
+
+        if choice == 1:
+            model_name = _prompt_for_py_model_name()
+            if model_name:
+                if config_manager.set_py_model_enabled_status(model_name, enabled=True):
+                    print(f"Py model '{model_name}' enabled.")
+                else:
+                    print(f"Error: Py model '{model_name}' not found in config.")
+                typer.pause("Press Enter to continue...")
+        elif choice == 2:
+            model_name = _prompt_for_py_model_name()
+            if model_name:
+                if config_manager.set_py_model_enabled_status(model_name, enabled=False):
+                    print(f"Py model '{model_name}' disabled.")
+                else:
+                    print(f"Error: Py model '{model_name}' not found in config.")
+                typer.pause("Press Enter to continue...")
+        elif choice == 0:
+            break
+        else:
+            print("Invalid choice.")
+
+
 def _manage_schemas_menu():
     """Placeholder for schema management submenu."""
     print("\nManage Schemas (Not Yet Implemented)")
@@ -274,16 +443,41 @@ def start_interactive_session():
     """
     Launches the main interactive command-line session.
     """
+    # Ensure config is loaded and default is created if necessary.
+    # Built-in py models are now registered during ConfigManager initialization.
+    config_manager = ConfigManager()
+
+    # Discover built-in py models and register them if not in config
+    print("DEBUG: Discovering built-in py models...") # <-- Debug print
+    builtin_models = _discover_builtin_py_models()
+    print(f"DEBUG: Discovered built-in models: {builtin_models}") # <-- Debug print
+
+    print("DEBUG: Getting registered models from config...") # <-- Debug print
+    registered_models = config_manager.get_py_models()
+    print(f"DEBUG: Registered models in config (before registration): {registered_models.keys()}") # <-- Debug print
+
+
+    for model_name in builtin_models:
+        if model_name not in registered_models:
+            print(f"DEBUG: Registering built-in py model '{model_name}' in config.") # <-- Debug print
+            config_manager.register_py_model(model_name, {"enabled": True}) # Register and enable by default
+        else:
+            print(f"DEBUG: Built-in py model '{model_name}' already registered.") # <-- Debug print
+
+
     print("\nWelcome to the LLM Tester Interactive Session!")
     print("---------------------------------------------")
 
     while True:
         print("\nMain Menu:")
-        print("1. Manage Providers (& their LLM Models)") # Clarified menu item
-        print("2. Manage Extraction Schemas") # New menu item
+        print("1. Manage Providers (& their LLM Models)")
+        print("2. Manage Extraction Schemas")
         print("3. Configure API Keys")
         print("4. Run Tests")
         print("5. Get Model Recommendation")
+        print("6. Scaffold New Provider")
+        print("7. Scaffold New Model")
+        print("8. Manage Py Models") # New menu item
         print("0. Exit")
 
         try:
@@ -293,15 +487,21 @@ def start_interactive_session():
             break # Exit on Ctrl+C
 
         if choice == 1:
-            _manage_providers_menu() # This now implicitly includes LLM model management via its submenu logic
+            _manage_providers_menu()
         elif choice == 2:
-            _manage_schemas_menu() # Call the new placeholder
+            _manage_schemas_menu()
         elif choice == 3:
             _configure_keys_interactive()
         elif choice == 4:
             _run_tests_interactive()
         elif choice == 5:
             _get_recommendation_interactive()
+        elif choice == 6:
+            _scaffold_provider_interactive()
+        elif choice == 7:
+            _scaffold_model_interactive()
+        elif choice == 8: # Handle new menu item
+            _manage_py_models_menu()
         elif choice == 0:
             print("Exiting interactive session.")
             break

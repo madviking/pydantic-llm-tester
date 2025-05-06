@@ -20,5 +20,22 @@
       "job_ads"
     ],
     "new_setting": "value"
+  },
+  "py_models": {
+    "dummy_test_model": {
+      "enabled": true
+    },
+    "winnie": {
+      "enabled": false
+    },
+    "integration_test": {
+      "enabled": true
+    },
+    "job_ads": {
+      "enabled": true
+    },
+    "product_descriptions": {
+      "enabled": true
+    }
   }
 }
