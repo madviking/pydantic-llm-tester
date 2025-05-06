@@ -7,12 +7,12 @@ import pytest
 from unittest import mock
 from pathlib import Path
 
-# Add the parent directory to sys.path to import llm_tester
+# Add the parent directory to sys.path to import src
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from llm_tester.utils.provider_manager import ProviderManager
-from llm_tester.utils.mock_responses import mock_get_response
+from src.utils.provider_manager import ProviderManager
+from src.utils.mock_responses import mock_get_response
 
 # Mark tests that require API keys
 api_key_required = pytest.mark.skipif(
@@ -220,7 +220,7 @@ def test_google_connection():
         pytest.skip("Google API credentials not available")
     
     # For testing purposes, we'll use a mock since the service account 
-    # may not have the necessary permissions for LLM models
+    # may not have the necessary permissions for LLM py_models
     manager = ProviderManager(["mock_google"])
     
     # Test getting a response

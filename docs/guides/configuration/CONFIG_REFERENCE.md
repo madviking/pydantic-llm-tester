@@ -39,7 +39,7 @@ Each provider has its own configuration file:
   "env_key": "PROVIDER_API_KEY",
   "env_key_secret": "",
   "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
-  "models": [
+  "llm_models": [
     {
       "name": "model-name",
       "default": true,
@@ -51,7 +51,7 @@ Each provider has its own configuration file:
       "max_output_tokens": 4096,
       "enabled": true
     }
-    // ... other models
+    // ... other py_models
   ]
 }
 ```
@@ -192,7 +192,7 @@ Use the CLI commands to check your setup:
 # Check discovered providers and enabled status
 llm-tester providers list
 
-# Check LLM models within a specific provider
+# Check LLM py_models within a specific provider
 llm-tester providers manage list <provider_name>
 
 # Check API keys (will prompt if missing)

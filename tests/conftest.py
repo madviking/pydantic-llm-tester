@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 import logging
 from dotenv import load_dotenv # Import load_dotenv
 
-from llm_tester import LLMTester
-from llm_tester.models.job_ads import JobAd
+from src import LLMTester
+from src.py_models.job_ads import JobAd
 
 
 # --- Command Line Option ---
@@ -24,11 +24,11 @@ def pytest_configure(config):
     """Load .env file at the start of the test session."""
     config.addinivalue_line("markers", "integration: mark test as integration test")
 
-    # Load .env file from llm_tester directory
+    # Load .env file from src directory
     project_root = os.path.dirname(os.path.abspath(__file__)) # tests directory
     project_root = os.path.dirname(project_root) # Project root
-    # Point to llm_tester/.env instead of project_root/.env
-    dotenv_path = os.path.join(project_root, 'llm_tester', '.env')
+    # Point to src/.env instead of project_root/.env
+    dotenv_path = os.path.join(project_root, 'src', '.env')
     if os.path.exists(dotenv_path):
         load_dotenv(dotenv_path=dotenv_path, override=True)
         print(f"\nLoaded .env file from {dotenv_path} for test session.")
@@ -51,10 +51,10 @@ def pytest_collection_modifyitems(config, items):
 def mock_provider_manager():
     """Mock provider manager"""
     # Import mock_get_response
-    from llm_tester.utils.mock_responses import mock_get_response
-    from llm_tester.utils.cost_manager import UsageData
+    from src.utils.mock_responses import mock_get_response
+    from src.utils.cost_manager import UsageData
 
-    with patch('llm_tester.utils.provider_manager.ProviderManager') as mock:
+    with patch('src.utils.provider_manager.ProviderManager') as mock:
         manager_instance = MagicMock()
         mock.return_value = manager_instance
 
@@ -78,9 +78,9 @@ def mock_provider_manager():
 @pytest.fixture
 def mock_tester(mock_provider_manager):
     """Mock LLM tester"""
-    # Get the path to the llm_tester directory
+    # Get the path to the src directory
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    test_dir = os.path.join(base_dir, "llm_tester", "tests")
+    test_dir = os.path.join(base_dir, "src", "tests")
 
     tester = LLMTester(providers=["openai", "anthropic"], test_dir=test_dir) # Example providers
 
@@ -102,8 +102,8 @@ def ensure_optimized_dirs():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     dirs_to_create = [
-        os.path.join(base_dir, "llm_tester", "models", "job_ads", "tests", "prompts", "optimized"),
-        os.path.join(base_dir, "llm_tester", "models", "product_descriptions", "tests", "prompts", "optimized")
+        os.path.join(base_dir, "src", "py_models", "job_ads", "tests", "prompts", "optimized"),
+        os.path.join(base_dir, "src", "py_models", "product_descriptions", "tests", "prompts", "optimized")
     ]
 
     for directory in dirs_to_create:

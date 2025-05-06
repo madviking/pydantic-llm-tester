@@ -6,8 +6,8 @@ import sys
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from llm_tester.llms.base import BaseLLM, ModelConfig, ProviderConfig
-from llm_tester.utils.cost_manager import UsageData
+from src.llms.base import BaseLLM, ModelConfig, ProviderConfig
+from src.utils.cost_manager import UsageData
 
 
 class MockBaseLLM(BaseLLM):
@@ -53,11 +53,11 @@ class TestProviderManagerRefactored(unittest.TestCase):
         )
         
         # Patch both functions in the provider_manager module
-        with patch('llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('src.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class (inside the patch to ensure imports are patched)
-            from llm_tester.utils.provider_manager import ProviderManager
+            from src.utils.provider_manager import ProviderManager
             
             # Initialize with a list of providers
             manager = ProviderManager(providers=["test_provider", "another_provider"])
@@ -97,11 +97,11 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=test_provider)
         
         # Patch the registry functions
-        with patch('llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('src.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from llm_tester.utils.provider_manager import ProviderManager
+            from src.utils.provider_manager import ProviderManager
             
             # Initialize the manager
             manager = ProviderManager(providers=["test_provider"])
@@ -149,11 +149,11 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=mock_provider)
         
         # Patch the registry functions
-        with patch('llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('src.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from llm_tester.utils.provider_manager import ProviderManager
+            from src.utils.provider_manager import ProviderManager
             
             # Initialize with a mock provider prefix
             manager = ProviderManager(providers=["mock_test"])
@@ -186,11 +186,11 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=None)
         
         # Patch the registry functions
-        with patch('llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('src.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from llm_tester.utils.provider_manager import ProviderManager
+            from src.utils.provider_manager import ProviderManager
             
             # Initialize with an unknown provider
             manager = ProviderManager(providers=["unknown"])
@@ -222,11 +222,11 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=test_provider)
         
         # Patch the registry functions
-        with patch('llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('src.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from llm_tester.utils.provider_manager import ProviderManager
+            from src.utils.provider_manager import ProviderManager
             
             # Initialize the manager
             manager = ProviderManager(providers=["test_provider"])

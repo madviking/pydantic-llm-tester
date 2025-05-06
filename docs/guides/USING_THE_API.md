@@ -15,15 +15,15 @@ pip install pydantic-llm-tester
 The main entry point for the API is the `LLMTester` class.
 
 ```python
-from llm_tester import LLMTester
+from src import LLMTester
 
 # Initialize the tester with a list of providers to use
-# You can specify the directory containing your test cases (models)
-# If test_dir is not provided, it defaults to the 'models' directory within the installed package
-tester = LLMTester(providers=["openai", "google"], test_dir="/path/to/your/custom/models")
+# You can specify the directory containing your test cases (py_models)
+# If test_dir is not provided, it defaults to the 'py_models' directory within the installed package
+tester = LLMTester(providers=["openai", "google"], test_dir="/path/to/your/custom/py_models")
 
 # Discover test cases
-# This scans the test_dir for your defined models and their test cases
+# This scans the test_dir for your defined py_models and their test cases
 test_cases = tester.discover_test_cases()
 
 # You can filter test cases by module if needed
@@ -94,7 +94,7 @@ While the `LLMTester` class handles running tests through providers, you might w
 You can obtain a provider instance using the `ProviderFactory`:
 
 ```python
-from llm_tester.llms.provider_factory import ProviderFactory
+from src.llms.provider_factory import ProviderFactory
 
 # Get an instance of a specific provider
 # The factory handles initialization and configuration loading
@@ -111,7 +111,7 @@ openai_provider = ProviderFactory.get_provider("openai")
 Configuration is typically loaded automatically by the `LLMTester` and `ProviderFactory`. However, you can access and potentially modify configuration programmatically using the `config_manager` utilities:
 
 ```python
-from llm_tester.utils.config_manager import load_config, get_test_setting, get_provider_model
+from src.utils.config_manager import load_config, get_test_setting, get_provider_model
 
 # Load the main configuration
 config = load_config()
@@ -195,9 +195,9 @@ def get_test_cases() -> List[Dict[str, Any]]:
 Then, initialize `LLMTester` with the path to the directory containing `my_task/`:
 
 ```python
-from llm_tester import LLMTester
+from src import LLMTester
 
-tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/models")
+tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/py_models")
 test_cases = tester.discover_test_cases()
 # ... run tests
 ```

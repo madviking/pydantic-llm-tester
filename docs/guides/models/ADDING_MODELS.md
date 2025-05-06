@@ -33,11 +33,11 @@ This will create the directory structure and template files described in step 1 
 Create a new directory for your model in the `llm_tester/models/` directory:
 
 ```bash
-mkdir -p llm_tester/models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
-mkdir -p llm_tester/models/your_model_name/reports
-touch llm_tester/models/your_model_name/__init__.py
-touch llm_tester/models/your_model_name/model.py
-touch llm_tester/models/your_model_name/tests/__init__.py
+mkdir -p src/py_models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
+mkdir -p src/py_models/your_model_name/reports
+touch src/py_models/your_model_name/__init__.py
+touch src/py_models/your_model_name/model.py
+touch src/py_models/your_model_name/tests/__init__.py
 ```
 
 ### 2. Implement the Model Class
@@ -173,7 +173,7 @@ class YourModelName(BaseModel):
                 "total_tokens": 0,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
-                "models": {}
+                "py_models": {}
             }
         }
         
@@ -193,8 +193,8 @@ class YourModelName(BaseModel):
                 
                 # Add to model-specific summary
                 model_name = provider_data.get("model", "unknown")
-                if model_name not in module_cost_data["summary"]["models"]:
-                    module_cost_data["summary"]["models"][model_name] = {
+                if model_name not in module_cost_data["summary"]["py_models"]:
+                    module_cost_data["summary"]["py_models"][model_name] = {
                         "total_cost": 0,
                         "total_tokens": 0,
                         "prompt_tokens": 0,
@@ -202,7 +202,7 @@ class YourModelName(BaseModel):
                         "test_count": 0
                     }
                 
-                model_summary = module_cost_data["summary"]["models"][model_name]
+                model_summary = module_cost_data["summary"]["py_models"][model_name]
                 model_summary["total_cost"] += provider_data.get("total_cost", 0)
                 model_summary["total_tokens"] += provider_data.get("total_tokens", 0)
                 model_summary["prompt_tokens"] += provider_data.get("prompt_tokens", 0)
@@ -344,12 +344,12 @@ When using the `LLMTester` class programmatically or the `llm-tester` CLI, you s
 **API Example:**
 
 ```python
-from llm_tester import LLMTester
+from src import LLMTester
 
-# Initialize the tester with the path to your custom models directory
-tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/models")
+# Initialize the tester with the path to your custom py_models directory
+tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/py_models")
 
-# Discover and run tests from your external models
+# Discover and run tests from your external py_models
 test_cases = tester.discover_test_cases()
 results = tester.run_tests()
 # ... generate reports
@@ -358,8 +358,8 @@ results = tester.run_tests()
 **CLI Example:**
 
 ```bash
-# Run tests using models from your custom directory
-llm-tester run --test-dir /path/to/your/custom/models --providers openai
+# Run tests using py_models from your custom directory
+llm-tester run --test-dir /path/to/your/custom/py_models --providers openai
 ```
 
 `llm_tester` will scan the specified `test_dir` for subdirectories containing `model.py` files with the `get_test_cases()` method to discover your test cases.
@@ -371,7 +371,7 @@ llm-tester run --test-dir /path/to/your/custom/models --providers openai
 Run the CLI with your custom test directory to check if your model is discovered:
 
 ```bash
-llm-tester models list --test-dir /path/to/your/custom/models
+llm-tester py_models list --test-dir /path/to/your/custom/py_models
 ```
 
 ### 2. Test with Different Providers
@@ -379,7 +379,7 @@ llm-tester models list --test-dir /path/to/your/custom/models
 Test your model with different providers using the CLI:
 
 ```bash
-llm-tester run --test-dir /path/to/your/custom/models --providers openai anthropic
+llm-tester run --test-dir /path/to/your/custom/py_models --providers openai anthropic
 ```
 
 ## Best Practices

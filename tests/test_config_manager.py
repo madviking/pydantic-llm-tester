@@ -9,7 +9,7 @@ import tempfile
 import shutil
 from pathlib import Path
 
-from llm_tester.utils.config_manager import (
+from src.utils.config_manager import (
     load_config, save_config, get_enabled_providers, 
     get_provider_model, get_test_setting, update_test_setting,
     DEFAULT_CONFIG, get_config_path
@@ -26,7 +26,7 @@ def mock_config_path(monkeypatch):
     def mock_get_config_path():
         return temp_config
     
-    monkeypatch.setattr('llm_tester.utils.config_manager.get_config_path', mock_get_config_path)
+    monkeypatch.setattr('src.utils.config_manager.get_config_path', mock_get_config_path)
     
     yield temp_config
     

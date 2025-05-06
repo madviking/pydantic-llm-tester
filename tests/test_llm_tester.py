@@ -7,7 +7,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 
-from llm_tester import LLMTester
+from src import LLMTester
 
 
 def test_discover_test_cases(mock_tester):
@@ -256,7 +256,7 @@ def test_run_tests(mock_tester):
 
 def test_optimize_prompt(mock_tester):
     """Test optimizing prompts"""
-    with patch('llm_tester.utils.prompt_optimizer.PromptOptimizer') as mock_optimizer:
+    with patch('src.utils.prompt_optimizer.PromptOptimizer') as mock_optimizer:
         optimizer_instance = MagicMock()
         mock_optimizer.return_value = optimizer_instance
         
@@ -286,8 +286,8 @@ def test_optimize_prompt(mock_tester):
 
 def test_generate_report(mock_tester):
     """Test generating a report"""
-    with patch('llm_tester.utils.report_generator.ReportGenerator') as mock_generator, \
-         patch('llm_tester.utils.cost_manager.cost_tracker.get_run_summary') as mock_get_summary:
+    with patch('src.utils.report_generator.ReportGenerator') as mock_generator, \
+         patch('src.utils.cost_manager.cost_tracker.get_run_summary') as mock_get_summary:
         
         # Create mocks
         generator_instance = MagicMock()

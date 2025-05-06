@@ -30,7 +30,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "llm-tester=llm_tester.cli.main:app", # Point to the app object in cli/main.py
+            "llm-tester=src.cli.main:app", # Point to the app object in cli/main.py
         ],
     },
     classifiers=[

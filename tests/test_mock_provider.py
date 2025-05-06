@@ -7,8 +7,8 @@ import json
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from llm_tester.llms.base import BaseLLM, ModelConfig, ProviderConfig
-from llm_tester.utils.cost_manager import UsageData
+from src.llms.base import BaseLLM, ModelConfig, ProviderConfig
+from src.utils.cost_manager import UsageData
 
 
 class TestMockProvider(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestMockProvider(unittest.TestCase):
             provider_type="mock",
             env_key="MOCK_API_KEY",
             system_prompt="Test system prompt",
-            models=[
+            llm_models=[
                 ModelConfig(
                     name="mock:default",
                     default=True,
@@ -49,7 +49,7 @@ class TestMockProvider(unittest.TestCase):
     def test_mock_provider_initialization(self):
         """Test that the MockProvider can be initialized"""
         # Import the MockProvider
-        from llm_tester.llms.mock.provider import MockProvider
+        from src.llms.mock.provider import MockProvider
         
         # Initialize the provider
         provider = MockProvider(self.config)
@@ -61,7 +61,7 @@ class TestMockProvider(unittest.TestCase):
     def test_mock_provider_get_response(self):
         """Test that the MockProvider.get_response works correctly"""
         # Import the MockProvider
-        from llm_tester.llms.mock.provider import MockProvider
+        from src.llms.mock.provider import MockProvider
         
         # Initialize the provider
         provider = MockProvider(self.config)
@@ -89,7 +89,7 @@ class TestMockProvider(unittest.TestCase):
     def test_mock_provider_with_product_source(self):
         """Test that the MockProvider works with product description sources"""
         # Import the MockProvider
-        from llm_tester.llms.mock.provider import MockProvider
+        from src.llms.mock.provider import MockProvider
         
         # Initialize the provider
         provider = MockProvider(self.config)
@@ -113,7 +113,7 @@ class TestMockProvider(unittest.TestCase):
     def test_mock_provider_different_models(self):
         """Test that the MockProvider works with different model names"""
         # Import the MockProvider
-        from llm_tester.llms.mock.provider import MockProvider
+        from src.llms.mock.provider import MockProvider
         
         # Initialize the provider
         provider = MockProvider(self.config)
@@ -133,7 +133,7 @@ class TestMockProvider(unittest.TestCase):
     def test_mock_provider_in_registry(self):
         """Test that the MockProvider can be loaded from the registry"""
         # Import the registry
-        from llm_tester.llms.llm_registry import get_llm_provider, reset_provider_cache
+        from src.llms.llm_registry import get_llm_provider, reset_provider_cache
         
         # Reset the cache to ensure a clean test
         reset_provider_cache()

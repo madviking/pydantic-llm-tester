@@ -29,9 +29,15 @@ For more details on the architecture, see the [documentation](docs/README.md).
 -   Manage configuration centrally.
 -   Use mock providers for testing without API keys.
 -   Track token usage and costs.
--   **Easily integrate structured data extraction into your applications.**
+-   Easily integrate structured data extraction into your applications.
 
-## Example Models
+## A word about *word* models
+
+Unfortunately things can get little confusing with the word *model*, so I've opted to use py_models and llm_models as the terms. 
+-   **py_models**: Refers to the Pydantic models used for structured data extraction.
+-   **llm_models**: Refers to the LLM models provided by various providers (e.g., OpenAI, Anthropic).
+
+## Example Pydantic Models
 
 LLM Tester includes example models for common extraction tasks:
 
@@ -75,7 +81,7 @@ source venv/bin/activate
 
 # Configure API Keys (Interactive)
 llm-tester configure keys
-# This will prompt for missing keys found in provider configs and offer to save them to llm_tester/.env
+# This will prompt for missing keys found in provider configs and offer to save them to src/.env
 ```
 Make sure your API keys are set in `llm_tester/.env` or as environment variables. The `configure keys` command helps with this.
 
@@ -145,13 +151,13 @@ Key CLI commands:
 You can integrate LLM Tester into your Python applications. See the [documentation](docs/guides/USING_THE_API.md) for detailed API usage.
 
 ```python
-from llm_tester import LLMTester
+from src import LLMTester
 
 # Example: Using LLM Tester as a bridge for structured data extraction
-# Initialize tester with providers and your custom models directory
-tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/models")
+# Initialize tester with providers and your custom py_models directory
+tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/py_models")
 
-# Assuming you have a model named 'my_task' in your custom models directory
+# Assuming you have a model named 'my_task' in your custom py_models directory
 # and a test case named 'example' with source and prompt files.
 
 # You can directly run a specific test case by name
@@ -168,28 +174,30 @@ tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/models")
 #    Source: "Hello, world!"
 #    Prompt: "Extract the greeting from the text."
 #    Expected: {"greeting": "Hello, world!"}
-# 4. Run the test using the CLI: llm-tester run --test-dir /path/to/your/custom/models --providers mock --models mock:mock-model --filter hello_world/example
+# 4. Run the test using the CLI: llm-tester run --test-dir /path/to/your/custom/py_models --providers mock --py_models mock:mock-model --filter hello_world/example
 #    (Using mock provider for simplicity, replace with real provider if configured)
 
 # Programmatic "Hello World" example (assuming the 'hello_world' model is set up as above)
 # Define a simple model class directly for demonstration (or import from your external model file)
 from pydantic import BaseModel
 
+
 class HelloWorldModel(BaseModel):
     greeting: str
+
 
 # Define a simple test case structure
 hello_world_test_case = {
     'module': 'hello_world',
     'name': 'example',
     'model_class': HelloWorldModel,
-    'source_path': '/path/to/your/custom/models/hello_world/tests/sources/example.txt', # Replace with actual path
-    'prompt_path': '/path/to/your/custom/models/hello_world/tests/prompts/example.txt', # Replace with actual path
-    'expected_path': '/path/to/your/custom/models/hello_world/tests/expected/example.json' # Replace with actual path
+    'source_path': '/path/to/your/custom/py_models/hello_world/tests/sources/example.txt',  # Replace with actual path
+    'prompt_path': '/path/to/your/custom/py_models/hello_world/tests/prompts/example.txt',  # Replace with actual path
+    'expected_path': '/path/to/your/custom/py_models/hello_world/tests/expected/example.json'  # Replace with actual path
 }
 
 # Initialize tester with a provider (e.g., mock for this example) and the directory containing your model
-tester = LLMTester(providers=["mock"], test_dir="/path/to/your/custom/models") # Replace path and provider as needed
+tester = LLMTester(providers=["mock"], test_dir="/path/to/your/custom/py_models")  # Replace path and provider as needed
 
 # Run the specific test case
 results = tester.run_test(hello_world_test_case)
@@ -261,14 +269,14 @@ llm-tester --help
 
 # --- Running Tests ---
 
-# Run tests using all enabled providers and their default models
+# Run tests using all enabled providers and their default py_models
 llm-tester run
 
 # Run tests for specific providers
 llm-tester run --providers openai anthropic
 
-# Run tests using specific LLM models for providers
-llm-tester run --providers openai openrouter --models openai:gpt-4o --models openrouter/google/gemini-pro-1.5
+# Run tests using specific LLM py_models for providers
+llm-tester run --providers openai openrouter --py_models openai:gpt-4o --py_models openrouter/google/gemini-pro-1.5
 
 # Run tests and save report to a file
 llm-tester run --output my_report.md
@@ -290,11 +298,11 @@ llm-tester run -vv
 # List available extraction schemas (test modules)
 llm-tester schemas list
 
-# List available test cases and configured providers/models without running tests
+# List available test cases and configured providers/py_models without running tests
 llm-tester list
 
-# List specific providers and their models for the list command
-llm-tester list --providers openai --models openai:gpt-4o
+# List specific providers and their py_models for the list command
+llm-tester list --providers openai --py_models openai:gpt-4o
 
 # --- Configuration & Management ---
 
@@ -310,7 +318,7 @@ llm-tester providers enable openrouter
 # Disable a provider (removes from enabled_providers.json)
 llm-tester providers disable google
 
-# List LLM models within a specific provider's config and their status
+# List LLM py_models within a specific provider's config and their status
 llm-tester providers manage list openrouter
 
 # Enable a specific LLM model within a provider's config
@@ -348,7 +356,7 @@ llm-tester interactive
 ## Usage
 
 ```python
-from llm_tester import LLMTester
+from src import LLMTester
 
 # Initialize tester with providers
 tester = LLMTester(providers=["openai", "anthropic", "google", "mistral"])

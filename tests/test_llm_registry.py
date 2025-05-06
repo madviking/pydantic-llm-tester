@@ -9,7 +9,7 @@ import shutil
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from llm_tester.llms.base import BaseLLM, ProviderConfig
+from src.llms.base import BaseLLM, ProviderConfig
 
 
 class MockProvider(BaseLLM):
@@ -29,12 +29,12 @@ class TestLLMRegistry(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         # We need to patch module imports at the location they're used
-        self.factory_patcher = patch('llm_tester.llms.llm_registry.get_available_providers')
+        self.factory_patcher = patch('src.llms.llm_registry.get_available_providers')
         self.mock_get_available_providers = self.factory_patcher.start()
         self.mock_get_available_providers.return_value = ["test_provider", "another_provider"]
         
         # Patch create_provider separately
-        self.create_provider_patcher = patch('llm_tester.llms.llm_registry.create_provider')
+        self.create_provider_patcher = patch('src.llms.llm_registry.create_provider')
         self.mock_create_provider = self.create_provider_patcher.start()
         
         # Create a mock provider instance
@@ -57,12 +57,12 @@ class TestLLMRegistry(unittest.TestCase):
         self.create_provider_patcher.stop()
         
         # Reset the provider cache to ensure clean tests
-        from llm_tester.llms.llm_registry import reset_provider_cache
+        from src.llms.llm_registry import reset_provider_cache
         reset_provider_cache()
     
     def test_discover_providers(self):
         """Test discovering available providers"""
-        from llm_tester.llms.llm_registry import discover_providers
+        from src.llms.llm_registry import discover_providers
         
         # Configure get_available_providers to return our test providers
         self.mock_get_available_providers.return_value = ["test_provider", "another_provider"]
@@ -78,7 +78,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_llm_provider(self):
         """Test getting a provider instance"""
-        from llm_tester.llms.llm_registry import get_llm_provider
+        from src.llms.llm_registry import get_llm_provider
         
         # Call get_llm_provider
         provider = get_llm_provider("test_provider")
@@ -91,7 +91,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_llm_provider_caching(self):
         """Test that provider instances are cached"""
-        from llm_tester.llms.llm_registry import get_llm_provider
+        from src.llms.llm_registry import get_llm_provider
         
         # Call get_llm_provider twice for the same provider
         provider1 = get_llm_provider("test_provider")
@@ -105,7 +105,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_reset_provider_cache(self):
         """Test resetting the provider cache"""
-        from llm_tester.llms.llm_registry import get_llm_provider, reset_provider_cache
+        from src.llms.llm_registry import get_llm_provider, reset_provider_cache
         
         # Create two different provider instances for the test
         provider_instance1 = MockProvider()
@@ -131,14 +131,14 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_provider_info(self):
         """Test getting provider information"""
-        from llm_tester.llms.llm_registry import get_provider_info, get_llm_provider
+        from src.llms.llm_registry import get_provider_info, get_llm_provider
         
         # Create a config for the test provider
         config = ProviderConfig(
             name="test_provider",
             provider_type="test",
             env_key="TEST_API_KEY",
-            models=[
+            llm_models=[
                 {
                     "name": "test:model1",
                     "default": True,
@@ -161,13 +161,13 @@ class TestLLMRegistry(unittest.TestCase):
         self.assertEqual(info["available"], True)
         self.assertEqual(info["config"]["provider_type"], "test")
         self.assertEqual(info["config"]["env_key"], "TEST_API_KEY")
-        self.assertEqual(len(info["models"]), 1)
-        self.assertEqual(info["models"][0]["name"], "test:model1")
-        self.assertEqual(info["models"][0]["default"], True)
+        self.assertEqual(len(info["py_models"]), 1)
+        self.assertEqual(info["py_models"][0]["name"], "test:model1")
+        self.assertEqual(info["py_models"][0]["default"], True)
     
     def test_get_provider_info_unavailable(self):
         """Test getting info for an unavailable provider"""
-        from llm_tester.llms.llm_registry import get_provider_info
+        from src.llms.llm_registry import get_provider_info
         
         # Get info for an unavailable provider
         info = get_provider_info("unavailable_provider")

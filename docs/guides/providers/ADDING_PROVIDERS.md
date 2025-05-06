@@ -35,10 +35,10 @@ This will create the directory structure and template files described in step 1 
 Create a new directory for your provider in the `llm_tester/llms/` directory:
 
 ```bash
-mkdir -p llm_tester/llms/your_provider_name
-touch llm_tester/llms/your_provider_name/__init__.py
-touch llm_tester/llms/your_provider_name/provider.py
-touch llm_tester/llms/your_provider_name/config.json
+mkdir -p src/llms/your_provider_name
+touch src/llms/your_provider_name/__init__.py
+touch src/llms/your_provider_name/provider.py
+touch src/llms/your_provider_name/config.json
 ```
 
 ### 2. Implement the Provider Class
@@ -157,7 +157,7 @@ Create a `config.json` file with your provider's configuration:
   "env_key": "YOUR_PROVIDER_API_KEY",
   "env_key_secret": "",
   "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
-  "models": [
+  "llm_models": [
     {
       "name": "your-model-name",
       "default": true,
@@ -187,7 +187,7 @@ Adjust the values according to your provider's specifications:
 The framework automatically discovers providers by looking for subdirectories within `llm_tester/llms/` that contain an `__init__.py` file. Ensure your `llm_tester/llms/your_provider_name/__init__.py` file exists and imports your provider class:
 
 ```python
-# llm_tester/llms/your_provider_name/__init__.py
+# src/llms/your_provider_name/__init__.py
 from .provider import YourProviderProvider
 
 # Optional: Define __all__ if you want to be explicit
@@ -204,7 +204,7 @@ By default, if no `enabled_providers.json` file exists in the project root, all 
 source venv/bin/activate
 
 # Enable your new provider
-python -m llm_tester.cli providers enable your_provider_name
+python -m src.cli providers enable your_provider_name
 ```
 
 ## Testing Your Provider Integration
@@ -218,10 +218,10 @@ Use the CLI to check if your provider is discovered and enabled:
 source venv/bin/activate
 
 # List all providers and their status
-python -m llm_tester.cli providers list
+python -m src.cli providers list
 
-# List models configured for your provider
-python -m llm_tester.cli models list --provider your_provider_name
+# List py_models configured for your provider
+python -m src.cli py_models list --provider your_provider_name
 ```
 
 ### 2. Test with a Simple Request
@@ -233,10 +233,10 @@ Run a simple test using the CLI to verify your provider works:
 source venv/bin/activate
 
 # Run tests using only your provider and a specific model (optional)
-python -m llm_tester.cli --providers your_provider_name --models your_provider_name:your-model-name
+python -m src.cli --providers your_provider_name --py_models your_provider_name:your-model-name
 
 # Or run using the default model for your provider
-python -m llm_tester.cli --providers your_provider_name
+python -m src.cli --providers your_provider_name
 ```
 
 ## Best Practices
@@ -311,8 +311,8 @@ source venv/bin/activate
 # List all providers and their status
 llm-tester providers list
 
-# List models configured for your provider
-llm-tester models list --provider your_provider_name
+# List py_models configured for your provider
+llm-tester py_models list --provider your_provider_name
 ```
 
 ### 2. Test with a Simple Request
@@ -324,7 +324,7 @@ Run a simple test using the CLI to verify your provider works:
 source venv/bin/activate
 
 # Run tests using only your provider and a specific model (optional)
-llm-tester --providers your_provider_name --models your_provider_name:your-model-name
+llm-tester --providers your_provider_name --py_models your_provider_name:your-model-name
 
 # Or run using the default model for your provider
 llm-tester --providers your_provider_name

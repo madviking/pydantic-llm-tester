@@ -1,0 +1,50 @@
+{
+  "name": "google",
+  "provider_type": "google",
+  "env_key": "GOOGLE_API_KEY",
+  "env_key_secret": "",
+  "system_prompt": "Extract the requested information from the provided text as accurate JSON format. Ensure all fields are properly typed and structured.",
+  "llm_models": [
+    {
+      "name": "gemini-1.5-pro",
+      "default": true,
+      "preferred": true,
+      "cost_input": 7.0,
+      "cost_output": 21.0,
+      "cost_category": "expensive",
+      "max_input_tokens": 100000,
+      "max_output_tokens": 8192
+    },
+    {
+      "name": "gemini-1.5-flash",
+      "default": false,
+      "preferred": true,
+      "cost_input": 0.35,
+      "cost_output": 1.05,
+      "cost_category": "cheap",
+      "max_input_tokens": 100000,
+      "max_output_tokens": 8192
+    },
+    {
+      "name": "text-bison",
+      "default": false,
+      "preferred": false,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 8192,
+      "max_output_tokens": 1024
+    },
+    {
+      "name": "gemini-1.0-pro",
+      "default": false,
+      "preferred": false,
+      "enabled": true,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 30720,
+      "max_output_tokens": 2048
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "{{provider_name}}",
+  "provider_type": "{{provider_name}}",
+  "env_key": "{{provider_name_upper}}_API_KEY",
+  "env_key_secret": "",
+  "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
+  "llm_models": [
+    {
+      "name": "your-model-name",
+      "default": true,
+      "preferred": true,
+      "cost_input": 1.0,
+      "cost_output": 2.0,
+      "cost_category": "standard",
+      "max_input_tokens": 8000,
+      "max_output_tokens": 4000,
+      "enabled": true
+    }
+  ]
+}

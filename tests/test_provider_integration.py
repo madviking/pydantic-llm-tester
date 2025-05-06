@@ -20,8 +20,8 @@ else:
 
 # --- Imports for the Test ---
 try:
-    from llm_tester.llms.provider_factory import create_provider, get_available_providers
-    from llm_tester.models.integration_test.model import IntegrationTestModel
+    from src.llms.provider_factory import create_provider, get_available_providers
+    from src.py_models.integration_test.model import IntegrationTestModel
     from openai import APIError # Import specific error for catching potential issues
     PROVIDER_COMPONENTS_AVAILABLE = True
 except ImportError as e:
@@ -32,23 +32,23 @@ except ImportError as e:
 
 # --- Test Setup ---
 
-# Define cheap/fast models for each provider (adjust as needed)
+# Define cheap/fast py_models for each provider (adjust as needed)
 # These are just suggestions; actual availability/cost may vary.
-# Ensure the corresponding provider config.json includes these models.
+# Ensure the corresponding provider config.json includes these py_models.
 INTEGRATION_TEST_MODELS = {
     "openai": "gpt-3.5-turbo",
     "anthropic": "claude-3-haiku-20240307",
     "openrouter": "mistralai/mistral-7b-instruct:free", # Use the free tier
     "google": "gemini-1.0-pro", # Or another available Gemini model
     "mistral": "mistral-tiny", # Or another available Mistral model
-    # Add other providers and their cheap/fast models here
+    # Add other providers and their cheap/fast py_models here
 }
 
 # Discover available providers (excluding mock, pydantic_ai, and external providers for now)
 # Load external provider definitions to filter them out
 external_providers_config = {}
 try:
-    from llm_tester.llms.provider_factory import load_external_providers
+    from src.llms.provider_factory import load_external_providers
     external_providers_config = load_external_providers()
 except ImportError:
     logger.warning("Could not import load_external_providers to filter external providers.")
@@ -133,7 +133,7 @@ def test_provider_live_api_call(provider_name: str):
     # 5. Assert Basic Success Criteria
     assert error is None, f"API call to {provider_name} raised an exception: {error}"
     assert isinstance(response_text, str), f"Response text from {provider_name} should be a string."
-    # Allow empty string as some models might just return {} which stringifies
+    # Allow empty string as some py_models might just return {} which stringifies
     # assert len(response_text) > 0, f"Response text from {provider_name} should not be empty."
     assert isinstance(usage_data, dict), f"Usage data from {provider_name} should be a dictionary."
     # Optional: Check for token keys, but some APIs might not return them reliably

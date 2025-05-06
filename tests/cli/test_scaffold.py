@@ -4,14 +4,14 @@ import tempfile
 import shutil
 from typer.testing import CliRunner
 
-from llm_tester.cli.main import app # Import the main Typer app
+from src.cli.main import app # Import the main Typer app
 
 runner = CliRunner()
 
 # Determine the directory containing the templates relative to the test file
 # Determine the directory containing the templates relative to the project root
 _project_root = os.getcwd() # Get the current working directory (project root)
-_templates_dir = os.path.join(_project_root, "llm_tester", "cli", "templates") # Path is llm_tester/cli/templates relative to root
+_templates_dir = os.path.join(_project_root, "src", "cli", "templates") # Path is src/cli/templates relative to root
 
 def _read_template(template_name: str) -> str:
     """Reads a template file content."""
@@ -61,7 +61,7 @@ def test_scaffold_model():
     """Tests the 'scaffold model' command."""
     with tempfile.TemporaryDirectory() as tmpdir:
         model_name = "test_model"
-        result = runner.invoke(app, ["scaffold", "model", model_name, "--models-dir", tmpdir])
+        result = runner.invoke(app, ["scaffold", "model", model_name, "--py_models-dir", tmpdir])
 
         assert result.exit_code == 0
         assert f"Successfully scaffolded model '{model_name}' at" in result.stdout
@@ -163,7 +163,7 @@ def test_scaffold_model_interactive():
     """Tests the 'scaffold model' command in interactive mode."""
     with tempfile.TemporaryDirectory() as tmpdir:
         model_name = "interactive_model"
-        result = runner.invoke(app, ["scaffold", "model", "--interactive", "--models-dir", tmpdir], input=f"{model_name}\n")
+        result = runner.invoke(app, ["scaffold", "model", "--interactive", "--py_models-dir", tmpdir], input=f"{model_name}\n")
 
         assert result.exit_code == 0
         assert f"Interactive Model Scaffolding" in result.stdout
@@ -243,7 +243,7 @@ def test_scaffold_model_exists():
         model_path = os.path.join(tmpdir, model_name)
         os.makedirs(model_path) # Create the directory beforehand
 
-        result = runner.invoke(app, ["scaffold", "model", model_name, "--models-dir", tmpdir])
+        result = runner.invoke(app, ["scaffold", "model", model_name, "--py_models-dir", tmpdir])
 
         assert result.exit_code != 0 # Should fail
         assert "Error: Model directory already exists at" in result.stdout

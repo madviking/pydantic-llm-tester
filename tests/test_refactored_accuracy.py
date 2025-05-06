@@ -13,7 +13,7 @@ from datetime import date
 # Placeholder for the refactored accuracy calculation function/method
 # We might need to import it differently after refactoring.
 # For now, assume it's accessible via a tester instance or as a standalone function.
-from llm_tester import LLMTester
+from src import LLMTester
 tester_instance = LLMTester(providers=[]) # Minimal instance
 
 # --- Test Cases for Refactored Accuracy Logic ---
