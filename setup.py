@@ -8,7 +8,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="pydantic-llm-tester", # Corrected package name for PyPI
-    version="0.1.0",
+    version="0.1.5",
     description="A framework for testing LLM performance using pydanticAI",
     long_description=long_description,
     long_description_content_type="text/markdown", # Specify content type as Markdown
@@ -16,18 +16,18 @@ setup(
     author_email="",
     packages=find_packages(),
     install_requires=[
-        "pydantic>=2.0.0",
+        "pydantic>=2.10.6",
         "openai>=1.0.0",
         "anthropic>=0.5.0",
-        "mistralai>=0.0.1",
+        "mistralai>=1.6.0",
         "google-cloud-aiplatform>=1.36.0",
-        "vertexai>=0.0.1",
-        "python-dotenv>=1.0.0",
-        "typer[all]>=0.9.0", # Added Typer dependency
-        "pydantic-ai>=0.0.44", # Added pydantic-ai dependency
-        "rapidfuzz>=3.0.0",
-        "requests>=2.20.0",
-        "google-generativeai>=0.8.5",
+        "vertexai>=1.71.1",
+        "python-dotenv>=1.0.1",
+        "typer[all]>=0.9.0",
+        "pydantic-ai>=0.0.44",
+        "rapidfuzz>=3.12.2",
+        "requests2.32.3",
+        "google-generativeai>=0.8.5"
     ],
     entry_points={
         "console_scripts": [
