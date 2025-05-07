@@ -3,7 +3,7 @@ import logging
 from typing import List
 
 # Use absolute imports
-from pydantic_llm_tester.utils.common import get_llm_tester_dir
+from pydantic_llm_tester.utils.common import get_package_dir
 
 logger = logging.getLogger(__name__)
 

@@ -7,6 +7,7 @@ from pydantic_llm_tester.cli.core.scaffold_logic import scaffold_provider_files,
 # Import core config logic and ConfigManager to update config after scaffolding
 from pydantic_llm_tester.cli.core import provider_logic
 from pydantic_llm_tester.utils.config_manager import ConfigManager
+from pydantic_llm_tester.utils.common import get_package_dir
 
 app = typer.Typer(help="Commands for scaffolding new providers and py_models.")
 
@@ -40,10 +41,7 @@ def scaffold_provider(
     else:
         # Default to src/llms relative to the package directory
         # Need to determine the package root from this file's location
-        _current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        _cli_dir = os.path.dirname(_current_file_dir) # Go up one level to src/cli
-        _llm_tester_dir = os.path.dirname(_cli_dir) # Go up another level to src
-        base_dir = os.path.join(_llm_tester_dir, "llms")
+        base_dir = os.path.join(get_package_dir(), "llms")
 
     # Call the core scaffolding logic
     success, message = scaffold_provider_files(provider_name, base_dir)

@@ -39,8 +39,26 @@ DEFAULT_MODEL_PRICING = {
 
 def get_pricing_config_path() -> str:
     """Get the path to the py_models pricing configuration file"""
-    from .common import get_project_root
-    return os.path.join(get_project_root(), 'models_pricing.json')
+    from .common import get_project_root, get_package_dir
+    
+    # Check first in project root
+    project_root_path = os.path.join(get_project_root(), 'models_pricing.json')
+    if os.path.exists(project_root_path):
+        return project_root_path
+        
+    # Then check in package directory
+    package_path = os.path.join(get_package_dir(), 'models_pricing.json')
+    if os.path.exists(package_path):
+        return package_path
+    
+    # Finally check in parent directories of package dir
+    src_dir = os.path.dirname(get_package_dir())
+    src_parent_path = os.path.join(src_dir, 'models_pricing.json')
+    if os.path.exists(src_parent_path):
+        return src_parent_path
+        
+    # Fallback to project root if it doesn't exist yet
+    return project_root_path
 
 
 def load_model_pricing() -> Dict[str, Dict[str, Dict[str, float]]]:

@@ -18,7 +18,9 @@ def get_package_dir() -> str:
     Gets the absolute path to the pydantic_llm_tester package directory.
     Works whether the package is installed or run from source.
     """
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # __file__ is something like /path/to/src/pydantic_llm_tester/utils/common.py
+    # We need to go up two levels to get the package directory
+    return os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
 def get_cli_dir() -> str:
     """
@@ -35,7 +37,8 @@ def is_installed_package() -> bool:
     package_dir = get_package_dir()
     return ('site-packages' in package_dir or 
             'dist-packages' in package_dir or
-            os.path.basename(os.path.dirname(package_dir)) == 'src')
+            os.path.basename(os.path.dirname(package_dir)) == 'src' or
+            os.path.basename(os.path.dirname(os.path.dirname(package_dir))) == 'src')
 
 def get_project_root() -> str:
     """
@@ -50,9 +53,14 @@ def get_project_root() -> str:
         # If running from source, project root is one level above package dir
         # (assuming src/pydantic_llm_tester structure)
         package_dir = get_package_dir()
+        
+        # Check the hierarchy for 'src'
         if os.path.basename(os.path.dirname(package_dir)) == 'src':
             # We're likely in a 'src/pydantic_llm_tester' structure
             return os.path.dirname(os.path.dirname(package_dir))
+        elif os.path.basename(os.path.dirname(os.path.dirname(package_dir))) == 'src':
+            # We might be in 'src/pydantic_llm_tester/utils' structure
+            return os.path.dirname(os.path.dirname(os.path.dirname(package_dir)))
         else:
             # Fallback: just go up one level from package dir
             return os.path.dirname(package_dir)

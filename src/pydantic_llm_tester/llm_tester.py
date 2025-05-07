@@ -1066,7 +1066,7 @@ class LLMTester:
         Returns:
             Dictionary of paths to the saved report files
         """
-        output_dir = output_dir or get_test_setting("output_dir", "test_results")
+        output_dir = output_dir or self.config_manager.get_test_setting("output_dir", "test_results")
 
         # Create the output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)

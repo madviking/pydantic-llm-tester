@@ -73,7 +73,7 @@ class ModuleDiscovery:
         """
         try:
             # Try to import the module
-            module_path = f"src.py_models.{module_name}"
+            module_path = f"pydantic_llm_tester.py_models.{module_name}"
             self.logger.debug(f"Importing module: {module_path}")
             module = importlib.import_module(module_path)
             
