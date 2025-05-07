@@ -4,15 +4,13 @@ Tests for LLM provider connections
 
 import os
 import pytest
-from unittest import mock
 from pathlib import Path
 
 # Add the parent directory to sys.path to import src
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.utils.provider_manager import ProviderManager
-from src.utils.mock_responses import mock_get_response
+from pydantic_llm_tester.utils import ProviderManager
 
 # Mark tests that require API keys
 api_key_required = pytest.mark.skipif(

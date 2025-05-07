@@ -3,9 +3,8 @@ Tests for mock response system
 """
 
 import json
-import pytest
 
-from src.utils.mock_responses import (
+from pydantic_llm_tester.utils import (
     get_mock_response, 
     mock_get_response
 )

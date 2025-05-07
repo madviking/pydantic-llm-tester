@@ -1,14 +1,13 @@
 import pytest
 import os
 from unittest.mock import patch, MagicMock, ANY
-from typing import Any # Import Any
 import importlib
 
 # Mock base classes from the project if they are not directly importable in tests
 # This avoids complex path manipulation in the test file itself
 try:
-    from src.llms.base import BaseLLM, ProviderConfig, ModelConfig
-    from src.utils.cost_manager import UsageData
+    from pydantic_llm_tester.llms import BaseLLM, ProviderConfig, ModelConfig
+    from pydantic_llm_tester.utils import UsageData
 except ImportError:
     # Define dummy base classes if imports fail (e.g., running tests standalone)
     class BaseModel:
@@ -28,7 +27,7 @@ except ImportError:
 
 # Import the actual provider
 try:
-    from src.llms.openrouter.provider import OpenRouterProvider
+    from pydantic_llm_tester.llms import OpenRouterProvider
 except ImportError as e:
     # If the provider itself can't be imported, skip all tests in this file
     pytest.skip(f"Could not import OpenRouterProvider: {e}", allow_module_level=True)
@@ -42,7 +41,7 @@ pytestmark = pytest.mark.skipif(openai_spec is None, reason="openai library not 
 
 # Import openai components only if available (needed for dummy class definitions later)
 if openai_spec:
-    from openai import OpenAI, APIError
+    from openai import APIError
     from openai.types.chat import ChatCompletion, ChatCompletionMessage # Use ChatCompletionMessage
     from openai.types.chat.chat_completion import Choice # Choice is still here
     from openai.types.completion_usage import CompletionUsage

@@ -3,18 +3,17 @@ Tests for the provider factory
 """
 
 import unittest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch
 import os
 import sys
 import json
 import tempfile
 import shutil
-from pathlib import Path
 
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.llms.base import BaseLLM, ProviderConfig, ModelConfig
+from pydantic_llm_tester.llms import BaseLLM, ProviderConfig, ModelConfig
 
 
 class MockValidProvider(BaseLLM):
@@ -182,7 +181,7 @@ class ExternalProvider(BaseLLM):
     
     def test_load_provider_config(self):
         """Test loading provider configuration"""
-        from src.llms.provider_factory import load_provider_config
+        from pydantic_llm_tester.llms import load_provider_config
         
         # Call the function
         config = load_provider_config("mock_provider")
@@ -201,7 +200,7 @@ class ExternalProvider(BaseLLM):
     
     def test_discover_provider_classes(self):
         """Test discovering provider classes"""
-        from src.llms.provider_factory import discover_provider_classes, register_provider_class
+        from pydantic_llm_tester.llms import discover_provider_classes, register_provider_class
         
         # Register a mock provider directly for testing
         register_provider_class("mock_provider", MockValidProvider)
@@ -215,7 +214,7 @@ class ExternalProvider(BaseLLM):
     
     def test_get_available_providers(self):
         """Test getting available providers"""
-        from src.llms.provider_factory import get_available_providers, register_provider_class
+        from pydantic_llm_tester.llms import get_available_providers, register_provider_class
         
         # Register a mock provider directly for testing
         register_provider_class("mock_provider", MockValidProvider)
@@ -228,7 +227,7 @@ class ExternalProvider(BaseLLM):
     
     def test_create_provider(self):
         """Test creating a provider instance"""
-        from src.llms.provider_factory import create_provider, register_provider_class
+        from pydantic_llm_tester.llms import create_provider, register_provider_class
         
         # Register a mock provider directly for testing
         register_provider_class("mock_provider", MockValidProvider)
@@ -267,7 +266,7 @@ class ExternalProvider(BaseLLM):
         """Test validating a provider implementation"""
         # This test requires the new validate_provider_implementation function
         # that we'll implement in the provider_factory.py
-        from src.llms.provider_factory import validate_provider_implementation
+        from pydantic_llm_tester.llms import validate_provider_implementation
         
         # Test with valid provider
         valid_result = validate_provider_implementation(MockValidProvider)
@@ -280,7 +279,7 @@ class ExternalProvider(BaseLLM):
     def test_invalid_provider_creation(self):
         """Test creating an invalid provider"""
         # This test expects the create_provider function to check validity
-        from src.llms.provider_factory import create_provider
+        from pydantic_llm_tester.llms import create_provider
         
         # Try to create an invalid provider
         provider = create_provider("invalid_provider")
@@ -313,7 +312,7 @@ class ExternalProvider(BaseLLM):
                 mock_load.return_value = external_providers_config
                 
                 # Import and test the new register_external_provider function
-                from src.llms.provider_factory import register_external_provider, create_provider
+                from pydantic_llm_tester.llms import register_external_provider, create_provider
                 
                 # Register the external provider
                 success = register_external_provider("external", "external_module", "ExternalProvider")

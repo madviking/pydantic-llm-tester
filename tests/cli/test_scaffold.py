@@ -1,12 +1,10 @@
-import pytest
 import os
 import tempfile
 import shutil
 import json
 from typer.testing import CliRunner
 
-from src.cli.main import app # Import the main Typer app
-from src.utils.config_manager import ConfigManager # Import ConfigManager
+from pydantic_llm_tester.cli import app # Import the main Typer app
 
 runner = CliRunner()
 

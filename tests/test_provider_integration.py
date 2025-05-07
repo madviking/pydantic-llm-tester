@@ -2,7 +2,6 @@ import pytest
 import os
 from dotenv import load_dotenv
 import logging
-from typing import Dict, Any
 
 # Configure logging for the test
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -20,8 +19,8 @@ else:
 
 # --- Imports for the Test ---
 try:
-    from src.llms.provider_factory import create_provider, get_available_providers
-    from src.py_models.integration_tests.model import IntegrationTest
+    from pydantic_llm_tester.llms import create_provider, get_available_providers
+    from pydantic_llm_tester.py_models.integration_tests import IntegrationTest
     from openai import APIError # Import specific error for catching potential issues
     PROVIDER_COMPONENTS_AVAILABLE = True
 except ImportError as e:
@@ -48,7 +47,7 @@ INTEGRATION_TEST_MODELS = {
 # Load external provider definitions to filter them out
 external_providers_config = {}
 try:
-    from src.llms.provider_factory import load_external_providers
+    from pydantic_llm_tester.llms import load_external_providers
     external_providers_config = load_external_providers()
 except ImportError:
     logger.warning("Could not import load_external_providers to filter external providers.")
@@ -95,7 +94,7 @@ def test_provider_live_api_call(provider_name: str):
 
 
     # Load the provider config
-    from src.llms.provider_factory import load_provider_config, reset_caches # Import load_provider_config and reset_caches
+    from pydantic_llm_tester.llms import load_provider_config, reset_caches # Import load_provider_config and reset_caches
 
     # Reset caches to ensure the latest config is loaded
     reset_caches()

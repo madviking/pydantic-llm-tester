@@ -6,8 +6,8 @@ import sys
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.llms.base import BaseLLM, ModelConfig, ProviderConfig
-from src.utils.cost_manager import UsageData
+from pydantic_llm_tester.llms import BaseLLM
+from pydantic_llm_tester.utils import UsageData
 
 
 class MockBaseLLM(BaseLLM):
@@ -57,7 +57,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
              patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class (inside the patch to ensure imports are patched)
-            from src.utils.provider_manager import ProviderManager
+            from pydantic_llm_tester.utils import ProviderManager
             
             # Initialize with a list of providers
             manager = ProviderManager(providers=["test_provider", "another_provider"])
@@ -101,7 +101,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
              patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from src.utils.provider_manager import ProviderManager
+            from pydantic_llm_tester.utils import ProviderManager
             
             # Initialize the manager
             manager = ProviderManager(providers=["test_provider"])
@@ -153,7 +153,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
              patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from src.utils.provider_manager import ProviderManager
+            from pydantic_llm_tester.utils import ProviderManager
             
             # Initialize with a mock provider prefix
             manager = ProviderManager(providers=["mock_test"])
@@ -190,7 +190,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
              patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from src.utils.provider_manager import ProviderManager
+            from pydantic_llm_tester.utils import ProviderManager
             
             # Initialize with an unknown provider
             manager = ProviderManager(providers=["unknown"])
@@ -226,7 +226,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
              patch('src.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
-            from src.utils.provider_manager import ProviderManager
+            from pydantic_llm_tester.utils import ProviderManager
             
             # Initialize the manager
             manager = ProviderManager(providers=["test_provider"])

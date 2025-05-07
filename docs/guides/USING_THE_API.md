@@ -94,7 +94,7 @@ While the `LLMTester` class handles running tests through providers, you might w
 You can obtain a provider instance using the `ProviderFactory`:
 
 ```python
-from src.llms.provider_factory import ProviderFactory
+from pydantic_llm_tester.llms import ProviderFactory
 
 # Get an instance of a specific provider
 # The factory handles initialization and configuration loading
@@ -111,7 +111,7 @@ openai_provider = ProviderFactory.get_provider("openai")
 Configuration is typically loaded automatically by the `LLMTester` and `ProviderFactory`. However, you can access and potentially modify configuration programmatically using the `config_manager` utilities:
 
 ```python
-from src.utils.config_manager import load_config, get_test_setting, get_provider_model
+from pydantic_llm_tester.utils import load_config, get_test_setting, get_provider_model
 
 # Load the main configuration
 config = load_config()
@@ -124,7 +124,7 @@ print(f"Test output directory: {output_dir}")
 # Get configuration for a specific provider model
 openai_gpt4_config = get_provider_model("openai", "gpt-4")
 if openai_gpt4_config:
-    print(f"OpenAI GPT-4 config: {openai_gpt4_config}")
+  print(f"OpenAI GPT-4 config: {openai_gpt4_config}")
 ```
 
 ## Adding Custom Models Programmatically

@@ -1,3 +1,45 @@
 [build-system]
-requires = ["setuptools>=61.0"] # Or the minimum version of setuptools you need
+requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pydantic-llm-tester"
+version = "0.1.13"
+description = "A framework for testing LLM performance using pydanticAI"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+  { name="Timo Railo", email="firstname@east.fi" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "pydantic>=2.10.6",
+    "openai>=1.0.0",
+    "anthropic>=0.5.0",
+    "mistralai>=1.6.0",
+    "google-cloud-aiplatform",
+    "vertexai>=1.71.1",
+    "python-dotenv>=1.0.1",
+    "typer>=0.15.2",
+    "pydantic-ai>=0.0.44",
+    "rapidfuzz>=3.12.2",
+    "requests>=2.32.3",
+    "google-generativeai>=0.8.5",
+]
+
+[project.scripts]
+llm-tester = "pydantic_llm_tester.cli.main:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["pydantic_llm_tester"]

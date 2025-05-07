@@ -1,6 +1,6 @@
 # Environment variables
 .env
-**/.env
+src/pydantic_llm_tester/.env
 
 # Python
 __pycache__/
@@ -57,7 +57,7 @@ test_results/*
 !test_results/report_example.md
 !test_results/cost_report_example.json
 
-src/py_models/*/reports/*
-!src/py_models/*/reports/.gitkeep
+src/pydantic_llm_tester/py_models/*/reports/*
+!src/pydantic_llm_tester/py_models/*/reports/.gitkeep
 old-docs
 keys.txt

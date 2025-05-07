@@ -1,15 +1,12 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import os
 import sys
-import tempfile
-import json
-import shutil
 
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.llms.base import BaseLLM, ProviderConfig
+from pydantic_llm_tester.llms import BaseLLM, ProviderConfig
 
 
 class MockProvider(BaseLLM):
@@ -57,12 +54,12 @@ class TestLLMRegistry(unittest.TestCase):
         self.create_provider_patcher.stop()
         
         # Reset the provider cache to ensure clean tests
-        from src.llms.llm_registry import reset_provider_cache
+        from pydantic_llm_tester.llms import reset_provider_cache
         reset_provider_cache()
     
     def test_discover_providers(self):
         """Test discovering available providers"""
-        from src.llms.llm_registry import discover_providers
+        from pydantic_llm_tester.llms import discover_providers
         
         # Configure get_available_providers to return our test providers
         self.mock_get_available_providers.return_value = ["test_provider", "another_provider"]
@@ -78,7 +75,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_llm_provider(self):
         """Test getting a provider instance"""
-        from src.llms.llm_registry import get_llm_provider
+        from pydantic_llm_tester.llms import get_llm_provider
         
         # Call get_llm_provider
         provider = get_llm_provider("test_provider")
@@ -91,7 +88,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_llm_provider_caching(self):
         """Test that provider instances are cached"""
-        from src.llms.llm_registry import get_llm_provider
+        from pydantic_llm_tester.llms import get_llm_provider
         
         # Call get_llm_provider twice for the same provider
         provider1 = get_llm_provider("test_provider")
@@ -105,7 +102,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_reset_provider_cache(self):
         """Test resetting the provider cache"""
-        from src.llms.llm_registry import get_llm_provider, reset_provider_cache
+        from pydantic_llm_tester.llms import get_llm_provider, reset_provider_cache
         
         # Create two different provider instances for the test
         provider_instance1 = MockProvider()
@@ -131,8 +128,8 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_provider_info(self):
         """Test getting provider information"""
-        from src.llms.llm_registry import get_provider_info, get_llm_provider
-        
+        from pydantic_llm_tester.llms import get_provider_info
+
         # Create a config for the test provider
         config = ProviderConfig(
             name="test_provider",
@@ -167,7 +164,7 @@ class TestLLMRegistry(unittest.TestCase):
     
     def test_get_provider_info_unavailable(self):
         """Test getting info for an unavailable provider"""
-        from src.llms.llm_registry import get_provider_info
+        from pydantic_llm_tester.llms import get_provider_info
         
         # Get info for an unavailable provider
         info = get_provider_info("unavailable_provider")

@@ -1,7 +1,6 @@
 import pytest
 import os
 from unittest.mock import Mock, MagicMock
-from dotenv import load_dotenv # Import load_dotenv
 
 # Load environment variables from .env file
 # Use dotenv_values to get a dictionary of loaded variables
@@ -14,8 +13,8 @@ if config_values:
         os.environ[key] = value
 
 # from src.llm_tester import LLMTester # No longer need to import the actual class for spec
-from src.utils.config_manager import ConfigManager
-from src.py_models.job_ads.model import JobAd
+from pydantic_llm_tester.utils import ConfigManager
+from pydantic_llm_tester.py_models.job_ads.model import JobAd
 
 # Define a mock class that mimics the necessary parts of LLMTester
 class MockLLMTester:
