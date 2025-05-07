@@ -26,7 +26,7 @@ setup(
         "typer[all]>=0.9.0",
         "pydantic-ai>=0.0.44",
         "rapidfuzz>=3.12.2",
-        "requests2.32.3",
+        "requests>=2.32.3",
         "google-generativeai>=0.8.5"
     ],
     entry_points={
