@@ -39,7 +39,8 @@ DEFAULT_MODEL_PRICING = {
 
 def get_pricing_config_path() -> str:
     """Get the path to the py_models pricing configuration file"""
-    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'models_pricing.json')
+    from .common import get_project_root
+    return os.path.join(get_project_root(), 'models_pricing.json')
 
 
 def load_model_pricing() -> Dict[str, Dict[str, Dict[str, float]]]:
