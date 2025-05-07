@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 def _discover_builtin_py_models() -> List[str]:
     """Discovers the names of built-in py models."""
-    builtin_models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "py_models")
+    builtin_models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "py_models")
+
     if not os.path.exists(builtin_models_dir):
         return []
 
@@ -26,6 +27,7 @@ def _discover_builtin_py_models() -> List[str]:
         # Check if it's a directory and not a special directory/file
         if os.path.isdir(item_path) and not item_name.startswith("__") and not item_name.startswith("."):
             model_names.append(item_name)
+
     return model_names
 
 
@@ -448,22 +450,14 @@ def start_interactive_session():
     config_manager = ConfigManager()
 
     # Discover built-in py models and register them if not in config
-    print("DEBUG: Discovering built-in py models...") # <-- Debug print
+    # note that built-in models are usually coming from both sources
     builtin_models = _discover_builtin_py_models()
-    print(f"DEBUG: Discovered built-in models: {builtin_models}") # <-- Debug print
-
-    print("DEBUG: Getting registered models from config...") # <-- Debug print
     registered_models = config_manager.get_py_models()
-    print(f"DEBUG: Registered models in config (before registration): {registered_models.keys()}") # <-- Debug print
-
 
     for model_name in builtin_models:
         if model_name not in registered_models:
             print(f"DEBUG: Registering built-in py model '{model_name}' in config.") # <-- Debug print
             config_manager.register_py_model(model_name, {"enabled": True}) # Register and enable by default
-        else:
-            print(f"DEBUG: Built-in py model '{model_name}' already registered.") # <-- Debug print
-
 
     print("\nWelcome to the LLM Tester Interactive Session!")
     print("---------------------------------------------")
