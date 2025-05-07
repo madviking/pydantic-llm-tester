@@ -3,7 +3,7 @@ import logging
 from typing import List, Set, Dict, Tuple # Added Dict and Tuple
 
 # Use absolute imports for clarity within the package
-from pydantic_llm_tester.cli.core.common import (
+from pydantic_llm_tester.utils.common import (
     get_llm_tester_dir,
     get_enabled_providers_path,
     read_json_file,

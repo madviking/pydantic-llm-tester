@@ -21,7 +21,7 @@ def get_llm_tester_dir() -> str:
 def get_project_root() -> str:
     """Gets the absolute path to the project root directory (one level above src)."""
     # This assumes the script is run from within the standard project structure
-    return os.path.dirname(get_llm_tester_dir())
+    return os.path.dirname(os.path.abspath('../cli/core'))
 
 def get_provider_config_dir(provider_name: str) -> str:
     """Gets the absolute path to a specific provider's directory."""
@@ -37,7 +37,7 @@ def get_enabled_providers_path() -> str:
 
 def get_default_dotenv_path() -> str:
     """Gets the absolute path to the default .env file within src."""
-    return os.path.join(get_llm_tester_dir(), '.env')
+    return '.env'
 
 
 # --- File I/O Helpers ---
