@@ -1,5 +1,10 @@
-import pytest
+import sys
 import os
+
+# Add the project root to the path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import pytest
 from unittest.mock import Mock, MagicMock
 
 # Load environment variables from .env file
@@ -12,7 +17,6 @@ if config_values:
     for key, value in config_values.items():
         os.environ[key] = value
 
-# from src.llm_tester import LLMTester # No longer need to import the actual class for spec
 from pydantic_llm_tester.utils import ConfigManager
 from pydantic_llm_tester.py_models.job_ads.model import JobAd
 

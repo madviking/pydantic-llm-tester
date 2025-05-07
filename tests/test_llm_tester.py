@@ -7,7 +7,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock
 
-from src import LLMTester
+from pydantic_llm_tester import LLMTester
 
 
 def test_discover_test_cases(mock_tester):
@@ -275,7 +275,7 @@ def test_optimize_prompt(mock_tester):
 def test_generate_report(mock_tester):
     """Test generating a report"""
     # Use the mock_tester fixture directly
-    with patch('src.utils.cost_manager.cost_tracker.get_run_summary') as mock_get_summary:
+    with patch('src.pydantic_llm_tester.utils.cost_manager.cost_tracker.get_run_summary') as mock_get_summary:
         # Mock the cost summary to return None to avoid adding cost summary info
         mock_get_summary.return_value = None
 
@@ -284,7 +284,8 @@ def test_generate_report(mock_tester):
         reports = mock_tester.generate_report(mock_results, False) # Pass the second argument
 
         # Check that generate_report was called on the mock report generator within the mock tester
-        mock_tester.report_generator.generate_report.assert_called()
+        with patch('src.pydantic_llm_tester.utils.report_generator.ReportGenerator.generate_report') as mock_generate_report:
+             mock_tester.report_generator.generate_report.assert_called()
 
         # Check the reports structure
         assert isinstance(reports, dict)

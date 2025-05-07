@@ -3,7 +3,7 @@ import json
 from unittest.mock import patch
 from pydantic_llm_tester.utils import ConfigManager
 
-@patch('src.utils.config_manager.ConfigManager.is_py_models_enabled', return_value=True) # Patch to return True
+@patch('src.pydantic_llm_tester.utils.config_manager.ConfigManager.is_py_models_enabled', return_value=True) # Patch to return True
 def test_load_config_creates_default_if_not_exists(mock_is_py_models_enabled, temp_config):
     """Test that ConfigManager creates default config if file doesn't exist"""
     assert os.path.exists(temp_config.config_path)

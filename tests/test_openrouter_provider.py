@@ -96,8 +96,8 @@ def mock_model_config():
 # --- Test Cases ---
 
 @patch.dict(os.environ, {"TEST_OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('src.llms.openrouter.provider.logging.getLogger') # Patch getLogger for this test too
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger for this test too
 def test_openrouter_provider_init_success(mock_get_logger, mock_openai_class, mock_provider_config):
     """Test successful initialization of OpenRouterProvider."""
     mock_logger = MagicMock()
@@ -118,8 +118,8 @@ def test_openrouter_provider_init_success(mock_get_logger, mock_openai_class, mo
 
 
 @patch.dict(os.environ, {}, clear=True) # No API key
-@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('src.llms.openrouter.provider.logging.getLogger') # Patch getLogger
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger
 def test_openrouter_provider_init_no_api_key(mock_get_logger, mock_openai_class, mock_provider_config):
     """Test initialization failure when API key is missing."""
     mock_logger = MagicMock()
@@ -136,7 +136,7 @@ def test_openrouter_provider_init_no_api_key(mock_get_logger, mock_openai_class,
 
 
 @patch.dict(os.environ, {"TEST_OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
 def test_openrouter_provider_call_llm_api_success(mock_openai_class, mock_provider_config, mock_model_config):
     """Test successful _call_llm_api call."""
     # Mock the response structure from openai.chat.completions.create
@@ -193,8 +193,8 @@ def test_openrouter_provider_call_llm_api_success(mock_openai_class, mock_provid
 
 
 @patch.dict(os.environ, {"TEST_OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('src.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
 def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openai_class, mock_provider_config, mock_model_config):
     """Test error handling during _call_llm_api call."""
     mock_logger = MagicMock()
@@ -231,7 +231,7 @@ def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openai_cla
 
 
 @patch.dict(os.environ, {}, clear=True) # No API key
-@patch('src.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
 def test_openrouter_provider_call_llm_api_no_client(mock_openai_class, mock_provider_config, mock_model_config):
     """Test calling _call_llm_api when client is not initialized."""
     provider = OpenRouterProvider(config=mock_provider_config)

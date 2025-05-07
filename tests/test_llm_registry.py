@@ -26,12 +26,12 @@ class TestLLMRegistry(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         # We need to patch module imports at the location they're used
-        self.factory_patcher = patch('src.llms.llm_registry.get_available_providers')
+        self.factory_patcher = patch('src.pydantic_llm_tester.llms.llm_registry.get_available_providers')
         self.mock_get_available_providers = self.factory_patcher.start()
         self.mock_get_available_providers.return_value = ["test_provider", "another_provider"]
         
         # Patch create_provider separately
-        self.create_provider_patcher = patch('src.llms.llm_registry.create_provider')
+        self.create_provider_patcher = patch('src.pydantic_llm_tester.llms.llm_registry.create_provider')
         self.mock_create_provider = self.create_provider_patcher.start()
         
         # Create a mock provider instance

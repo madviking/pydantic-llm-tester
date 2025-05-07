@@ -11,7 +11,7 @@ runner = CliRunner()
 # Determine the directory containing the templates relative to the test file
 # Determine the directory containing the templates relative to the project root
 _project_root = os.getcwd() # Get the current working directory (project root)
-_templates_dir = os.path.join(_project_root, "src", "cli", "templates") # Path is src/cli/templates relative to root
+_templates_dir = os.path.join(_project_root, "src", "pydantic_llm_tester", "cli", "templates") # Path is src/pydantic_llm_tester/cli/templates relative to root
 
 def _read_template(template_name: str) -> str:
     """Reads a template file content."""
