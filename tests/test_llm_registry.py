@@ -26,12 +26,12 @@ class TestLLMRegistry(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         # We need to patch module imports at the location they're used
-        self.factory_patcher = patch('src.pydantic_llm_tester.llms.llm_registry.get_available_providers')
+        self.factory_patcher = patch('pydantic_llm_tester.llms.llm_registry.get_available_providers')
         self.mock_get_available_providers = self.factory_patcher.start()
         self.mock_get_available_providers.return_value = ["test_provider", "another_provider"]
         
         # Patch create_provider separately
-        self.create_provider_patcher = patch('src.pydantic_llm_tester.llms.llm_registry.create_provider')
+        self.create_provider_patcher = patch('pydantic_llm_tester.llms.llm_registry.create_provider')
         self.mock_create_provider = self.create_provider_patcher.start()
         
         # Create a mock provider instance
@@ -39,7 +39,7 @@ class TestLLMRegistry(unittest.TestCase):
         self.another_provider = MockProvider()
         
         # Configure create_provider to return the mock instance
-        def create_provider_side_effect(provider_name):
+        def create_provider_side_effect(provider_name, llm_models=None): # Added llm_models
             if provider_name == "test_provider":
                 return self.test_provider
             elif provider_name == "another_provider":
@@ -81,7 +81,7 @@ class TestLLMRegistry(unittest.TestCase):
         provider = get_llm_provider("test_provider")
         
         # Check that create_provider was called
-        self.mock_create_provider.assert_called_once_with("test_provider")
+        self.mock_create_provider.assert_called_once_with("test_provider", llm_models=None)
         
         # Check that the correct provider was returned
         self.assertEqual(provider, self.test_provider)
@@ -95,7 +95,7 @@ class TestLLMRegistry(unittest.TestCase):
         provider2 = get_llm_provider("test_provider")
         
         # Check that create_provider was called only once
-        self.mock_create_provider.assert_called_once_with("test_provider")
+        self.mock_create_provider.assert_called_once_with("test_provider", llm_models=None)
         
         # Check that the same instance was returned both times
         self.assertIs(provider1, provider2)
@@ -112,16 +112,18 @@ class TestLLMRegistry(unittest.TestCase):
         self.mock_create_provider.side_effect = [provider_instance1, provider_instance2]
         
         # Call get_llm_provider to cache the first provider
-        provider1 = get_llm_provider("test_provider")
+        provider1 = get_llm_provider("test_provider") # This will be called with llm_models=None
         
         # Reset the cache
         reset_provider_cache()
         
         # Call get_llm_provider again to get the second instance
-        provider2 = get_llm_provider("test_provider")
+        provider2 = get_llm_provider("test_provider") # This will also be called with llm_models=None
         
         # Check that create_provider was called twice
         self.assertEqual(self.mock_create_provider.call_count, 2)
+        # Check the calls were as expected
+        self.mock_create_provider.assert_any_call("test_provider", llm_models=None)
         
         # Check that different instances were returned
         self.assertIsNot(provider1, provider2)

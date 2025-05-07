@@ -53,8 +53,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
         )
         
         # Patch both functions in the provider_manager module
-        with patch('src.pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('src.pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class (inside the patch to ensure imports are patched)
             from pydantic_llm_tester.utils import ProviderManager
@@ -97,8 +97,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=test_provider)
         
         # Patch the registry functions
-        with patch('src.pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('src.pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
             from pydantic_llm_tester.utils import ProviderManager
@@ -149,8 +149,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=mock_provider)
         
         # Patch the registry functions
-        with patch('src.pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('src.pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
             from pydantic_llm_tester.utils import ProviderManager
@@ -186,8 +186,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=None)
         
         # Patch the registry functions
-        with patch('src.pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('src.pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
             from pydantic_llm_tester.utils import ProviderManager
@@ -222,8 +222,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
         get_llm_provider_mock = MagicMock(return_value=test_provider)
         
         # Patch the registry functions
-        with patch('src.pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
-             patch('src.pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
+        with patch('pydantic_llm_tester.llms.llm_registry.discover_providers', discover_providers_mock), \
+             patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider', get_llm_provider_mock):
             
             # Import the ProviderManager class
             from pydantic_llm_tester.utils import ProviderManager

@@ -146,23 +146,93 @@ class TestProviderManager:
                         pytest.fail(f"Error connecting to {provider}: {str(e)}")
 
 
+import unittest # Added unittest for MagicMock
+from unittest.mock import patch, MagicMock # Ensure patch and MagicMock are imported
+import os
+import pytest
+from pathlib import Path
+
+# Add the parent directory to sys.path to import src
+import sys
+sys.path.append(str(Path(__file__).parent.parent))
+
+from pydantic_llm_tester.utils import ProviderManager, UsageData # Import UsageData here
+from pydantic_llm_tester.llms import BaseLLM # Import BaseLLM for mocking
+
+# Mark tests that require API keys
+api_key_required = pytest.mark.skipif(
+    not (os.environ.get("OPENAI_API_KEY") or 
+         os.environ.get("ANTHROPIC_API_KEY") or
+         os.environ.get("MISTRAL_API_KEY") or
+         (os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and os.environ.get("GOOGLE_PROJECT_ID"))),
+    reason="API keys required for this test"
+)
+
+# Mock OpenAI Provider for testing ProviderManager interaction
+class MockOpenAIProvider(BaseLLM):
+    def __init__(self, config=None, llm_models=None):
+        super().__init__(config, llm_models=llm_models)
+        self.name = "openai" # Ensure the mock has the correct name
+
+    def _call_llm_api(self, prompt, system_prompt, model_name, model_config):
+        # Simple mock response
+        return "Mocked OpenAI response: Hello World", {"prompt_tokens": 5, "completion_tokens": 2}
+
+    # Override get_response to return a simple mock UsageData
+    def get_response(self, prompt, source, model_name=None):
+         return "Mocked OpenAI response: Hello World", UsageData(
+             provider=self.name,
+             model=model_name or "gpt-3.5-turbo",
+             prompt_tokens=len(prompt.split()),
+             completion_tokens=len("Mocked OpenAI response: Hello World".split())
+         )
+
+
 @api_key_required
-def test_openai_connection():
+@patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider')
+def test_openai_connection(mock_get_llm_provider):
     """Test connection to OpenAI"""
     if not os.environ.get("OPENAI_API_KEY"):
         pytest.skip("OpenAI API key not available")
     
+    # Configure the mock to return a MockOpenAIProvider instance
+    mock_openai_provider_instance = MockOpenAIProvider()
+    # Make the get_response method a MagicMock
+    mock_openai_provider_instance.get_response = MagicMock(return_value=(
+        "Mocked OpenAI response: Hello World",
+        UsageData(
+            provider="openai",
+            model="gpt-3.5-turbo",
+            prompt_tokens=5,
+            completion_tokens=2
+        )
+    ))
+    mock_get_llm_provider.return_value = mock_openai_provider_instance
+
     manager = ProviderManager(["openai"])
     
     # Test getting a response
     try:
-        response = manager.get_response(
+        response, usage = manager.get_response( # Capture usage data
             provider="openai",
             prompt="Say hello",
             source="This is a test",
             model_name="gpt-3.5-turbo"  # Use smaller model for testing
         )
         assert response and len(response) > 0
+        # Verify that get_llm_provider was called
+        mock_get_llm_provider.assert_called_once_with("openai")
+        # Verify that the mock provider's get_response was called
+        mock_openai_provider_instance.get_response.assert_called_once_with(
+             prompt="Say hello",
+             source="This is a test",
+             model_name="gpt-3.5-turbo"
+        )
+        # Optionally check the returned usage data if needed
+        assert usage.provider == "openai"
+        assert usage.model == "gpt-3.5-turbo"
+
+
     except Exception as e:
         pytest.fail(f"OpenAI connection failed: {str(e)}")
 

@@ -323,7 +323,7 @@ def discover_provider_classes() -> Dict[str, Type[BaseLLM]]:
         for provider_name in provider_dirs:
             try:
                 # Import the provider package
-                module_name = f"src.pydantic_llm_tester.llms.{provider_name}"
+                module_name = f"pydantic_llm_tester.llms.{provider_name}" # Removed src. prefix
                 provider_module = importlib.import_module(module_name)
                 
                 # Look for a class named <Provider>Provider or matching name pattern

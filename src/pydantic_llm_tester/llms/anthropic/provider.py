@@ -15,9 +15,9 @@ from pydantic_llm_tester.utils.cost_manager import UsageData
 class AnthropicProvider(BaseLLM):
     """Provider implementation for Anthropic"""
     
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models=None): # Added llm_models
         """Initialize the Anthropic provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
         
         # Check if Anthropic SDK is available
         if not ANTHROPIC_AVAILABLE:

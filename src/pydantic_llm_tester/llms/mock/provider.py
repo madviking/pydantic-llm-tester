@@ -11,9 +11,9 @@ from pydantic_llm_tester.utils.cost_manager import UsageData
 class MockProvider(BaseLLM):
     """Provider implementation for mocked responses"""
     
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models=None): # Added llm_models
         """Initialize the Mock provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
         self.logger.info("Mock provider initialized")
         
         # Set up mock response registry
