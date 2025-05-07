@@ -42,7 +42,11 @@ llm-tester = "pydantic_llm_tester.cli.main:app"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["pydantic_llm_tester*"]  # This ensures all subpackages are included
+
+[tool.setuptools.package-data]
+"pydantic_llm_tester" = ["**/*.json", "**/*.tmpl", "**/*.yaml", "**/*.yml", "**/*.txt", "**/*.csv", "**/*.md", ".env.example"]

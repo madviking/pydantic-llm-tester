@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from typing import Optional, List # Added List
 
+from pydantic_llm_tester.utils.common import get_default_dotenv_path
 from pydantic_llm_tester.utils.config_manager import ConfigManager
 
 # --- Logging Setup ---
@@ -14,22 +15,18 @@ log_level = getattr(logging, log_level_str, logging.WARNING)
 logging.basicConfig(level=log_level, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# --- Load .env file ---
-# Assume .env is inside the src directory, relative to this cli package
-_cli_package_dir = os.path.dirname(os.path.abspath(__file__))
-_llm_tester_dir = os.path.dirname(_cli_package_dir) # Go up one level
-_dotenv_path = os.path.join(_llm_tester_dir, '.env') # Path is src/.env
+_dotenv_path = get_default_dotenv_path()
 
 def load_env(env_path: Optional[str] = None):
     """Loads .env file, prioritizing explicit path."""
-    load_path = env_path or _dotenv_path
-    if os.path.exists(load_path):
+
+    if os.path.exists(_dotenv_path):
         # Force override in case variable exists but is empty in parent environment
-        loaded = load_dotenv(dotenv_path=load_path, override=True)
+        loaded = load_dotenv(dotenv_path=_dotenv_path, override=True)
         if loaded:
-            logger.info(f"Loaded environment variables from: {load_path} (override=True)")
+            logger.info(f"Loaded environment variables from: {_dotenv_path} (override=True)")
         else:
-            logger.warning(f"Attempted to load .env from {load_path}, but it might be empty or already loaded.")
+            logger.warning(f"Attempted to load .env from {_dotenv_path}, but it might be empty or already loaded.")
     else:
         if env_path: # Only warn if a specific path was given and not found
              logger.warning(f"Specified --env file not found: {env_path}. Using default environment.")
