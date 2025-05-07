@@ -24,35 +24,22 @@ jobs:
       with:
         python-version: '3.11' # Specify the Python version you want to use
 
-    - name: Extract version from tag
-      id: get_version
-      run: |
-        TAG=${GITHUB_REF#refs/tags/}
-        # Remove the 'v' prefix if it exists
-        VERSION=${TAG#v}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Extracted version: $VERSION"
-
-    - name: Update version in setup.py
-      run: |
-        VERSION="${{ steps.get_version.outputs.version }}"
-        # This sed command looks for a version pattern in setup.py and replaces it
-        sed -i "s/version=['\"][^'\"]*['\"]/version='$VERSION'/g" setup.py
-        # Check if the version was actually updated
-        grep "version=" setup.py
-
-    - name: Commit and push changes
-      run: |
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions@github.com"
-        git add setup.py
-        # Only commit if there are changes
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          git commit -m "Bump version to ${{ steps.get_version.outputs.version }}"
-          git push
-        fi
+#    - name: Extract version from tag
+#      id: get_version
+#      run: |
+#        TAG=${GITHUB_REF#refs/tags/}
+#        # Remove the 'v' prefix if it exists
+#        VERSION=${TAG#v}
+#        echo "version=$VERSION" >> $GITHUB_OUTPUT
+#        echo "Extracted version: $VERSION"
+#
+#    - name: Update version in setup.py
+#      run: |
+#        VERSION="${{ steps.get_version.outputs.version }}"
+#        # This sed command looks for a version pattern in setup.py and replaces it
+#        sed -i "s/version=['\"][^'\"]*['\"]/version='$VERSION'/g" setup.py
+#        # Check if the version was actually updated
+#        grep "version=" setup.py
 
     - name: Install dependencies
       run: |
