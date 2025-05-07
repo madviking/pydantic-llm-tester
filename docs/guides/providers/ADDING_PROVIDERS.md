@@ -167,7 +167,7 @@ Create a `config.json` file with your provider's configuration:
       "cost_category": "standard",
       "max_input_tokens": 8000,
       "max_output_tokens": 4000,
-      "enabled": true // Add this flag to control model availability
+      "enabled": true
     }
   ]
 }
