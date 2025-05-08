@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Changed the structure to confine with Python packaging standards
 - Changed the packaging to work purely with pyproject.toml
+- Centralised path handling
 
 ## 2025-05-06
 

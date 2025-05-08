@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pydantic-llm-tester"
-version = "0.1.14"
+version = "0.1.17"
 description = "A framework for testing LLM performance using pydanticAI"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -42,7 +42,11 @@ llm-tester = "pydantic_llm_tester.cli.main:app"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["pydantic_llm_tester*"]  # This ensures all subpackages are included
+
+[tool.setuptools.package-data]
+"pydantic_llm_tester" = ["**/*.json", "**/*.tmpl", "**/*.yaml", "**/*.yml", "**/*.txt", "**/*.csv", "**/*.md", ".env.example"]

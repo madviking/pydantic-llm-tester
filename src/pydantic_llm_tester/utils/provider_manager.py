@@ -7,11 +7,11 @@ from typing import List, Optional, Tuple
 from pathlib import Path
 from dotenv import load_dotenv
 
+from .common import get_default_dotenv_path
 from .cost_manager import UsageData
 
 # Load environment variables from .env file
-env_path = Path(__file__).parent.parent.parent / '.env'
-load_dotenv(dotenv_path=env_path)
+load_dotenv(dotenv_path=get_default_dotenv_path())
 
 
 class ProviderManager:

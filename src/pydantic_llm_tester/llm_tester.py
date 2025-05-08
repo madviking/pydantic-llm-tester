@@ -42,9 +42,14 @@ class LLMTester:
             llm_models: Optional list of specific LLM model names to test
             test_dir: Directory containing test files
         """
+        from .utils.common import get_package_dir
+        
         self.providers = providers
         self.llm_models = llm_models
-        self.test_dir = test_dir or os.path.join(os.path.dirname(__file__), "tests")
+        
+        # Use the provided test_dir or default to the package's tests directory
+        self.test_dir = test_dir or os.path.join(get_package_dir(), "tests")
+        
         # Pass the llm_models list to ProviderManager so it can filter loaded models
         self.provider_manager = ProviderManager(providers, llm_models=llm_models)
         self.prompt_optimizer = PromptOptimizer()
@@ -63,14 +68,17 @@ class LLMTester:
 
     def _verify_directories(self) -> None:
         """Verify that required directories exist"""
+        from .utils.common import get_py_models_dir, get_external_py_models_dir
+        
         # Check the default test_dir (e.g., src/tests)
         if not os.path.exists(self.test_dir):
             self.logger.warning(f"Default test directory {self.test_dir} does not exist")
 
         # Check the configured py_models_path if it's different from the default built-in
         configured_py_models_path = self.config_manager.get_py_models_path()
-        builtin_py_models_dir = os.path.join(os.path.dirname(__file__), "py_models")
+        builtin_py_models_dir = get_py_models_dir()
 
+        # Check if the configured path exists and is different from the built-in path
         if configured_py_models_path and os.path.abspath(configured_py_models_path) != os.path.abspath(builtin_py_models_dir):
              if not os.path.exists(configured_py_models_path):
                  self.logger.warning(f"Configured py_models path {configured_py_models_path} does not exist")
@@ -84,13 +92,15 @@ class LLMTester:
         Returns:
             List of test case configurations
         """
+        from .utils.common import get_py_models_dir, get_external_py_models_dir
+        
         test_cases = []
         processed_modules = set() # To avoid processing the same module from different paths
 
         # Get configured py_models and their paths
         configured_py_models = self.config_manager.get_py_models()
         configured_py_models_path = self.config_manager.get_py_models_path()
-        builtin_py_models_dir = os.path.join(os.path.dirname(__file__), "py_models")
+        builtin_py_models_dir = get_py_models_dir()
 
         # List of directories to scan for py_models
         py_models_dirs_to_scan = []
@@ -303,6 +313,7 @@ class LLMTester:
     def _find_model_class_from_path(self, module_dir: str, module_name: str) -> Tuple[Optional[Type[BaseModel]], Optional[str]]:
         """
         Find the pydantic model class and its file path for a module given its directory path.
+        Uses importlib.util to avoid manipulating sys.path.
 
         Args:
             module_dir: The directory path of the module.
@@ -311,157 +322,136 @@ class LLMTester:
         Returns:
             Tuple of (Pydantic model class or None, file path of the model module or None)
         """
-        # Add the module's directory to sys.path temporarily to allow importing
-        original_sys_path = list(sys.path)
-        # Add the parent directory of the module_dir to sys.path
-        parent_dir = os.path.dirname(module_dir)
-        if parent_dir not in sys.path:
-             sys.path.insert(0, parent_dir)
-             self.logger.debug(f"Added '{parent_dir}' to sys.path")
-
         self.logger.debug(f"Attempting to find model class for module '{module_name}' in directory '{module_dir}'")
 
-        original_sys_path = list(sys.path)
-        # Add the module's directory to sys.path temporarily to allow importing
-        if module_dir not in sys.path:
-             sys.path.insert(0, module_dir)
-             self.logger.debug(f"Added '{module_dir}' to sys.path for module '{module_name}'")
-
-        model_file_path = None
+        model_file_path = os.path.join(module_dir, 'model.py')
         model_class = None
-        module = None # Initialize module to None
 
+        # First check if the model.py file exists
+        if not os.path.exists(model_file_path):
+            self.logger.warning(f"Model file not found at: {model_file_path}")
+            return None, None
+
+        # Use importlib.util to load the module without modifying sys.path
         try:
-            # Try to import the 'model' file within the module directory
-            # This assumes the main model class is defined in a file named 'model.py'
-            model_module_name = 'model' # The expected file name without .py
-            self.logger.debug(f"Attempting to import '{model_module_name}' from directory: {module_dir}")
-            module = importlib.import_module(model_module_name)
-            self.logger.debug(f"Successfully imported module: {model_module_name} from {module_dir}")
+            # Create a unique module name to avoid conflicts with existing modules
+            unique_module_name = f"_dynamic_import_{module_name}_{id(module_dir)}"
+            
+            # Create the spec
+            spec = importlib.util.spec_from_file_location(unique_module_name, model_file_path)
+            if spec is None:
+                self.logger.error(f"Failed to create spec from file: {model_file_path}")
+                return None, model_file_path
+                
+            # Create the module
+            module = importlib.util.module_from_spec(spec)
+            
+            # Execute the module
+            spec.loader.exec_module(module)
+            
+            self.logger.debug(f"Successfully imported module from: {model_file_path}")
 
-            # Get the file path of the imported module
-            model_file_path = inspect.getfile(module)
-            self.logger.debug(f"Model file path: {model_file_path}")
-
-            # Find all BaseModel subclasses within the imported 'model' module
+            # Find all BaseModel subclasses within the imported module
             all_base_model_subclasses = []
+            self.logger.debug(f"Inspecting module: {module.__name__} ({module.__file__}) for BaseModel subclasses.")
             for name, obj in inspect.getmembers(module):
-                # Ensure it's a class, a subclass of BaseModel, and not BaseModel itself
-                if inspect.isclass(obj) and issubclass(obj, BaseModel) and obj != BaseModel:
-                    # Check if the class is defined in the current module file
-                    # This helps exclude imported BaseModel subclasses
-                    if inspect.getmodule(obj) == module:
-                         self.logger.debug(f"Found potential BaseModel subclass in model file: {name}")
-                         all_base_model_subclasses.append((name, obj))
-                    else:
-                         self.logger.debug(f"Skipping imported BaseModel subclass: {name}")
+                if not inspect.isclass(obj):
+                    # self.logger.debug(f"  '{name}' is not a class. Skipping.")
+                    continue
 
+                # Perform checks step-by-step for clarity
+                is_pydantic_model = False
+                try:
+                    # Check if obj is a class and a subclass of BaseModel
+                    if inspect.isclass(obj) and issubclass(obj, BaseModel):
+                        is_pydantic_model = True
+                except TypeError:
+                    # issubclass can raise TypeError if obj is not a class,
+                    # though inspect.isclass should prevent this.
+                    self.logger.debug(f"  TypeError during issubclass check for '{name}'.")
+                    continue # Skip if not a class or related error
+
+                is_not_base_model_itself = obj != BaseModel
+                
+                obj_module_name = getattr(obj, '__module__', 'N/A')
+                current_module_name = module.__name__
+                
+                # Check if the class is defined in the current dynamically loaded module
+                # This helps exclude imported BaseModel subclasses.
+                # We compare the class's __module__ attribute (a string) with the dynamically loaded module's __name__ (a string).
+                is_defined_in_current_module = (getattr(obj, '__module__', None) == module.__name__)
+                
+                # For enhanced debugging, also log what inspect.getmodule finds, as it was the source of the previous issue.
+                obj_actual_module_by_inspect = None
+                try:
+                    obj_actual_module_by_inspect = inspect.getmodule(obj)
+                except Exception: # pragma: no cover
+                    pass # Ignore errors from inspect.getmodule if it fails, primary check is above.
+
+                #self.logger.debug(f"  Checking class '{name}':")
+                #self.logger.debug(f"    - Is Pydantic model (class & subclass of BaseModel)? {is_pydantic_model}")
+                #self.logger.debug(f"    - Is not BaseModel itself? {is_not_base_model_itself}")
+                #self.logger.debug(f"    - obj.__module__ (class's perspective): {obj_module_name}")
+                #self.logger.debug(f"    - current module.__name__ (dynamically loaded module's name): {current_module_name}")
+                #self.logger.debug(f"    - inspect.getmodule(obj) name (inspector's perspective): {getattr(obj_actual_module_by_inspect, '__name__', 'N/A')}")
+                #self.logger.debug(f"    - Is defined in current module (obj.__module__ == module.__name__)? {is_defined_in_current_module}")
+                
+                if is_pydantic_model and is_not_base_model_itself and is_defined_in_current_module:
+                    self.logger.debug(f"    >>>> Adding '{name}' to all_base_model_subclasses.")
+                    all_base_model_subclasses.append((name, obj))
+                else:
+                    self.logger.debug(f"    >>>> Not adding '{name}'. Reasons: pydantic_model={is_pydantic_model}, not_base_model={is_not_base_model_itself}, defined_here={is_defined_in_current_module}")
 
             if not all_base_model_subclasses:
-                 self.logger.warning(f"No BaseModel subclass found in '{model_module_name}.py' within directory {module_dir}")
-                 return None, model_file_path # Return path even if no class found
+                self.logger.warning(f"No BaseModel subclass found in '{model_file_path}' (all_base_model_subclasses list is empty).")
+                return None, model_file_path  # Return path even if no class found
 
-            model_class = None
             # Refined capitalization logic to match common Pydantic model naming convention (singular, capitalized words)
             # Example: 'job_ads' -> 'JobAd', 'product_descriptions' -> 'ProductDescription'
             capitalized_module_name_singular = ''.join(word.capitalize() for word in module_name.split('_'))
             # Simple heuristic: if the capitalized name ends with 's' and is longer than 1 character,
             # try the singular form by removing the 's'. This is a heuristic and might not work for all cases.
             if capitalized_module_name_singular.endswith('s') and len(capitalized_module_name_singular) > 1:
-                 capitalized_module_name_singular = capitalized_module_name_singular[:-1]
-
+                capitalized_module_name_singular = capitalized_module_name_singular[:-1]
 
             # Prioritize finding the main model class:
             # 1. Look for a class whose name exactly matches the capitalized, singular module name heuristic.
             for name, obj in all_base_model_subclasses:
-                 if name == capitalized_module_name_singular:
-                      model_class = obj
-                      self.logger.debug(f"Found main model class by capitalized singular module name heuristic: {name}")
-                      break # Found the exact match, stop searching
+                if name == capitalized_module_name_singular:
+                    model_class = obj
+                    self.logger.debug(f"Found main model class by capitalized singular module name heuristic: {name}")
+                    break  # Found the exact match, stop searching
 
             # 2. If not found, look for a class named "Model".
             if model_class is None:
-                 for name, obj in all_base_model_subclasses:
-                      if name == "Model":
-                           model_class = obj
-                           self.logger.debug(f"Found main model class by name 'Model': {name}")
-                           break # Found "Model", stop searching
+                for name, obj in all_base_model_subclasses:
+                    if name == "Model":
+                        model_class = obj
+                        self.logger.debug(f"Found main model class by name 'Model': {name}")
+                        break  # Found "Model", stop searching
 
             # 3. If still not found and there's only one BaseModel subclass, use that one.
             if model_class is None and len(all_base_model_subclasses) == 1:
-                 model_class = all_base_model_subclasses[0][1]
-                 self.logger.debug(f"Using the single BaseModel subclass found as the main model: {all_base_model_subclasses[0][0]}")
+                model_class = all_base_model_subclasses[0][1]
+                self.logger.debug(f"Using the single BaseModel subclass found as the main model: {all_base_model_subclasses[0][0]}")
 
             # 4. If multiple BaseModel subclasses are found and none match the above criteria,
             #    log a warning and indicate that the main model could not be determined automatically.
             if model_class is None:
-                 class_names = [name for name, _ in all_base_model_subclasses]
-                 self.logger.warning(f"Could not automatically determine the main BaseModel subclass for module '{module_name}' in '{model_module_name}.py'. Found multiple candidates: {', '.join(class_names)}. Please ensure the main model is named '{capitalized_module_name_singular}' or 'Model', or configure it explicitly.")
-                 return None, model_file_path # Indicate failure to find main class
-
+                class_names = [name for name, _ in all_base_model_subclasses]
+                self.logger.warning(f"Could not automatically determine the main BaseModel subclass for module '{module_name}'. Found multiple candidates: {', '.join(class_names)}. Please ensure the main model is named '{capitalized_module_name_singular}' or 'Model', or configure it explicitly.")
+                return None, model_file_path  # Indicate failure to find main class
 
         except (ImportError, AttributeError) as e:
-            self.logger.error(f"Error loading or inspecting 'model.py' from directory {module_dir} for module name {module_name}: {str(e)}")
+            self.logger.error(f"Error loading or inspecting '{model_file_path}' for module name {module_name}: {str(e)}")
             model_class = None
-            model_file_path = None # Ensure path is None if import fails
+            model_file_path = None  # Ensure path is None if import fails
         except Exception as e:
-             self.logger.error(f"Unexpected error finding model class in 'model.py' for module {module_name} at {module_dir}: {str(e)}", exc_info=True)
-             model_class = None
-             model_file_path = None
-        finally:
-            # Restore original sys.path
-            # Create a new list to avoid modifying the list while iterating or removing
-            current_sys_path = list(sys.path)
-            # Remove the parent directory if it was added
-            parent_dir = os.path.dirname(module_dir)
-            if parent_dir in current_sys_path:
-                 try:
-                      sys.path.remove(parent_dir)
-                      self.logger.debug(f"Removed '{parent_dir}' from sys.path")
-                 except ValueError:
-                      # Should not happen if we checked 'in current_sys_path', but defensive
-                      self.logger.debug(f"'{parent_dir}' not found in sys.path during removal attempt.")
+            self.logger.error(f"Unexpected error finding model class for module {module_name} at {model_file_path}: {str(e)}", exc_info=True)
+            model_class = None
+            model_file_path = None
 
-            # Remove the module directory if it was added
-            if module_dir in current_sys_path:
-                 try:
-                      sys.path.remove(module_dir)
-                      self.logger.debug(f"Removed '{module_dir}' from sys.path")
-                 except ValueError:
-                      # Should not happen if we checked 'in current_sys_path', but defensive
-                      self.logger.debug(f"'{module_dir}' not found in sys.path during removal attempt.")
-
-
-            # Ensure original sys.path is fully restored in case of unexpected changes
-            # This check might be overly strict if other parts of the application
-            # legitimately modify sys.path. A more robust approach might involve
-            # a context manager for sys.path modifications. For now, log a warning.
-            # if sys.path != original_sys_path:
-            #      self.logger.warning("sys.path was unexpectedly modified. Restoring to original state.")
-            #      sys.path = original_sys_path
-
-
-            # Clean up imported module to avoid potential conflicts on subsequent runs
-            # We imported 'model', so clean that up
-            model_module_name = 'model'
-            # Check if the module was actually imported before trying to delete
-            if model_module_name in sys.modules:
-                 try:
-                      # Check if the module object is the one we imported from the target directory
-                      # This prevents accidentally deleting a module with the same name imported from elsewhere
-                      imported_module = sys.modules[model_module_name]
-                      if hasattr(imported_module, '__file__') and imported_module.__file__ and os.path.dirname(imported_module.__file__) == module_dir:
-                           del sys.modules[model_module_name]
-                           self.logger.debug(f"Cleaned up module from sys.modules: {model_module_name}")
-                      else:
-                           self.logger.debug(f"Skipping cleanup of module '{model_module_name}' as it was not imported from the target directory.")
-                 except KeyError:
-                      pass # Module might have been removed already or wasn't fully added
-                 except Exception as e:
-                      self.logger.warning(f"Error during cleanup of module '{model_module_name}': {str(e)}")
-
-
-        self.logger.debug(f"Found model_class for module {module_name}: {model_class} (Type: {type(model_class)}) from path {model_file_path})")
+        self.logger.debug(f"Found model_class for module {module_name}: {model_class} (Type: {type(model_class) if model_class else None}) from path {model_file_path})")
         return model_class, model_file_path
 
 
@@ -1114,7 +1104,7 @@ class LLMTester:
         Returns:
             Dictionary of paths to the saved report files
         """
-        output_dir = output_dir or get_test_setting("output_dir", "test_results")
+        output_dir = output_dir or self.config_manager.get_test_setting("output_dir", "test_results")
 
         # Create the output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)

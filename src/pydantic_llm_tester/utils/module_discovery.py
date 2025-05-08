@@ -23,9 +23,11 @@ class ModuleDiscovery:
         Args:
             base_dir: Base directory for the src package
         """
+        from .common import get_package_dir, get_py_models_dir
+        
         self.logger = logging.getLogger(__name__)
-        self.base_dir = base_dir or os.path.dirname(os.path.dirname(__file__))
-        self.models_dir = os.path.join(self.base_dir, "py_models")
+        self.base_dir = base_dir or get_package_dir()
+        self.models_dir = get_py_models_dir()
         
         # Verify py_models directory exists
         if not os.path.exists(self.models_dir):
@@ -71,7 +73,7 @@ class ModuleDiscovery:
         """
         try:
             # Try to import the module
-            module_path = f"src.py_models.{module_name}"
+            module_path = f"pydantic_llm_tester.py_models.{module_name}"
             self.logger.debug(f"Importing module: {module_path}")
             module = importlib.import_module(module_path)
             

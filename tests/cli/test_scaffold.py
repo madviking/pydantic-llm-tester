@@ -5,13 +5,12 @@ import json
 from typer.testing import CliRunner
 
 from pydantic_llm_tester.cli import app # Import the main Typer app
+from pydantic_llm_tester.utils.common import get_package_dir
 
 runner = CliRunner()
 
-# Determine the directory containing the templates relative to the test file
-# Determine the directory containing the templates relative to the project root
-_project_root = os.getcwd() # Get the current working directory (project root)
-_templates_dir = os.path.join(_project_root, "src", "pydantic_llm_tester", "cli", "templates") # Path is src/pydantic_llm_tester/cli/templates relative to root
+# Determine the directory containing the templates relative to the package
+_templates_dir = os.path.join(get_package_dir(), "cli", "templates")
 
 def _read_template(template_name: str) -> str:
     """Reads a template file content."""

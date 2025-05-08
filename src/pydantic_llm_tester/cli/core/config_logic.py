@@ -2,10 +2,10 @@ import os
 import getpass
 import logging
 from typing import Dict, Tuple, Set
-from dotenv import set_key, find_dotenv
+from dotenv import set_key
 
 # Use absolute imports for clarity within the package
-from pydantic_llm_tester.cli.core.common import get_default_dotenv_path, get_llm_tester_dir
+from pydantic_llm_tester.utils.common import get_default_dotenv_path
 from pydantic_llm_tester.cli.core.provider_logic import get_discovered_providers # Use the discovered list
 from pydantic_llm_tester.llms.provider_factory import load_provider_config, reset_caches # To get env_key from config
 
@@ -82,7 +82,7 @@ def check_and_configure_api_keys(prompt_user: bool = True) -> Tuple[bool, Dict[s
     # --- Prompt to Save ---
     print("\nThe following keys were entered:")
     for key in keys_to_set:
-        print(f"  {key}: ***") # Don't print the actual key
+        print(f"  {key}: ***")  # Don't print the actual key
 
     try:
         save_confirm = input(f"Save these keys to '{dotenv_path}'? (y/N): ").strip().lower()
@@ -90,46 +90,65 @@ def check_and_configure_api_keys(prompt_user: bool = True) -> Tuple[bool, Dict[s
             # Ensure the directory exists
             dotenv_dir = os.path.dirname(dotenv_path)
             if not os.path.exists(dotenv_dir):
-                 logger.info(f"Creating directory for .env file: {dotenv_dir}")
-                 os.makedirs(dotenv_dir)
+                logger.info(f"Creating directory for .env file: {dotenv_dir}")
+                os.makedirs(dotenv_dir)
             # Ensure the file exists, even if empty, for set_key
+            # set_key might create the file, but explicitly creating it first
+            # is safer and ensures the directory exists beforehand.
             if not os.path.exists(dotenv_path):
-                 logger.info(f"Creating .env file: {dotenv_path}")
-                 with open(dotenv_path, 'w') as f:
-                     pass # Create empty file
+                logger.info(f"Creating .env file: {dotenv_path}")
+                try:
+                    with open(dotenv_path, 'w') as f:
+                        pass  # Create empty file
+                except IOError as e:
+                    logger.error(f"Failed to create .env file at {dotenv_path}: {e}")
+                    print(f"Error creating .env file: {e}")
+                    return False, {}  # Indicate failure
 
-            # Find the .env file again to be sure after potential creation
-            # Use find_dotenv relative to the src directory
-            llm_tester_dir = get_llm_tester_dir()
-            found_dotenv_path = find_dotenv(filename=os.path.basename(dotenv_path), raise_error_if_not_found=False, usecwd=False, project_root=llm_tester_dir)
+            # Use the predefined dotenv_path directly obtained from get_default_dotenv_path()
+            target_dotenv_file = dotenv_path
 
-            if not found_dotenv_path or not os.path.exists(found_dotenv_path):
-                 # Fallback if find_dotenv fails strangely after creation
-                 logger.warning(f"find_dotenv failed to locate {dotenv_path} after creation attempt, using direct path.")
-                 found_dotenv_path = dotenv_path
-
-            logger.info(f"Saving keys to: {found_dotenv_path}")
+            logger.info(f"Saving keys to: {target_dotenv_file}")
             saved_count = 0
-            for key, value in keys_to_set.items():
-                # Use quote_mode='never' to avoid potential issues with quotes in keys/values
-                success = set_key(found_dotenv_path, key, value, quote_mode='never')
-                if success:
-                    logger.info(f"Successfully saved {key} to {found_dotenv_path}")
-                    saved_count += 1
-                else:
-                    # set_key doesn't reliably return False on failure, check file content?
-                    # For now, log potential failure
-                    logger.error(f"Attempted to save {key} to {found_dotenv_path}, but set_key returned {success}. Verify file content.")
-                    # Assume success for now unless specific errors are caught
+            try:
+                for key, value in keys_to_set.items():
+                    # Use quote_mode='never' to avoid potential issues with quotes in keys/values
+                    # set_key modifies the file directly.
+                    success = set_key(target_dotenv_file, key, value, quote_mode='never')
+                    if success:
+                        logger.info(f"Successfully saved {key} to {target_dotenv_file}")
+                        saved_count += 1
+                    else:
+                        # Note: python-dotenv set_key's return value can be unreliable.
+                        # A common pattern is to just assume success if no exception
+                        # was raised by set_key itself.
+                        logger.warning(
+                            f"set_key for {key} returned {success}. Verify file content: {target_dotenv_file}")
 
-            # Since set_key's return value is unreliable, we'll assume success if no exceptions
-            print(f"Attempted to save {len(keys_to_set)} key(s) to {found_dotenv_path}.")
-            print("Note: You might need to restart your terminal session or IDE for the changes to take full effect.")
-            return True, keys_to_set # Return success and the keys that were set
+                print(f"Attempted to save {len(keys_to_set)} key(s) to {target_dotenv_file}.")
+                print(
+                    "Note: You might need to restart your terminal session or IDE for the changes to take full effect.")
+                return True, keys_to_set  # Return success and the keys that were set
+
+            except Exception as e:
+                logger.error(f"An error occurred while using set_key: {e}", exc_info=True)
+                print(f"An error occurred while saving keys: {e}")
+                return False, {}
+
 
         else:
             print("Keys not saved.")
-            return True, {} # Success (user chose not to save)
+            return True, {}  # Success (user chose not to save)
+
+    except (EOFError, KeyboardInterrupt):
+        print("\nOperation cancelled by user.")
+        return False, {}
+    except Exception as e:
+        # Catching other potential exceptions during the save confirmation prompt etc.
+        logger.error(f"An unexpected error occurred during save confirmation: {e}", exc_info=True)
+        print(f"An unexpected error occurred: {e}")
+        return False, {}
+
 
     except (EOFError, KeyboardInterrupt):
         print("\nOperation cancelled by user.")

@@ -46,6 +46,7 @@ def run_tests(
         providers=providers,
         model_overrides=model_overrides, # Keep model_overrides for potential override logic within run_test
         llm_models=specified_llm_models_list, # Pass the list of specified models for filtering
+        py_models=py_models, # Pass the py_models argument
         test_dir=test_dir,
         output_file=output_file,
         output_json=json_output, # Corrected parameter name

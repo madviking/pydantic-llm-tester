@@ -3,8 +3,8 @@ import logging
 from typing import List, Set, Dict, Tuple # Added Dict and Tuple
 
 # Use absolute imports for clarity within the package
-from pydantic_llm_tester.cli.core.common import (
-    get_llm_tester_dir,
+from pydantic_llm_tester.utils.common import (
+    get_package_dir,
     get_enabled_providers_path,
     read_json_file,
     write_json_file,
@@ -20,7 +20,7 @@ def get_discovered_providers() -> List[str]:
     Discovers all potential provider subdirectories in src/llms/.
     Does not check for valid implementation, just directory structure.
     """
-    llms_dir = os.path.join(get_llm_tester_dir(), 'llms')
+    llms_dir = os.path.join(get_package_dir(), 'llms')
     discovered = []
     try:
         if not os.path.isdir(llms_dir):

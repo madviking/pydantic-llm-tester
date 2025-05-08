@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Any, Optional, Tuple
 
 # Use absolute imports for clarity within the package
-from pydantic_llm_tester.cli.core.common import (
+from pydantic_llm_tester.utils.common import (
     get_provider_config_path,
     read_json_file,
     write_json_file
