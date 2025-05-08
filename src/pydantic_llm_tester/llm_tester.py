@@ -353,19 +353,57 @@ class LLMTester:
 
             # Find all BaseModel subclasses within the imported module
             all_base_model_subclasses = []
+            self.logger.debug(f"Inspecting module: {module.__name__} ({module.__file__}) for BaseModel subclasses.")
             for name, obj in inspect.getmembers(module):
-                # Ensure it's a class, a subclass of BaseModel, and not BaseModel itself
-                if inspect.isclass(obj) and issubclass(obj, BaseModel) and obj != BaseModel:
-                    # Check if the class is defined in the current module
-                    # This helps exclude imported BaseModel subclasses
-                    if inspect.getmodule(obj) == module:
-                        self.logger.debug(f"Found potential BaseModel subclass in model file: {name}")
-                        all_base_model_subclasses.append((name, obj))
-                    else:
-                        self.logger.debug(f"Skipping imported BaseModel subclass: {name}")
+                if not inspect.isclass(obj):
+                    # self.logger.debug(f"  '{name}' is not a class. Skipping.")
+                    continue
+
+                # Perform checks step-by-step for clarity
+                is_pydantic_model = False
+                try:
+                    # Check if obj is a class and a subclass of BaseModel
+                    if inspect.isclass(obj) and issubclass(obj, BaseModel):
+                        is_pydantic_model = True
+                except TypeError:
+                    # issubclass can raise TypeError if obj is not a class,
+                    # though inspect.isclass should prevent this.
+                    self.logger.debug(f"  TypeError during issubclass check for '{name}'.")
+                    continue # Skip if not a class or related error
+
+                is_not_base_model_itself = obj != BaseModel
+                
+                obj_module_name = getattr(obj, '__module__', 'N/A')
+                current_module_name = module.__name__
+                
+                # Check if the class is defined in the current dynamically loaded module
+                # This helps exclude imported BaseModel subclasses.
+                # We compare the class's __module__ attribute (a string) with the dynamically loaded module's __name__ (a string).
+                is_defined_in_current_module = (getattr(obj, '__module__', None) == module.__name__)
+                
+                # For enhanced debugging, also log what inspect.getmodule finds, as it was the source of the previous issue.
+                obj_actual_module_by_inspect = None
+                try:
+                    obj_actual_module_by_inspect = inspect.getmodule(obj)
+                except Exception: # pragma: no cover
+                    pass # Ignore errors from inspect.getmodule if it fails, primary check is above.
+
+                #self.logger.debug(f"  Checking class '{name}':")
+                #self.logger.debug(f"    - Is Pydantic model (class & subclass of BaseModel)? {is_pydantic_model}")
+                #self.logger.debug(f"    - Is not BaseModel itself? {is_not_base_model_itself}")
+                #self.logger.debug(f"    - obj.__module__ (class's perspective): {obj_module_name}")
+                #self.logger.debug(f"    - current module.__name__ (dynamically loaded module's name): {current_module_name}")
+                #self.logger.debug(f"    - inspect.getmodule(obj) name (inspector's perspective): {getattr(obj_actual_module_by_inspect, '__name__', 'N/A')}")
+                #self.logger.debug(f"    - Is defined in current module (obj.__module__ == module.__name__)? {is_defined_in_current_module}")
+                
+                if is_pydantic_model and is_not_base_model_itself and is_defined_in_current_module:
+                    self.logger.debug(f"    >>>> Adding '{name}' to all_base_model_subclasses.")
+                    all_base_model_subclasses.append((name, obj))
+                else:
+                    self.logger.debug(f"    >>>> Not adding '{name}'. Reasons: pydantic_model={is_pydantic_model}, not_base_model={is_not_base_model_itself}, defined_here={is_defined_in_current_module}")
 
             if not all_base_model_subclasses:
-                self.logger.warning(f"No BaseModel subclass found in '{model_file_path}'")
+                self.logger.warning(f"No BaseModel subclass found in '{model_file_path}' (all_base_model_subclasses list is empty).")
                 return None, model_file_path  # Return path even if no class found
 
             # Refined capitalization logic to match common Pydantic model naming convention (singular, capitalized words)

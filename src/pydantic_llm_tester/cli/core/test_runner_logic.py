@@ -126,6 +126,7 @@ def run_test_suite(
     output_file: Optional[str] = None,
     output_json: bool = False,
     optimize: bool = False,
+    py_models: Optional[List[str]] = None,
     test_filter: Optional[str] = None # TODO: Implement filtering
 ) -> bool:
     """
@@ -216,10 +217,10 @@ def run_test_suite(
         # Run tests
         if optimize:
             print("Running optimized tests...")
-            results = tester.run_optimized_tests(model_overrides=model_overrides)
+            results = tester.run_optimized_tests(model_overrides=model_overrides, modules=py_models) # Pass py_models
         else:
             print("Running tests...")
-            results = tester.run_tests(model_overrides=model_overrides)
+            results = tester.run_tests(model_overrides=model_overrides, modules=py_models) # Pass py_models
 
         # Generate output
         if output_json:
@@ -235,6 +236,10 @@ def run_test_suite(
 
                 # Skip if already processed or is the test module
                 if module_name in modules_processed or module_name == 'test':
+                    continue
+
+                if py_models and module_name not in py_models:
+                    logger.info(f"Module '{module_name}' not in specified py_models. Skipping.")
                     continue
 
                 modules_processed.add(module_name)
