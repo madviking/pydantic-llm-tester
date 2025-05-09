@@ -81,9 +81,9 @@ source venv/bin/activate
 
 # Configure API Keys (Interactive)
 llm-tester configure keys
-# This will prompt for missing keys found in provider configs and offer to save them to src/.env
+# This will prompt for missing keys found in provider configs and offer to save them to the default .env path (e.g., src/pydantic_llm_tester/.env or project root).
 ```
-Make sure your API keys are set in `llm_tester/.env` or as environment variables. The `configure keys` command helps with this.
+Make sure your API keys are set in the `.env` file (at the default location or specified via `--env`) or as environment variables. The `llm-tester configure keys` command helps manage this.
 
 ## Usage
 
@@ -151,7 +151,9 @@ Key CLI commands:
 You can integrate LLM Tester into your Python applications. See the [documentation](docs/guides/USING_THE_API.md) for detailed API usage.
 
 ```python
-from src import LLMTester
+from pydantic_llm_tester import LLMTester # For using the installed package
+# Or, if running from source for development:
+# from pydantic_llm_tester.llm_tester import LLMTester
 
 # Example: Using LLM Tester as a bridge for structured data extraction
 # Initialize tester with providers and your custom py_models directory
@@ -241,166 +243,6 @@ LLM Tester uses a pluggable provider system. See the [documentation](docs/archit
 ## Adding New Models
 
 You can easily add new extraction models using the `llm-tester scaffold model` command or by following the manual steps. See the [documentation](docs/guides/models/ADDING_MODELS.md) for details.
-
-## Configuration
-
-Refer to the [Configuration Reference](docs/guides/configuration/CONFIG_REFERENCE.md) for details on configuring LLM Tester, including API keys and provider settings.
-
-The primary way to run tests and manage the tool is via the `llm-tester` command-line interface (after installation via `pip install -e .`).
-
-```bash
-# Make sure the virtual environment is activated
-source venv/bin/activate
-
-# Show help and available commands
-llm-tester --help
-
-# --- Running Tests ---
-
-# Run tests using all enabled providers and their default py_models
-llm-tester run
-
-# Run tests for specific providers
-llm-tester run --providers openai anthropic
-
-# Run tests using specific LLM py_models for providers
-llm-tester run --providers openai openrouter --py_models openai:gpt-4o --py_models openrouter/google/gemini-pro-1.5
-
-# Run tests and save report to a file
-llm-tester run --output my_report.md
-
-# Run tests with prompt optimization
-llm-tester run --optimize
-
-# Output test results as JSON instead of Markdown
-llm-tester run --json
-
-# Filter tests by name (e.g., only 'simple' tests in 'job_ads') - Note: Filtering not fully implemented yet
-# llm-tester run --filter job_ads/simple
-
-# Increase verbosity for debugging
-llm-tester run -vv
-
-# --- Listing Information ---
-
-# List available extraction schemas (test modules)
-llm-tester schemas list
-
-# List available test cases and configured providers/py_models without running tests
-llm-tester list
-
-# List specific providers and their py_models for the list command
-llm-tester list --providers openai --py_models openai:gpt-4o
-
-# --- Configuration & Management ---
-
-# Configure API Keys (Interactive Prompt)
-llm-tester configure keys
-
-# List all discoverable providers and their enabled/disabled status
-llm-tester providers list
-
-# Enable a provider (adds to or creates enabled_providers.json)
-llm-tester providers enable openrouter
-
-# Disable a provider (removes from enabled_providers.json)
-llm-tester providers disable google
-
-# List LLM py_models within a specific provider's config and their status
-llm-tester providers manage list openrouter
-
-# Enable a specific LLM model within a provider's config
-llm-tester providers manage enable openrouter anthropic/claude-3-haiku
-
-# Disable a specific LLM model within a provider's config
-llm-tester providers manage disable openai gpt-3.5-turbo
-
-# Update LLM Model Info (e.g., pricing/limits) from OpenRouter API
-llm-tester providers manage update openrouter
-
-# Get LLM-assisted model recommendations for a task (Interactive Prompt)
-llm-tester recommend-model
-
-# --- Scaffolding New Providers and Models ---
-
-# Scaffold a new provider interactively
-llm-tester scaffold provider --interactive
-
-# Scaffold a new provider non-interactively
-llm-tester scaffold provider <provider_name>
-
-# Scaffold a new model interactively
-llm-tester scaffold model --interactive
-
-# Scaffold a new model non-interactively
-llm-tester scaffold model <model_name>
-
-# --- Interactive Mode ---
-
-# Launch the interactive menu
-llm-tester interactive
-```
-
-## Usage
-
-```python
-from src import LLMTester
-
-# Initialize tester with providers
-tester = LLMTester(providers=["openai", "anthropic", "google", "mistral"])
-
-# Run tests
-results = tester.run_tests()
-
-# Generate report
-report = tester.generate_report(results)
-print(report)
-
-# Run optimized tests
-optimized_results = tester.run_optimized_tests()
-optimized_report = tester.generate_report(optimized_results, optimized=True)
-```
-
-## Provider System
-
-LLM Tester uses a pluggable provider system that allows easy integration with various LLM APIs. It supports native integrations, PydanticAI, and mock providers.
-
-For architectural details, see the [Provider System Architecture](docs/architecture/PROVIDER_SYSTEM.md) documentation.
-
-## Adding New Providers
-
-You can add new LLM providers by using the `llm-tester scaffold provider` command or by manually creating the necessary files.
-
-See the [Adding Providers](docs/guides/providers/ADDING_PROVIDERS.md) guide for detailed instructions.
-
-## Adding New Models
-
-You can add new extraction models (Pydantic schemas with test cases) by using the `llm-tester scaffold model` command or by manually creating the necessary files.
-
-See the [Adding Models](docs/guides/models/ADDING_MODELS.md) guide for detailed instructions.
-
-## Configuration
-
-Refer to the [Configuration Reference](docs/guides/configuration/CONFIG_REFERENCE.md) for details on configuring LLM Tester, including API keys, provider settings, and enabling/disabling providers and models.
-
-## Testing
-
-LLM Tester includes a test suite using `pytest` to ensure the framework's functionality and stability.
-
-To run the tests:
-
-```bash
-# Make sure your virtual environment is activated
-source venv/bin/activate
-
-# Run all tests
-pytest
-
-# Run tests for a specific module (e.g., CLI commands)
-pytest tests/cli/
-```
-
-For more details on testing, see the [documentation](docs/README.md). (Note: A dedicated testing guide is planned).
 
 ## General implementation notes
 This package is written initially using Claude Code, using only minimum manual intervention and edits. Further improvements are made with Cline, using Gemini 2.5 and other models. LLM generated code is reviewed and tested by the author and all of the architectural decisions are mine.

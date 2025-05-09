@@ -6,11 +6,13 @@ This document provides a comprehensive reference for configuring the LLM Tester 
 
 LLM Tester uses several configuration files:
 
-1. **Provider Enablement**: `enabled_providers.json` (Project Root)
-2. **Provider Configurations**: `llm_tester/llms/<provider_name>/config.json`
-3. **Environment Variables**: `llm_tester/.env` (or system environment)
+1. **Provider Configurations**: `src/pydantic_llm_tester/llms/<provider_name>/config.json` - Define provider-specific settings and their LLM models.
+2. **Environment Variables**: Typically in a `.env` file (e.g., at project root or `src/pydantic_llm_tester/.env`, path can be specified via CLI `--env` option). Stores API keys.
+3. **`pyllm_config.json`** (Optional, Project Root): Global test settings, default paths for `py_models`, custom `py_model` module definitions.
+4. **`enabled_providers.json`** (Optional, Project Root): Explicitly lists enabled providers. If absent, all discovered providers are active.
+5. **`external_providers.json`** (Optional, Project Root): Lists paths to external provider directories.
 
-*(Note: Older global `config.json` and `models_pricing.json` files may exist but are likely deprecated or unused by the current core logic.)*
+*(Note: Older global `config.json` and `models_pricing.json` files at the project root are generally deprecated or unused by the current core logic, which favors the more structured configuration approach above.)*
 
 ### Provider Enablement (`enabled_providers.json`)
 
@@ -24,11 +26,11 @@ This optional file, located in the project root directory (where `README.md` is)
 ]
 ```
 
-- If this file **does not exist**, all discovered providers (in `llm_tester/llms/`) are considered enabled.
+- If this file **does not exist**, all discovered providers (in `src/pydantic_llm_tester/llms/` and external paths) are considered enabled.
 - If this file **exists**, only the providers listed in the array will be loaded and used by commands like `run` or `recommend-model`.
 - This file is managed by the `llm-tester providers enable <name>` and `llm-tester providers disable <name>` CLI commands.
 
-### Provider Configuration (`llm_tester/llms/provider_name/config.json`)
+### Provider Configuration (`src/pydantic_llm_tester/llms/<provider_name>/config.json`)
 
 Each provider has its own configuration file:
 
@@ -71,9 +73,9 @@ Model settings:
 - `cost_input`/`cost_output`: (float) Cost per 1M tokens (in USD). *Note: For OpenRouter, these values are dynamically updated via `llm-tester providers manage update openrouter`.*
 - `max_input_tokens`/`max_output_tokens`: (integer) Token limits. *Note: For OpenRouter, these values are dynamically updated via `llm-tester providers manage update openrouter`.*
 
-## Environment Variables (`llm_tester/.env`)
+## Environment Variables (`.env` file)
 
-LLM Tester uses environment variables primarily for API keys. These are typically stored in a `.env` file located within the `llm_tester` directory (`llm_tester/.env`). The `llm-tester configure keys` command helps manage this file.
+LLM Tester uses environment variables primarily for API keys. These are typically stored in a `.env` file. The default location for this file is determined by `src/pydantic_llm_tester/utils/common.py:get_default_dotenv_path()` (often `src/pydantic_llm_tester/.env` or the project root if run from there). The `llm-tester configure keys` command helps manage this file. An explicit path to a `.env` file can also be provided via the `--env` global CLI option.
 
 Required keys depend on the providers you intend to use:
 
@@ -149,13 +151,13 @@ These apply to all commands:
    - Usage: `llm-tester schemas <subcommand> [args]`
    - Description: Manage Extraction Schemas (Pydantic models and test modules).
    - Subcommands:
-     - `list`: Lists all discoverable extraction schemas based on directories in `llm_tester/models/`.
+     - `list`: Lists all discoverable extraction schemas (`py_models`) based on directories in `src/pydantic_llm_tester/py_models/` and custom paths.
 
 **5. `configure`**
    - Usage: `llm-tester configure <subcommand>`
    - Description: Configure llm-tester settings.
    - Subcommands:
-     - `keys`: Interactively prompts for missing API keys (based on provider configs) and offers to save them to `llm_tester/.env`.
+     - `keys`: Interactively prompts for missing API keys (based on provider configs) and offers to save them to the default `.env` file path.
 
 **6. `recommend-model`**
    - Usage: `llm-tester recommend-model`
@@ -180,8 +182,8 @@ Configuration can be edited in several ways:
 
 1. **Provider Enablement**: Use `llm-tester providers enable <name>` and `llm-tester providers disable <name>`.
 2. **LLM Model Enablement**: Use `llm-tester providers manage enable <provider> <model>` and `llm-tester providers manage disable <provider> <model>`.
-3. **API Keys**: Use the `llm-tester configure keys` command or manually edit `llm_tester/.env`.
-4. **Provider Settings**: Manually edit the specific `llm_tester/llms/<provider_name>/config.json` file for things like the default system prompt or manually adding/removing models (though `llm-tester providers manage update openrouter` is preferred for OpenRouter).
+3. **API Keys**: Use the `llm-tester configure keys` command or manually edit the `.env` file.
+4. **Provider Settings**: Manually edit the specific `src/pydantic_llm_tester/llms/<provider_name>/config.json` file for things like the default system prompt or manually adding/removing models (though `llm-tester providers manage update openrouter` is preferred for OpenRouter).
 5. **Directly edit files**: Modify the JSON files (`enabled_providers.json`, provider `config.json`) directly if needed.
 
 ## Provider Verification
@@ -201,7 +203,7 @@ llm-tester configure keys
 
 ## Configuration Best Practices
 
-1. **API Keys**: Use `llm-tester configure keys` or manage `llm_tester/.env` carefully. Keep this file out of version control (it should be in `.gitignore`).
+1. **API Keys**: Use `llm-tester configure keys` or manage your `.env` file carefully. Keep this file out of version control (it should be in `.gitignore`).
 2. **Provider Enablement**: Use `enabled_providers.json` (via `llm-tester providers enable/disable`) to control which providers are active, especially if you don't have keys for all of them.
 3. **LLM Model Enablement**: Use `llm-tester providers manage enable/disable` to fine-tune which specific LLM models within a provider are used for testing or recommendations.
 4. **OpenRouter Updates**: Regularly use `llm-tester providers manage update openrouter` to keep pricing and token limits accurate.
@@ -213,4 +215,4 @@ The `test_settings` section in `pyllm_config.json` controls various aspects of t
 - `output_dir`: (string) The directory where test reports and results are saved (defaults to `test_results`).
 - `save_optimized_prompts`: (boolean) Whether to save optimized prompts generated during optimization runs (defaults to `true`).
 - `default_modules`: (array of strings) List of default py model modules to run if none are specified.
-- `py_models_path`: (string) The default directory where py_models are expected to be found or scaffolded (defaults to `./py_models`).
+- `py_models_path`: (string) The default directory where `py_models` (extraction schemas and their tests) are expected to be found or scaffolded (defaults to `./py_models` relative to the current working directory, or can be an absolute path). This path is used by commands like `scaffold model` and for discovering `py_models` if no `--test-dir` is specified.

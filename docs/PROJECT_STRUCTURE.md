@@ -5,152 +5,145 @@ This document describes the structure of the LLM Tester project, explaining the 
 ## Directory Structure
 
 ```
-llm_tester/
+pydantic-llm-tester/ (Project Root)
 │
-├── __init__.py               # Package initialization
-├── cli.py                    # Command-line interface
-├── llm_tester.py             # Main LLM Tester class
-│
-├── llms/                     # LLM Provider implementations
-│   ├── __init__.py           # Package initialization
-│   ├── base.py               # Base LLM provider class
-│   ├── llm_registry.py       # Registry for LLM providers
-│   ├── provider_factory.py   # Factory for creating provider instances
-│   │
-│   ├── anthropic/            # Anthropic provider implementation
-│   │   ├── __init__.py
-│   │   ├── config.json       # Provider configuration
-│   │   └── provider.py       # Provider implementation
-│   │
-│   ├── google/               # Google provider implementation
-│   │   ├── __init__.py
-│   │   ├── config.json
-│   │   └── provider.py
-│   │
-│   ├── mistral/              # Mistral provider implementation
-│   │   ├── __init__.py
-│   │   ├── config.json
-│   │   └── provider.py
-│   │
-│   ├── mock/                 # Mock provider for testing
-│   │   ├── __init__.py
-│   │   ├── config.json
-│   │   └── provider.py
-│   │
-│   ├── openai/               # OpenAI provider implementation
-│   │   ├── __init__.py
-│   │   ├── config.json
-│   │   └── provider.py
-│   │
-│   └── pydantic_ai/          # PydanticAI provider implementation
-│       ├── __init__.py
-│       ├── config.json
-│       └── provider.py
-│
-├── models/                   # Data models for extraction tasks
-│   ├── __init__.py
-│   │
-│   ├── job_ads/              # Job advertisement extraction
-│   │   ├── __init__.py
-│   │   ├── model.py          # Pydantic model
-│   │   │
-│   │   └── tests/            # Test cases
-│   │       ├── __init__.py
-│   │       ├── expected/     # Expected JSON outputs
-│   │       ├── prompts/      # Prompt templates 
-│   │       │   └── optimized/ # Optimized prompts
-│   │       └── sources/      # Source text files
-│   │
-│   └── product_descriptions/ # Product description extraction
-│       ├── __init__.py
-│       ├── model.py
+├── .github/                  # GitHub Actions workflows
+├── docs/                     # Project documentation
+├── src/
+│   └── pydantic_llm_tester/  # Main package
+│       ├── __init__.py       # Package initialization
+│       ├── llm_tester.py     # Main LLMTester class
 │       │
-│       └── tests/
-│           ├── __init__.py
-│           ├── expected/
-│           ├── prompts/
-│           │   └── optimized/
-│           └── sources/
+│       ├── cli/              # Command-Line Interface (Typer)
+│       │   ├── __init__.py
+│       │   ├── main.py       # CLI entry point (llm-tester script)
+│       │   ├── commands/     # CLI command modules (e.g., run, providers, configure)
+│       │   │   └── ...
+│       │   ├── core/         # Core logic for CLI commands
+│       │   │   └── ...
+│       │   └── templates/    # Templates for scaffolding
+│       │       └── ...
+│       │
+│       ├── llms/             # LLM Provider implementations
+│       │   ├── __init__.py
+│       │   ├── base.py       # BaseLLM abstract base class
+│       │   ├── llm_registry.py # Registry for LLM providers
+│       │   ├── provider_factory.py # Factory for provider instances
+│       │   │
+│       │   ├── anthropic/    # Anthropic provider
+│       │   │   ├── __init__.py
+│       │   │   ├── config.json
+│       │   │   └── provider.py
+│       │   └── ...           # Other providers (google, mistral, mock, openai, openrouter, pydantic_ai)
+│       │
+│       ├── py_models/        # Pydantic models for extraction tasks & test cases
+│       │   ├── __init__.py
+│       │   │
+│       │   ├── job_ads/      # Example: Job advertisement extraction
+│       │   │   ├── __init__.py
+│       │   │   ├── model.py  # Pydantic model, get_test_cases(), reporting methods
+│       │   │   ├── tests/
+│       │   │   │   ├── sources/
+│       │   │   │   ├── prompts/
+│       │   │   │   │   └── optimized/
+│       │   │   │   └── expected/
+│       │   │   └── reports/  # Module-specific reports
+│       │   └── ...           # Other py_models (e.g., product_descriptions)
+│       │
+│       ├── utils/            # Utility modules
+│       │   ├── __init__.py
+│       │   ├── config_manager.py
+│       │   ├── cost_manager.py
+│       │   ├── provider_manager.py
+│       │   ├── report_generator.py
+│       │   └── ...           # Other utilities (common, module_discovery, prompt_optimizer)
+│       │
+│       └── .env.example      # Example environment file for API keys
 │
-├── runner/                   # Interactive runner
+├── tests/                    # Pytest unit and integration tests
 │   ├── __init__.py
-│   ├── config.py             # Configuration utilities
-│   ├── main.py               # Main entry point
-│   ├── menu_handlers.py      # Menu option handlers
-│   ├── non_interactive.py    # Non-interactive mode
-│   └── ui.py                 # UI utilities
+│   ├── conftest.py           # Pytest fixtures
+│   ├── test_*.py             # Individual test files
+│   └── cli/                  # CLI-specific tests
+│       └── ...
 │
-├── tests/                    # Unit and integration tests
-│   ├── __init__.py
-│   └── cases/                # Test cases
-│
-└── utils/                    # Utility modules
-    ├── __init__.py
-    ├── config_manager.py     # Configuration management
-    ├── cost_manager.py       # Token usage and cost tracking
-    ├── mock_responses.py     # Mock response generation
-    ├── module_discovery.py   # Model module discovery
-    ├── prompt_optimizer.py   # Prompt optimization
-    ├── provider_manager.py   # Provider connection management
-    ├── reload_providers.py   # Provider reloading utility
-    └── report_generator.py   # Report generation
+├── .gitignore
+├── LICENSE
+├── README.md                 # Main project README
+├── pyproject.toml            # Build system, dependencies, project metadata
+├── setup.py                  # Minimal setup script (defers to pyproject.toml)
+├── requirements.txt          # List of dependencies
+├── pyllm_config.json         # Optional: Global test settings, py_models paths
+├── enabled_providers.json    # Optional: Explicitly enabled providers
+└── external_providers.json   # Optional: Paths to external providers
 ```
 
-## Root Directory
+## Root Directory Files (Key Files)
 
-- `runner.py` - Main entry script for running the tool
-- `verify_providers.py` - Script to verify provider setup
-- `config.json` - Global configuration file
-- `models_pricing.json` - Model pricing information
-- `install.sh` - Installation script
+- `README.md`: High-level overview, installation, basic usage.
+- `pyproject.toml`: Defines dependencies, build process, and the `llm-tester` script entry point. Core for understanding package structure and build.
+- `src/`: Contains the main source code.
+    - `src/pydantic_llm_tester/`: The actual Python package.
+- `tests/`: Contains all automated tests.
+- `docs/`: Contains all project documentation.
+- `pyllm_config.json` (optional): Global configuration for test settings, output directories, default `py_models` paths.
+- `enabled_providers.json` (optional): If present, lists active providers. Managed by `llm-tester providers enable/disable`.
+- `external_providers.json` (optional): If present, lists paths to external provider directories.
+- `.env` (typically in `src/pydantic_llm_tester/` or project root, not versioned): Stores API keys.
+
+(Note: Some older files like `runner.py`, `verify_providers.py`, root `config.json`, `models_pricing.json`, `install.sh` mentioned in previous versions of this document might be deprecated or refactored into the current CLI and configuration system.)
 
 ## Key Components
 
 ### Provider System
 
-The provider system is located in the `llms/` directory and consists of:
+Located in `src/pydantic_llm_tester/llms/`, it consists of:
+- **Base Provider Class** (`base.py`): `BaseLLM` defines the interface for all providers.
+- **Provider Registry** (`llm_registry.py`): Manages provider instances.
+- **Provider Factory** (`provider_factory.py`): Creates provider instances.
+- **Provider Implementations**: Each subdirectory (e.g., `openai/`, `anthropic/`) contains a specific provider's `provider.py` and `config.json`.
 
-- **Base Provider Class** (`base.py`): Defines the interface for all providers
-- **Provider Registry** (`llm_registry.py`): Manages provider instances
-- **Provider Factory** (`provider_factory.py`): Creates provider instances
-- **Provider Implementations**: Each subdirectory contains a provider implementation
+### Py_Model System (Extraction Schemas)
 
-### Model System
+Located in `src/pydantic_llm_tester/py_models/`, it consists of:
+- **Pydantic Model Classes** (`<model_name>/model.py`): Define the data structure for extraction, discover test cases (`get_test_cases()`), and handle module-specific reporting.
+- **Test Cases**: Each `py_model` includes a `tests/` subdirectory with `sources/`, `prompts/`, and `expected/` data.
 
-The model system is located in the `models/` directory and consists of:
+### CLI System (Command-Line Interface)
 
-- **Model Classes**: Each subdirectory contains a Pydantic model for a specific extraction task
-- **Test Cases**: Each model includes test cases with sources, prompts, and expected outputs
-
-### Runner System
-
-The runner system is located in the `runner/` directory and provides:
-
-- **Interactive Mode**: Menu-driven interface for configuring and running tests
-- **Non-Interactive Mode**: Command-line interface for automated testing
-- **Configuration Management**: Utilities for managing configuration
+Located in `src/pydantic_llm_tester/cli/`, it provides:
+- **Main Entry Point** (`main.py`): Defines the `llm-tester` command using Typer.
+- **Command Modules** (`commands/`): Implement various subcommands (e.g., `run`, `providers`, `configure`, `scaffold`).
+- **Interactive Mode**: Launched via `llm-tester interactive`.
 
 ### Utility Modules
 
-Utility modules in the `utils/` directory provide supporting functionality:
+Located in `src/pydantic_llm_tester/utils/`, these provide supporting functionality:
 
-- **Cost Management**: Tracking token usage and costs
-- **Prompt Optimization**: Optimizing prompts based on results
-- **Report Generation**: Creating test reports
-- **Provider Management**: Managing connections to providers
+- **Configuration Management** (`config_manager.py`): Handles loading and accessing various configuration files.
+- **Cost Management** (`cost_manager.py`): Tracks token usage and costs.
+- **Prompt Optimization** (`prompt_optimizer.py`): Logic for optimizing prompts.
+- **Report Generation** (`report_generator.py`): Creates test reports.
+- **Provider Management** (`provider_manager.py`): High-level interaction with providers.
+- **Path Management**: Centralized path resolution is handled within `utils/common.py` and `cli/commands/paths.py`.
 
-## Flow of Execution
+## Flow of Execution (CLI Example: `llm-tester run`)
 
-1. User runs `runner.py`
-2. Runner loads configuration and initializes the LLM Tester
-3. LLM Tester discovers test cases and providers
-4. User configures providers and models
-5. LLM Tester runs tests using the configured providers
-6. Results are collected and analyzed
-7. Reports are generated and displayed
+1. User executes `llm-tester run [options]`.
+2. `src/pydantic_llm_tester/cli/main.py` processes global options and routes to the `run` command.
+3. The `run` command logic (e.g., in `src/pydantic_llm_tester/cli/commands/run.py`) initializes an `LLMTester` instance from `src/pydantic_llm_tester/llm_tester.py`.
+4. `LLMTester` loads configurations (API keys from `.env`, provider configs, `pyllm_config.json`).
+5. `LLMTester.discover_test_cases()` scans `py_models/` directories (built-in and custom) to find `model.py` files and their associated test cases.
+6. For each test case and each enabled provider/model:
+    a. The `LLMTester` uses `ProviderManager` to get responses from the LLM.
+    b. Responses are validated against the Pydantic schema defined in the `py_model`.
+    c. Accuracy is calculated by comparing extracted data with expected data.
+    d. Token usage and costs are tracked.
+7. Results are collected.
+8. Reports (Markdown, JSON) and cost summaries are generated and displayed or saved.
 
 ## Adding New Components
 
-- **New Providers**: Add a new directory in `llms/` with configuration and implementation
-- **New Models**: Add a new directory in `models/` with a Pydantic model and test cases
-- **New Utilities**: Add new utility modules in `utils/` as needed
+- **New Providers**: Use `llm-tester scaffold provider <name>` or manually create a new directory in `src/pydantic_llm_tester/llms/` with `provider.py` (inheriting `BaseLLM`) and `config.json`.
+- **New Py_Models**: Use `llm-tester scaffold model <name>` or manually create a new directory in `src/pydantic_llm_tester/py_models/` (or a custom path) with `model.py` (Pydantic schema, `get_test_cases()`) and a `tests/` subdirectory.
+- **New Utilities**: Add new modules to `src/pydantic_llm_tester/utils/`.

@@ -30,15 +30,25 @@ This will create the directory structure and template files described in step 1 
 
 ### 1. Create Model Directory Structure
 
-Create a new directory for your model in the `llm_tester/models/` directory:
+Create a new directory for your model in the `src/pydantic_llm_tester/py_models/` directory (for built-in models) or a custom directory path (for external models, often specified via `pyllm_config.json` or `--test-dir`):
 
 ```bash
-mkdir -p src/py_models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
-mkdir -p src/py_models/your_model_name/reports
-touch src/py_models/your_model_name/__init__.py
-touch src/py_models/your_model_name/model.py
-touch src/py_models/your_model_name/tests/__init__.py
+# For a built-in model (ensure you are in the project root):
+mkdir -p src/pydantic_llm_tester/py_models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
+mkdir -p src/pydantic_llm_tester/py_models/your_model_name/reports
+touch src/pydantic_llm_tester/py_models/your_model_name/__init__.py
+touch src/pydantic_llm_tester/py_models/your_model_name/model.py
+touch src/pydantic_llm_tester/py_models/your_model_name/tests/__init__.py
+
+# For an external model (example):
+# mkdir -p /path/to/your/custom/py_models/your_model_name/tests/{sources,prompts,expected,prompts/optimized}
+# mkdir -p /path/to/your/custom/py_models/your_model_name/reports
+# touch /path/to/your/custom/py_models/your_model_name/__init__.py
+# touch /path/to/your/custom/py_models/your_model_name/model.py
+# touch /path/to/your/custom/py_models/your_model_name/tests/__init__.py
 ```
+
+The `llm-tester scaffold model your_model_name` command will create this structure in the default `py_models` path (usually `./py_models` relative to where you run the command, or as configured in `pyllm_config.json`).
 
 ### 2. Implement the Model Class
 
@@ -278,18 +288,26 @@ Respond only with the JSON object, no additional text.
 
 ### 1. Verify Model Discovery
 
-Run the testing tool to check if your model is discovered:
-
+Run the CLI to check if your model is discovered. If it's a built-in model:
 ```bash
-./runner.py test -m your_model_name
+llm-tester schemas list 
+# Or, if you are testing from a specific directory for external models:
+# llm-tester schemas list --test-dir /path/to/your/custom/py_models
 ```
+Ensure `your_model_name` appears in the list.
 
 ### 2. Test with Different Providers
 
-Test your model with different providers:
-
+Test your model with different providers using the `run` command:
 ```bash
-./runner.py test -m your_model_name -p openai -p anthropic
+# Test a specific py_model module with default providers
+llm-tester run --filter your_model_name
+
+# Test with specific providers
+llm-tester run --filter your_model_name --providers openai anthropic
+
+# If using an external model directory:
+# llm-tester run --test-dir /path/to/your/custom/py_models --filter your_model_name --providers openai
 ```
 
 ## Best Practices
@@ -310,9 +328,9 @@ Your model implementation must:
 
 ## Adding External Models
 
-Developers using the installed `llm_tester` package will typically define their custom LLM tasks as "models" outside of the installed package directory. This allows you to manage your task definitions and test data separately from the library code.
+Developers using the installed `pydantic-llm-tester` package will typically define their custom LLM tasks as "py_models" outside of the installed package directory. This allows you to manage your task definitions and test data separately from the library code.
 
-`llm_tester` can discover and run tests for models located in a directory you specify.
+The `pydantic-llm-tester` tool can discover and run tests for `py_models` located in a directory you specify.
 
 **Recommended Directory Structure for External Models:**
 
@@ -344,7 +362,7 @@ When using the `LLMTester` class programmatically or the `llm-tester` CLI, you s
 **API Example:**
 
 ```python
-from src import LLMTester
+from pydantic_llm_tester import LLMTester # Correct import for installed package
 
 # Initialize the tester with the path to your custom py_models directory
 tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/py_models")
@@ -362,24 +380,25 @@ results = tester.run_tests()
 llm-tester run --test-dir /path/to/your/custom/py_models --providers openai
 ```
 
-`llm_tester` will scan the specified `test_dir` for subdirectories containing `model.py` files with the `get_test_cases()` method to discover your test cases.
+The `pydantic-llm-tester` tool will scan the specified `test_dir` for subdirectories containing `model.py` files with the `get_test_cases()` method to discover your test cases.
 
-## Testing Your Model
+## Testing Your Model (External Models)
 
 ### 1. Verify Model Discovery
 
 Run the CLI with your custom test directory to check if your model is discovered:
 
 ```bash
-llm-tester py_models list --test-dir /path/to/your/custom/py_models
+llm-tester schemas list --test-dir /path/to/your/custom/py_models
 ```
+Ensure `your_model_name` appears in the list.
 
 ### 2. Test with Different Providers
 
 Test your model with different providers using the CLI:
 
 ```bash
-llm-tester run --test-dir /path/to/your/custom/py_models --providers openai anthropic
+llm-tester run --test-dir /path/to/your/custom/py_models --filter your_model_name --providers openai anthropic
 ```
 
 ## Best Practices
@@ -391,9 +410,9 @@ llm-tester run --test-dir /path/to/your/custom/py_models --providers openai anth
 
 ## Example Models
 
-Refer to existing model implementations as examples:
+Refer to existing model implementations in `src/pydantic_llm_tester/py_models/` as examples:
 
-- `llm_tester/models/job_ads/model.py`
-- `llm_tester/models/product_descriptions/model.py`
+- `src/pydantic_llm_tester/py_models/job_ads/model.py`
+- `src/pydantic_llm_tester/py_models/product_descriptions/model.py`
 
 These implementations show how to structure your model and test cases.

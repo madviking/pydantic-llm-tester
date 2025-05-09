@@ -38,9 +38,10 @@ The documentation is organized into the following sections:
 
 If you're new to LLM Tester, we recommend starting with:
 
-1. Read the [Project Structure](PROJECT_STRUCTURE.md) document to understand the framework
-2. Follow the [Running Tests](guides/testing/RUNNING_TESTS.md) guide to run your first tests
-3. Explore the [Basic Usage](examples/BASIC_USAGE.md) examples
+1. Read the main [README.md](../README.md) for an overview and installation instructions.
+2. Read the [Project Structure](PROJECT_STRUCTURE.md) document to understand the framework.
+3. Explore the [Basic Usage](examples/BASIC_USAGE.md) examples (if available, or refer to CLI and API guides).
+4. To run your first tests, use the `llm-tester run` command as described in the main README and the [Configuration Reference](guides/configuration/CONFIG_REFERENCE.md).
 
 ## Contributing
 
@@ -55,6 +56,9 @@ If you'd like to contribute to LLM Tester:
 
 If you encounter issues:
 
-1. Check the [Configuration Reference](guides/configuration/CONFIG_REFERENCE.md) to ensure proper setup
-2. Run the verification script: `./verify_providers.py`
-3. Look for error messages in the logs (use `--debug` for detailed logging)
+1. Check the [Configuration Reference](guides/configuration/CONFIG_REFERENCE.md) to ensure proper setup.
+2. Use CLI commands for verification:
+    - `llm-tester providers list` to check discovered and enabled providers.
+    - `llm-tester providers manage list <provider_name>` to check models for a specific provider.
+    - `llm-tester configure keys` to check and set API keys.
+3. Look for error messages in the logs (use `-v` for INFO, `-vv` for DEBUG level logging with `llm-tester` commands).

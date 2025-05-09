@@ -16,7 +16,7 @@ llm-tester scaffold provider [OPTIONS] [PROVIDER_NAME]
 
 Options:
 
-- `--providers-dir TEXT`: Directory to create the provider in (defaults to `llm_tester/llms`).
+- `--providers-dir TEXT`: Directory to create the provider in (defaults to `src/pydantic_llm_tester/llms` if developing within the package, or a user-specified path for external providers).
 - `--interactive, -i`: Enable interactive mode. If this flag is used, you will be prompted for the provider name and other details.
 
 ### Interactive Provider Scaffolding
@@ -62,7 +62,7 @@ llm-tester scaffold model [OPTIONS] [MODEL_NAME]
 
 Options:
 
-- `--path TEXT`: Directory to create the model in (defaults to `./py_models`).
+- `--path TEXT`: Directory to create the model in (defaults to `./py_models` relative to the current working directory, intended for user's custom models).
 - `--interactive, -i`: Enable interactive mode. If this flag is used, you will be prompted for the model name and other details.
 
 ### Interactive Model Scaffolding

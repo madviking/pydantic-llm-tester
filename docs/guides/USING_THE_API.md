@@ -15,11 +15,15 @@ pip install pydantic-llm-tester
 The main entry point for the API is the `LLMTester` class.
 
 ```python
-from src import LLMTester
+from pydantic_llm_tester import LLMTester # For using the installed package
+
+# Or, if running from the source directory for development:
+# from pydantic_llm_tester.llm_tester import LLMTester 
 
 # Initialize the tester with a list of providers to use
 # You can specify the directory containing your test cases (py_models)
 # If test_dir is not provided, it defaults to the 'py_models' directory within the installed package
+# (src/pydantic_llm_tester/py_models) or a path configured in pyllm_config.json.
 tester = LLMTester(providers=["openai", "google"], test_dir="/path/to/your/custom/py_models")
 
 # Discover test cases
@@ -59,9 +63,10 @@ print(f"Cost report saved to: {cost_report_paths.get('main')}")
 
 ### `LLMTester` Class
 
-- `__init__(self, providers: List[str], test_dir: Optional[str] = None)`: Initializes the tester.
+- `__init__(self, providers: List[str], llm_models: Optional[List[str]] = None, test_dir: Optional[str] = None)`: Initializes the tester.
     - `providers`: A list of provider names (matching the names in their `config.json`) to enable for this tester instance.
-    - `test_dir`: The path to the directory containing your test case modules (models). Defaults to the `llm_tester/models` directory within the installed package.
+    - `llm_models`: Optional list of specific LLM model names to filter by across all providers.
+    - `test_dir`: The path to the directory containing your test case modules (`py_models`). Defaults to the path configured in `pyllm_config.json` (`py_models_path`) or the built-in `src/pydantic_llm_tester/py_models/` directory if not otherwise specified.
 - `discover_test_cases(self, modules: Optional[List[str]] = None) -> List[Dict[str, Any]]`: Discovers test cases.
     - `modules`: Optional list of module names to filter the discovery by.
     - Returns a list of dictionaries, each representing a test case.
@@ -129,7 +134,7 @@ if openai_gpt4_config:
 
 ## Adding Custom Models Programmatically
 
-When using `llm_tester` as an adapter, you define your LLM tasks as "models" with associated test cases (prompts, sources, expected outputs). These are typically organized in a directory structure that `LLMTester.discover_test_cases` can find.
+When using `pydantic-llm-tester` as an adapter, you define your LLM tasks as "py_models" (Pydantic schemas) with associated test cases (prompts, sources, expected outputs). These are typically organized in a directory structure that `LLMTester.discover_test_cases` can find.
 
 Your custom model directory should contain:
 - A Python file defining your Pydantic model and a `get_test_cases()` function.
@@ -195,11 +200,11 @@ def get_test_cases() -> List[Dict[str, Any]]:
 Then, initialize `LLMTester` with the path to the directory containing `my_task/`:
 
 ```python
-from src import LLMTester
+from pydantic_llm_tester import LLMTester # Correct import for installed package
 
 tester = LLMTester(providers=["openai"], test_dir="/path/to/your/custom/py_models")
 test_cases = tester.discover_test_cases()
 # ... run tests
 ```
 
-This allows you to manage your LLM tasks and their test data separately from the installed `llm_tester` package.
+This allows you to manage your LLM tasks and their test data separately from the installed `pydantic-llm-tester` package.

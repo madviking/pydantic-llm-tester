@@ -14,7 +14,7 @@ The provider system is responsible for:
 
 ### Base Provider Class
 
-`BaseLLM` (`llm_tester/llms/base.py`): Defines the interface that all providers must implement:
+`BaseLLM` (`src/pydantic_llm_tester/llms/base.py`): Defines the interface that all providers must implement:
 
 ```python
 class BaseLLM(ABC):
@@ -43,7 +43,7 @@ class BaseLLM(ABC):
 
 ### Provider Factory
 
-`provider_factory.py`: Creates provider instances based on name:
+`src/pydantic_llm_tester/llms/provider_factory.py`: Creates provider instances based on name:
 
 ```python
 def create_provider(provider_name: str) -> Optional[BaseLLM]:
@@ -57,7 +57,7 @@ Key functions:
 
 ### Provider Registry
 
-`llm_registry.py`: Manages provider instances:
+`src/pydantic_llm_tester/llms/llm_registry.py`: Manages provider instances:
 
 ```python
 def get_llm_provider(provider_name: str) -> Optional[BaseLLM]:
@@ -72,7 +72,7 @@ def reset_provider_cache() -> None:
 
 ### Provider Manager
 
-`provider_manager.py`: High-level manager for provider interactions:
+`src/pydantic_llm_tester/utils/provider_manager.py`: High-level manager for provider interactions:
 
 ```python
 class ProviderManager:
@@ -89,16 +89,13 @@ class ProviderManager:
 
 Provider configuration consists of:
 
-1. **Global Configuration** (`config.json`): 
-   - Which providers are enabled
-   - Default models for each provider
-
-2. **Provider Configuration** (`llm_tester/llms/provider_name/config.json`):
-   - Provider-specific information
-   - Available models and their configurations
-
-3. **Environment Variables**:
-   - API keys and credentials
+1. **Provider Enablement** (`enabled_providers.json` at project root): Optional file listing enabled provider names. If not present, all discovered providers are active.
+2. **Provider Configuration** (`src/pydantic_llm_tester/llms/<provider_name>/config.json`):
+   - Provider-specific information (API key env var name, default system prompt).
+   - Available LLM models for that provider and their specific configurations (name, default/preferred/enabled flags, cost, token limits).
+3. **Global Test Configuration** (`pyllm_config.json` at project root): Optional file for global test settings, default paths for `py_models`, etc.
+4. **Environment Variables** (e.g., in `.env` file, typically at `src/pydantic_llm_tester/.env` or project root):
+   - API keys and other sensitive credentials.
 
 ## Provider Types
 
@@ -120,7 +117,7 @@ The system supports several types of providers:
 
 Developing a new provider involves:
 
-1. Creating a new directory in `llm_tester/llms/`
+1. Creating a new directory in `src/pydantic_llm_tester/llms/`
 2. Implementing a provider class that inherits from `BaseLLM`
 3. Creating a provider configuration file
 
@@ -158,7 +155,7 @@ Provider errors are handled at multiple levels:
 
 ## Cost Management
 
-Provider costs are tracked using the `cost_manager`:
+Provider costs are tracked using the `cost_tracker` instance of the `CostManager` from `src/pydantic_llm_tester/utils/cost_manager.py`:
 
 1. `UsageData` objects track token usage
 2. Costs are calculated based on model pricing information

@@ -32,13 +32,14 @@ This will create the directory structure and template files described in step 1 
 
 ### 1. Create Provider Directory Structure
 
-Create a new directory for your provider in the `llm_tester/llms/` directory:
+Create a new directory for your provider in the `src/pydantic_llm_tester/llms/` directory:
 
 ```bash
-mkdir -p src/llms/your_provider_name
-touch src/llms/your_provider_name/__init__.py
-touch src/llms/your_provider_name/provider.py
-touch src/llms/your_provider_name/config.json
+# Ensure you are in the project root directory
+mkdir -p src/pydantic_llm_tester/llms/your_provider_name
+touch src/pydantic_llm_tester/llms/your_provider_name/__init__.py
+touch src/pydantic_llm_tester/llms/your_provider_name/provider.py
+touch src/pydantic_llm_tester/llms/your_provider_name/config.json
 ```
 
 ### 2. Implement the Provider Class
@@ -60,8 +61,8 @@ try:
 except ImportError:
     PROVIDER_AVAILABLE = False
     
-from ..base import BaseLLM, ModelConfig
-from ...utils.cost_manager import UsageData
+from pydantic_llm_tester.llms.base import BaseLLM, ModelConfig
+from pydantic_llm_tester.utils.cost_manager import UsageData
 
 
 class YourProviderProvider(BaseLLM):
@@ -184,16 +185,16 @@ Adjust the values according to your provider's specifications:
 
 ### 4. Ensure Provider Discovery
 
-The framework automatically discovers providers by looking for subdirectories within `llm_tester/llms/` that contain an `__init__.py` file. Ensure your `llm_tester/llms/your_provider_name/__init__.py` file exists and imports your provider class:
+The framework automatically discovers providers by looking for subdirectories within `src/pydantic_llm_tester/llms/` that contain an `__init__.py` file. Ensure your `src/pydantic_llm_tester/llms/your_provider_name/__init__.py` file exists and imports your provider class:
 
 ```python
-# src/llms/your_provider_name/__init__.py
+# src/pydantic_llm_tester/llms/your_provider_name/__init__.py
 from .provider import YourProviderProvider
 
 # Optional: Define __all__ if you want to be explicit
 __all__ = ['YourProviderProvider']
 ```
-No changes are needed in the parent `llm_tester/llms/__init__.py` file.
+No changes are needed in the parent `src/pydantic_llm_tester/llms/__init__.py` file.
 
 ### 5. Enable the Provider (Optional)
 
@@ -204,7 +205,7 @@ By default, if no `enabled_providers.json` file exists in the project root, all 
 source venv/bin/activate
 
 # Enable your new provider
-python -m src.cli providers enable your_provider_name
+llm-tester providers enable your_provider_name
 ```
 
 ## Testing Your Provider Integration
@@ -215,13 +216,14 @@ Use the CLI to check if your provider is discovered and enabled:
 
 ```bash
 # Activate virtual environment first
-source venv/bin/activate
+# source venv/bin/activate # If in a virtual environment
 
 # List all providers and their status
-python -m src.cli providers list
+llm-tester providers list
 
-# List py_models configured for your provider
-python -m src.cli py_models list --provider your_provider_name
+# List py_models configured for your provider (Note: This command might be `llm-tester providers manage list your_provider_name` or similar based on current CLI structure)
+# llm-tester py_models list --provider your_provider_name # Check current CLI for exact command
+llm-tester providers manage list your_provider_name
 ```
 
 ### 2. Test with a Simple Request
@@ -230,13 +232,13 @@ Run a simple test using the CLI to verify your provider works:
 
 ```bash
 # Activate virtual environment first
-source venv/bin/activate
+# source venv/bin/activate # If in a virtual environment
 
 # Run tests using only your provider and a specific model (optional)
-python -m src.cli --providers your_provider_name --py_models your_provider_name:your-model-name
+llm-tester run --providers your_provider_name --py_models your_provider_name:your-model-name
 
 # Or run using the default model for your provider
-python -m src.cli --providers your_provider_name
+llm-tester run --providers your_provider_name
 ```
 
 ## Best Practices
@@ -257,7 +259,7 @@ Your provider implementation must:
 
 ## Adding External Providers
 
-Developers using the installed `llm_tester` package may want to add custom providers without modifying the installed package files. This can be done by placing your provider implementation outside the `llm_tester` package directory and configuring `llm_tester` to discover it.
+Developers using the installed `pydantic-llm-tester` package may want to add custom providers without modifying the installed package files. This can be done by placing your provider implementation outside the `pydantic_llm_tester` package directory (typically `site-packages/pydantic_llm_tester`) and configuring the tool to discover it.
 
 **Steps to Add an External Provider:**
 
@@ -276,7 +278,7 @@ Developers using the installed `llm_tester` package may want to add custom provi
       "/path/to/your/custom_providers"
     ]
     ```
-    `llm_tester` will recursively search the directories listed in `external_providers.json` for valid provider implementations.
+    The `pydantic-llm-tester` tool will recursively search the directories listed in `external_providers.json` for valid provider implementations.
 
 4.  **Ensure Provider Discovery:** Similar to internal providers, ensure your external provider directory has an `__init__.py` file that imports your provider class.
 
@@ -311,8 +313,9 @@ source venv/bin/activate
 # List all providers and their status
 llm-tester providers list
 
-# List py_models configured for your provider
-llm-tester py_models list --provider your_provider_name
+# List py_models configured for your provider (Note: This command might be `llm-tester providers manage list your_provider_name` or similar)
+# llm-tester py_models list --provider your_provider_name # Check current CLI for exact command
+llm-tester providers manage list your_provider_name
 ```
 
 ### 2. Test with a Simple Request
@@ -321,13 +324,13 @@ Run a simple test using the CLI to verify your provider works:
 
 ```bash
 # Activate virtual environment first
-source venv/bin/activate
+# source venv/bin/activate # If in a virtual environment
 
 # Run tests using only your provider and a specific model (optional)
-llm-tester --providers your_provider_name --py_models your_provider_name:your-model-name
+llm-tester run --providers your_provider_name --py_models your_provider_name:your-model-name
 
 # Or run using the default model for your provider
-llm-tester --providers your_provider_name
+llm-tester run --providers your_provider_name
 ```
 
 ## Best Practices
@@ -340,10 +343,10 @@ llm-tester --providers your_provider_name
 
 ## Example Implementations
 
-Refer to existing provider implementations as examples:
+Refer to existing provider implementations in `src/pydantic_llm_tester/llms/` as examples:
 
-- `llm_tester/llms/openai/provider.py`
-- `llm_tester/llms/anthropic/provider.py`
-- `llm_tester/llms/mistral/provider.py`
+- `src/pydantic_llm_tester/llms/openai/provider.py`
+- `src/pydantic_llm_tester/llms/anthropic/provider.py`
+- `src/pydantic_llm_tester/llms/mistral/provider.py`
 
 These implementations show how to handle different API formats, error cases, and usage tracking.
