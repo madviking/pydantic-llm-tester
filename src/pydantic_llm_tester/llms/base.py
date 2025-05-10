@@ -1,6 +1,6 @@
 """Base LLM provider class and related utilities"""
 
-from typing import Dict, Any, Tuple, Optional, List, Union
+from typing import Dict, Any, Tuple, Optional, List, Union, Type # Added Type
 from abc import ABC, abstractmethod
 import logging
 import os
@@ -47,12 +47,13 @@ class BaseLLM(ABC):
         if config:
             self.supports_file_upload = config.supports_file_upload
     
-    def get_response(self, prompt: str, source: str, model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
+    def get_response(self, prompt: str, source: str, model_class: Type[BaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
         """Get response from LLM for the given prompt and source
         
         Args:
             prompt: The prompt text to send
             source: The source text to include in the prompt
+            model_class: The Pydantic model class for schema guidance.
             model_name: Optional model name to use
             files: Optional list of file paths to upload
             
@@ -93,6 +94,7 @@ class BaseLLM(ABC):
                 system_prompt=system_prompt,
                 model_name=clean_model_name,
                 model_config=model_config,
+                model_class=model_class, # Pass model_class
                 files=files
             )
             
@@ -134,7 +136,7 @@ class BaseLLM(ABC):
     
     @abstractmethod
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the LLM
         
         Args:
@@ -142,6 +144,7 @@ class BaseLLM(ABC):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            model_class: The Pydantic model class for schema guidance.
             files: Optional list of file paths to upload
             
         Returns:

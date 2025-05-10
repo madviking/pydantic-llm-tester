@@ -30,6 +30,7 @@ For more details on the architecture, see the [documentation](docs/README.md).
 -   Use mock providers for testing without API keys.
 -   Track token usage and costs.
 -   Easily integrate structured data extraction into your applications.
+-   **NEW: File Upload Support**: Process and test LLMs with file inputs (e.g., images) for multimodal analysis. See the [guide on Using Files](docs/guides/files/USING_FILES.md) for more details.
 
 ## A word about *word* models
 

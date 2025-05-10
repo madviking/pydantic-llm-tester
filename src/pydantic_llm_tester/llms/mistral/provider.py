@@ -1,7 +1,8 @@
 """Mistral provider implementation"""
 
 import logging
-from typing import Dict, Any, Tuple, Optional, List, Union
+import json # Added json import
+from typing import Dict, Any, Tuple, Optional, List, Union, Type # Added Type
 
 try:
     # Import the client directly
@@ -14,7 +15,7 @@ except ImportError as e:
     # Log the import error for debugging
     logging.warning(f"Could not import Mistral SDK: {e}. Install with 'pip install mistralai'")
 
-from ..base import BaseLLM, ModelConfig
+from ..base import BaseLLM, ModelConfig, BaseModel # Added BaseModel
 from pydantic_llm_tester.utils.cost_manager import UsageData
 
 
@@ -52,7 +53,7 @@ class MistralProvider(BaseLLM):
 
 
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
-                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the Mistral API
 
         Args:
@@ -60,6 +61,7 @@ class MistralProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            model_class: The Pydantic model class for schema guidance.
             files: Optional list of file paths. Standard Mistral chat models
                    are primarily text-based. File handling might involve
                    inlining text content if applicable.
@@ -76,9 +78,28 @@ class MistralProvider(BaseLLM):
         max_tokens = model_config.max_output_tokens
 
         # Prepare messages in the new format (list of dictionaries)
+        
+        # Ensure we have a valid system prompt
+        if not system_prompt:
+            system_prompt = "You are a helpful AI assistant. Your primary goal is to extract structured data from the user's input."
+
+        # Enhance system_prompt with Pydantic schema instructions
+        try:
+            schema_str = json.dumps(model_class.model_json_schema(), indent=2)
+        except AttributeError:
+            schema_str = model_class.schema_json(indent=2)
+            
+        schema_instruction = (
+            f"\n\nYour output MUST be a JSON object that strictly conforms to the following JSON Schema:\n"
+            f"```json\n{schema_str}\n```\n"
+            "Ensure that the generated JSON is valid and adheres to this schema. "
+            "If certain information is not present in the input, use appropriate null or default values as defined in the schema."
+        )
+        effective_system_prompt = f"{system_prompt}\n{schema_instruction}" if system_prompt else schema_instruction.strip()
+
         messages: List[Dict[str, str]] = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        if effective_system_prompt: # Use the enhanced system prompt
+            messages.append({"role": "system", "content": effective_system_prompt})
 
         messages.append({"role": "user", "content": prompt})
 

@@ -1,0 +1,3 @@
+This test case uses an image file specified in the 'file_paths' attribute of the test case definition.
+The primary content for analysis is expected to come from the image: job_ad_pic.png.
+This text source file is a placeholder.

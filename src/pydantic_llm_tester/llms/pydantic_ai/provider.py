@@ -2,10 +2,11 @@
 
 import logging
 import os
-from typing import Dict, Any, Tuple, Optional, Union, Type, List # Added List
+import json # Added json import
+from typing import Dict, Any, Tuple, Optional, Union, Type, List 
 import inspect
 
-from pydantic import BaseModel
+from pydantic import BaseModel # BaseModel is directly from pydantic here
 
 # Define a global variable for pydantic_ai availability
 PYDANTIC_AI_AVAILABLE = False
@@ -105,7 +106,7 @@ class PydanticAIProvider(BaseLLM):
         return model_instance
 
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
-                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call using PydanticAI
 
         Args:
@@ -113,6 +114,7 @@ class PydanticAIProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            model_class: The Pydantic model class for schema guidance.
             files: Optional list of file paths. PydanticAI itself doesn't directly
                    handle file uploads; this would depend on the underlying LLM
                    and how PydanticAI is configured to use it.
@@ -132,31 +134,22 @@ class PydanticAIProvider(BaseLLM):
             raise ValueError(f"Invalid model name format for PydanticAI: {model_name}. Expected pydantic_ai:provider:model")
 
         provider_name = name_parts[1]  # Underlying provider (openai or anthropic)
-        model_name = name_parts[2]  # Underlying model name
+        underlying_model_name = name_parts[2]  # Underlying model name
 
         # Ensure we have a valid system prompt
         if not system_prompt:
-            system_prompt = "Extract the requested information from the provided text accurately."
-
-        # Extract model class from the caller
-        model_class = None
-
-        # Try to get it from the calling frames
-        frame = inspect.currentframe()
-        while frame:
-            if frame.f_locals and 'test_case' in frame.f_locals:
-                test_case = frame.f_locals['test_case']
-                if 'model_class' in test_case:
-                    model_class = test_case['model_class']
-                    break
-            frame = frame.f_back
-
-        if not model_class:
-            self.logger.error("No model class found for PydanticAI extraction")
-            raise ValueError("No model class found for PydanticAI extraction")
+            # PydanticAI might not use system_prompt in the same way as direct API calls.
+            # It's often part of the main prompt or handled by the library.
+            # For now, we'll keep it, but its effectiveness depends on pydantic-ai's internals.
+            system_prompt = "You are a helpful AI assistant. Your task is to extract information into a structured JSON format."
+        
+        # model_class is now passed directly as an argument. The inspect logic is removed.
+        if not model_class: # Should not happen if BaseLLM.get_response is called correctly
+            self.logger.error("PydanticAIProvider._call_llm_api called without model_class.")
+            raise ValueError("model_class is required for PydanticAIProvider.")
 
         # Get or create model instance for the specified provider
-        model_instance = self._get_model_instance(provider_name, model_name)
+        model_instance = self._get_model_instance(provider_name, underlying_model_name)
 
         if files and self.supports_file_upload:
             # TODO: Investigate how PydanticAI could leverage files with underlying models.
@@ -259,29 +252,12 @@ class PydanticAIProvider(BaseLLM):
 
         return response_text, usage_data
 
-    def get_response(self, prompt: str, source: str, model_name: Optional[str] = None,
-                     model_class: Optional[Type[BaseModel]] = None, files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
-        """Override to handle model_class parameter and files"""
-        # Store model_class in a frame local for _call_llm_api to access
-        # This is needed because we can't modify the base class's get_response signature
-        # for the model_class parameter without affecting all providers.
-        # The 'files' parameter is now part of the base signature.
-        frame = inspect.currentframe()
-        if frame: # Ensure frame is not None
-            frame_locals = frame.f_locals
-
-            # Create a test_case-like structure to pass the model_class
-            if model_class:
-                # Ensure test_case is a dict if it needs to be created
-                if 'test_case' not in frame_locals or not isinstance(frame_locals.get('test_case'), dict):
-                    frame_locals['test_case'] = {}
-                current_test_case = frame_locals['test_case']
-                if isinstance(current_test_case, dict): # Check if it's a dict before setting key
-                    current_test_case['model_class'] = model_class
-                else:
-                    # This case should ideally not happen if test_case is managed consistently
-                    self.logger.warning("Could not set model_class in frame_locals['test_case'] as it's not a dict.")
-
-
-        # Call parent implementation, now including the files parameter
-        return super().get_response(prompt, source, model_name, files=files)
+    def get_response(self, prompt: str, source: str, model_class: Type[BaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
+        """Override to handle model_class parameter and files.
+           The model_class is now part of the base signature, so this override might only be needed
+           if PydanticAIProvider has special handling for it before calling super.
+           For now, it just passes it through.
+        """
+        # The inspect logic to inject model_class into frame_locals for _call_llm_api
+        # is no longer needed as model_class is passed through the call chain.
+        return super().get_response(prompt, source, model_class, model_name, files=files)

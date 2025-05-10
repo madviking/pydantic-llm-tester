@@ -544,8 +544,9 @@ class LLMTester:
                         provider=provider_name,
                         prompt=prompt_text,
                         source=source_text,
-                        model_name=model_to_use, # Pass the specific model name
-                        files=file_paths # Pass file_paths
+                        model_class=model_class, # Pass model_class
+                        model_name=model_to_use, 
+                        files=file_paths 
                     )
 
                     if progress_callback:
