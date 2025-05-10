@@ -60,8 +60,8 @@ class ProviderManager:
                     self.logger.info(f"Using mock provider for {provider}")
                     continue
                 
-                # Get provider from registry
-                provider_instance = get_llm_provider(provider)
+                # Get provider from registry, passing the llm_models filter
+                provider_instance = get_llm_provider(provider, llm_models=self.llm_models)
                 if not provider_instance:
                     self.initialization_errors[provider] = f"Provider {provider} not found in registry"
                     self.logger.warning(f"Provider {provider} not found in registry")

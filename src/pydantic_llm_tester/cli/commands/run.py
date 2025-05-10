@@ -22,7 +22,7 @@ ModelsOptionPy = typer.Option(None, "--py_models", "-m", help="Specify Pydantic 
 ModelsOptionLLM = typer.Option(None, "--llm_models", help="Specify LLM models to test (e.g., 'gpt-4o'). Can be used multiple times.")
 TestDirOption = typer.Option(None, "--test-dir", help="Directory containing test files (default: uses LLMTester default).")
 
-@app.command("tests") # Explicit command name 'tests' under 'run' group, or maybe just 'run' on main app? Let's use 'tests' for now.
+# Removed @app.command("tests") decorator. This is now a logic function.
 def run_tests(
     providers: Optional[List[str]] = ProvidersOption,
     py_models: Optional[List[str]] = ModelsOptionPy,
@@ -57,7 +57,7 @@ def run_tests(
     if not success:
         raise typer.Exit(code=1)
 
-@app.command("list")
+# Removed @app.command("list") decorator. This is now a logic function.
 def list_items(
     providers: Optional[List[str]] = ProvidersOption,
     py_models: Optional[List[str]] = ModelsOptionPy,

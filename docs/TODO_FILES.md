@@ -96,7 +96,8 @@ The initial phase focusing on interface changes, basic image file processing for
     - No direct changes made as `ProviderFactory` loads `ProviderConfig` which now includes `supports_file_upload`. Provider instances will have the attribute. Further exposure via registry methods can be a future enhancement if needed.
 - [x] 6. Update CLI/API usage and documentation (if needed).
     - `LLMTester` and `ProviderManager` Python APIs updated to handle `files` and `model_class` parameters.
-    - *CLI (`llm-tester run`) has not yet been updated with a `--files` option.*
+    - CLI test name filtering (`-f` / `--filter` option) is now implemented and functional.
+    - *CLI (`llm-tester run`) has not yet been updated with a `--files` option (for passing file arguments directly in the run command).*
 - [x] 7. Add integration and validation tests.
     - One integration test case using an image file (`job_ad_pic.png`) has been added to the `job_ads` py_model.
     - *More comprehensive integration tests covering various file types and providers are needed as full file processing logic is implemented.*
