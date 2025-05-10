@@ -144,29 +144,24 @@ class AnthropicProvider(BaseLLM):
         # We will attempt to use response_format if available, but the primary mechanism is the system prompt.
         
         try:
-            # Try with response_format first if the SDK version supports it
-            # This is a bit of a guess; official docs should be checked for exact SDK version compatibility
-            if hasattr(self.client.messages, "create") and "response_format" in anthropic.types.MessageCreateParams.__annotations__:
-                 self.logger.info("Attempting to use response_format with Anthropic.")
-                 response = self.client.messages.create(
-                     **request_params,
-                     response_format={"type": "json_object"} 
-                 )
-            else:
-                 self.logger.info("Anthropic SDK version does not seem to support 'response_format' parameter directly, or it's not type-hinted. Relying on system prompt for JSON.")
-                 response = self.client.messages.create(**request_params)
-
-        except TypeError as te: # Handles cases where response_format is not a valid param for the SDK version
-            self.logger.warning(f"TypeError when calling Anthropic, possibly due to 'response_format': {te}. Retrying without it.")
-            # Remove response_format if it caused TypeError and retry
-            if "response_format" in request_params: # Should not be needed if check above is perfect
-                del request_params["response_format"] 
-            
-            # The effective_system_prompt already contains strong instructions for JSON.
+            self.logger.info("Attempting Anthropic call with response_format={'type': 'json_object'}.")
+            response = self.client.messages.create(
+                **request_params,
+                response_format={"type": "json_object"}
+            )
+        except TypeError as te:
+            self.logger.warning(
+                f"Anthropic call with response_format failed (TypeError: {te}). "
+                "This may be due to an older SDK version or the model not supporting this parameter. "
+                "Retrying without explicit response_format, relying on system prompt for JSON structure."
+            )
+            # request_params does not include 'response_format'; it was passed as a separate kwarg.
+            # Simply call create without that extra kwarg.
             response = self.client.messages.create(**request_params)
         except Exception as e:
+            # This catches other errors from either the first or second attempt.
             self.logger.error(f"Error calling Anthropic API: {str(e)}")
-            raise ValueError(f"Error calling Anthropic API: {str(e)}")
+            raise ValueError(f"Error calling Anthropic API: {str(e)}") from e
         
         # Extract response text
         response_text = response.content[0].text

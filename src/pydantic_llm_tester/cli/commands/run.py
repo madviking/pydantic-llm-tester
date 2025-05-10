@@ -31,7 +31,7 @@ def run_tests(
     output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file for report/JSON (default: stdout)."),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON instead of Markdown report."),
     optimize: bool = typer.Option(False, "--optimize", help="Optimize prompts before running final tests."),
-    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter test cases by pattern (e.g., 'module/name'). Not fully implemented.") # Added filter option
+    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter test cases by name (case-insensitive substring match).")
 ):
     """
     Run the LLM test suite with the specified configurations.
@@ -51,7 +51,7 @@ def run_tests(
         output_file=output_file,
         output_json=json_output, # Corrected parameter name
         optimize=optimize,
-        test_filter=filter
+        test_name_filter=filter # Changed test_filter to test_name_filter
     )
 
     if not success:

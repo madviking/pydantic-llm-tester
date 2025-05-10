@@ -24,6 +24,12 @@ class ContactInfo(BaseModel):
     phone: Optional[str] = Field(None, description="Phone number for inquiries")
     website: Optional[HttpUrl] = Field(None, description="Company or application website")
 
+class ExperienceRequirement(BaseModel):
+    """Experience requirements for the job"""
+    
+    years: int = Field(..., description="Number of years of experience required")
+    level: str = Field(..., description="Level of experience (e.g., junior, mid, senior)")
+    preferred: bool = Field(..., description="Whether this experience is preferred or required")
 
 class EducationRequirement(BaseModel):
     """Education requirements for the job"""
@@ -31,6 +37,14 @@ class EducationRequirement(BaseModel):
     degree: str = Field(..., description="Required degree")
     field: str = Field(..., description="Field of study")
     required: bool = Field(..., description="Whether this education is required or preferred")
+
+class Location(BaseModel):
+    """Location of the job"""
+    
+    city: str = Field(..., description="City where the job is located")
+    state: Optional[str] = Field(None, description="State where the job is located")
+    country: str = Field(..., description="Country where the job is located")
+    remote: bool = Field(..., description="Whether the job is remote or not")
 
 
 class JobAd(BaseModel):
@@ -47,10 +61,10 @@ class JobAd(BaseModel):
     title: str = Field(..., description="Job title")
     company: str = Field(..., description="Company name")
     department: Optional[str] = Field(None, description="Department within the company")
-    location: Dict[str, str] = Field(..., description="Job location with city, state, country")
-    salary: Dict[str, Any] = Field(..., description="Salary information including range, currency, and period")
+    location: Location = Field(..., description="Job location with city, state, country")
+    salary: str = Field(..., description="Salary information including range, currency, and period")
     employment_type: str = Field(..., description="Type of employment (full-time, part-time, contract, etc.)")
-    experience: Dict[str, Any] = Field(..., description="Experience requirements including years and level")
+    experience: ExperienceRequirement = Field(..., description="Experience requirements including years and level")
     required_skills: List[str] = Field(..., description="List of required skills")
     preferred_skills: List[str] = Field(default_factory=list, description="List of preferred skills")
     education: List[EducationRequirement] = Field(default_factory=list, description="List of education requirements")

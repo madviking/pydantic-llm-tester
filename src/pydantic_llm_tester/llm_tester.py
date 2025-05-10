@@ -973,6 +973,7 @@ class LLMTester:
 
     def run_tests(self, model_overrides: Optional[Dict[str, str]] = None,
                   modules: Optional[List[str]] = None,
+                  test_name_filter: Optional[str] = None, # New parameter for test name filtering
                   progress_callback: Optional[callable] = None) -> Dict[str, Dict[str, Any]]:
         """
         Run all available tests
@@ -980,6 +981,7 @@ class LLMTester:
         Args:
             model_overrides: Optional dictionary mapping providers to model names
             modules: Optional list of module names to filter by
+            test_name_filter: Optional string to filter test cases by name (case-insensitive substring match)
             progress_callback: Optional callback function for reporting progress
 
         Returns:
@@ -992,12 +994,32 @@ class LLMTester:
 
         # Filter test cases by module if specified
         if modules:
+            original_count = len(test_cases)
             test_cases = [tc for tc in test_cases if tc['module'] in modules]
-            if not test_cases:
-                self.logger.warning(f"No test cases found for modules: {modules}")
-                if progress_callback:
-                    progress_callback(f"WARNING: No test cases found for modules: {modules}")
-                return {}
+            self.logger.info(f"Applied module filter '{modules}'. Filtered from {original_count} to {len(test_cases)} test cases.")
+
+        # Filter test cases by name if specified
+        if test_name_filter:
+            self.logger.info(f"Attempting to apply test name filter: '{test_name_filter}'")
+            self.logger.debug(f"Test cases before name filtering ({len(test_cases)}):")
+            for tc_debug in test_cases:
+                self.logger.debug(f"  - Pre-filter: module='{tc_debug.get('module')}', name='{tc_debug.get('name')}'")
+            
+            original_count = len(test_cases)
+            test_cases = [
+                tc for tc in test_cases
+                if test_name_filter.lower() in tc['name'].lower() # Case-insensitive substring match on name
+            ]
+            self.logger.info(f"Applied test name filter '{test_name_filter}'. Filtered from {original_count} to {len(test_cases)} test cases.")
+            self.logger.debug(f"Test cases after name filtering ({len(test_cases)}):")
+            for tc_debug in test_cases:
+                self.logger.debug(f"  - Post-filter: module='{tc_debug.get('module')}', name='{tc_debug.get('name')}'")
+
+        if not test_cases:
+            self.logger.warning(f"No test cases found after filtering (modules: {modules}, name_filter: {test_name_filter})")
+            if progress_callback:
+                progress_callback(f"WARNING: No test cases found after filtering (modules: {modules}, name_filter: {test_name_filter})")
+            return {}
 
         if progress_callback:
             progress_callback(f"Running {len(test_cases)} test cases...")

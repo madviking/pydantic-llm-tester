@@ -117,6 +117,11 @@ Key CLI commands:
     llm-tester run --help
     ```
 
+-   **Example: Run a particular test that uses a file with a full debugging**: Testing specific file
+    ```bash
+    llm-tester -vv run -p openai -m job_ads -f job_ad_from_image --llm_models openai:gpt-4
+    ```
+
 -   **Configuration**: Manage API keys and provider settings.
     ```bash
     llm-tester configure --help
@@ -146,6 +151,7 @@ Key CLI commands:
     ```bash
     llm-tester interactive
     ```
+
 
 ### Python API Usage
 

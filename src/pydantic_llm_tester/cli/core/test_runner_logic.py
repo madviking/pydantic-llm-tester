@@ -127,7 +127,7 @@ def run_test_suite(
     output_json: bool = False,
     optimize: bool = False,
     py_models: Optional[List[str]] = None,
-    test_filter: Optional[str] = None # TODO: Implement filtering
+    test_name_filter: Optional[str] = None 
 ) -> bool:
     """
     Runs the main LLM testing suite.
@@ -139,7 +139,7 @@ def run_test_suite(
         output_file: Optional path to save the report/JSON output.
         output_json: If True, output results as JSON instead of Markdown.
         optimize: If True, run prompt optimization.
-        test_filter: Optional pattern to filter test cases (e.g., "module/name").
+        test_name_filter: Optional pattern to filter test cases (e.g., "module/name").
 
     Returns:
         True if execution completed successfully (regardless of test results), False on error.
@@ -210,17 +210,18 @@ def run_test_suite(
             test_dir=test_dir
         )
 
-        # TODO: Implement test filtering logic within LLMTester or here
-        if test_filter:
-            logger.warning(f"Test filtering ('{test_filter}') is not yet implemented in the refactored CLI.")
-
         # Run tests
         if optimize:
             print("Running optimized tests...")
-            results = tester.run_optimized_tests(model_overrides=model_overrides, modules=py_models) # Pass py_models
+            # TODO: Consider if test_name_filter should also apply to run_optimized_tests
+            results = tester.run_optimized_tests(model_overrides=model_overrides, modules=py_models) 
         else:
             print("Running tests...")
-            results = tester.run_tests(model_overrides=model_overrides, modules=py_models) # Pass py_models
+            results = tester.run_tests(
+                model_overrides=model_overrides, 
+                modules=py_models, 
+                test_name_filter=test_name_filter # Pass the filter here
+            )
 
         # Generate output
         if output_json:
