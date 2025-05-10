@@ -1,6 +1,6 @@
 """Anthropic provider implementation"""
 
-from typing import Dict, Any, Tuple, Union
+from typing import Dict, Any, Tuple, Union, Optional, List
 
 try:
     import anthropic
@@ -37,7 +37,7 @@ class AnthropicProvider(BaseLLM):
         self.logger.info("Anthropic client initialized")
         
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the Anthropic API
         
         Args:
@@ -45,6 +45,8 @@ class AnthropicProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            files: Optional list of file paths. Anthropic models like Claude 3
+                   support image inputs, which would require specific handling of these files.
             
         Returns:
             Tuple of (response_text, usage_data)
@@ -62,6 +64,13 @@ class AnthropicProvider(BaseLLM):
         
         # Make the API call
         self.logger.info(f"Sending request to Anthropic model {model_name}")
+
+        if files and self.supports_file_upload:
+            # TODO: Implement actual file handling for Anthropic.
+            # This would involve reading file content (e.g., for images),
+            # encoding it (e.g., base64), and constructing the message
+            # payload according to Anthropic's API for multimodal inputs.
+            self.logger.info(f"Anthropic provider received files: {files}. Specific handling not yet implemented.")
         
         try:
             # Attempt to use response_format (for newer Anthropic SDK versions)

@@ -74,7 +74,7 @@ class ProviderManager:
                 self.logger.error(f"Failed to initialize {provider} provider: {str(e)}")
                 self.initialization_errors[provider] = str(e)
     
-    def get_response(self, provider: str, prompt: str, source: str, model_name: Optional[str] = None) -> Tuple[str, Optional[UsageData]]:
+    def get_response(self, provider: str, prompt: str, source: str, model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, Optional[UsageData]]:
         """
         Get a response from a provider
         
@@ -83,6 +83,7 @@ class ProviderManager:
             prompt: Prompt text
             source: Source text
             model_name: Optional specific model name to use
+            files: Optional list of file paths to upload
             
         Returns:
             Tuple of (response_text, usage_data)
@@ -133,7 +134,8 @@ class ProviderManager:
             response_text, usage_data = provider_instance.get_response(
                 prompt=prompt,
                 source=source,
-                model_name=model_name
+                model_name=model_name,
+                files=files # Pass files parameter
             )
             
             # Log usage info

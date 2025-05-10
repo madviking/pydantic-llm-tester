@@ -4,6 +4,7 @@
   "env_key": "MISTRAL_API_KEY",
   "env_key_secret": "",
   "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
+  "supports_file_upload": false,
   "llm_models": [
     {
       "name": "mistral-large-latest",

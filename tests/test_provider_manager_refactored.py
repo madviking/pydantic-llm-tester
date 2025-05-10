@@ -6,26 +6,32 @@ import sys
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pydantic_llm_tester.llms import BaseLLM
+from typing import Optional, List # Added
+from pydantic_llm_tester.llms import BaseLLM, ProviderConfig, ModelConfig # Added ProviderConfig, ModelConfig
 from pydantic_llm_tester.utils import UsageData
 
 
 class MockBaseLLM(BaseLLM):
     """Mock implementation of BaseLLM for testing"""
     
-    def __init__(self, config=None):
-        super().__init__(config)
+    def __init__(self, config: Optional[ProviderConfig] = None, llm_models: Optional[List[str]] = None): # Added llm_models and type hint
+        super().__init__(config, llm_models=llm_models) # Pass llm_models
         # Default response for testing
         self.response_text = "Mock response from BaseLLM"
+        self.last_received_files: Optional[List[str]] = None
     
-    def _call_llm_api(self, prompt, system_prompt, model_name, model_config):
+    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, model_config: ModelConfig, files: Optional[List[str]] = None): # Added files and type hints
         """Implement the abstract method with mock behavior"""
+        self.last_received_files = files
         return self.response_text, {"prompt_tokens": 10, "completion_tokens": 20}
         
-    def get_response(self, prompt, source, model_name=None):
+    def get_response(self, prompt: str, source: str, model_name: Optional[str] = None, files: Optional[List[str]] = None): # Added files and type hints
         """Override get_response for direct testing"""
+        self.last_received_files = files # Store files if passed
+        # Simulate what the actual BaseLLM.get_response does more closely
+        # For this mock, we'll just return a fixed UsageData
         return self.response_text, UsageData(
-            provider=self.name,
+            provider=self.name if self.name else "mock_base_llm", # Ensure name is set
             model="test-model",
             prompt_tokens=100,
             completion_tokens=50
@@ -118,7 +124,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
             test_provider.get_response.assert_called_once_with(
                 prompt="Test prompt",
                 source="Test source",
-                model_name="custom-model"
+                model_name="custom-model",
+                files=None # Added files=None
             )
             
             # Check the response and usage data

@@ -6,6 +6,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from pydantic_llm_tester.llms import ModelConfig, ProviderConfig
+from pydantic_llm_tester.llms.mock.provider import MockProvider # Direct import
 from pydantic_llm_tester.utils import UsageData
 
 
@@ -14,134 +15,179 @@ class TestMockProvider(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        # Create a basic test config for the mock provider
-        self.config = ProviderConfig(
+        self.default_llm_models = [
+            ModelConfig(
+                name="mock:default",
+                default=True,
+                preferred=False,
+                cost_input=0.0,
+                cost_output=0.0,
+                cost_category="free",
+                max_input_tokens=16000,
+                max_output_tokens=16000
+            ),
+            ModelConfig(
+                name="mock:fast",
+                default=False,
+                preferred=False,
+                cost_input=0.0,
+                cost_output=0.0,
+                cost_category="free",
+                max_input_tokens=8000,
+                max_output_tokens=8000
+            )
+        ]
+        self.config_no_file_support = ProviderConfig(
             name="mock",
             provider_type="mock",
             env_key="MOCK_API_KEY",
             system_prompt="Test system prompt",
-            llm_models=[
-                ModelConfig(
-                    name="mock:default",
-                    default=True,
-                    preferred=False,
-                    cost_input=0.0,
-                    cost_output=0.0,
-                    cost_category="free",
-                    max_input_tokens=16000,
-                    max_output_tokens=16000
-                ),
-                ModelConfig(
-                    name="mock:fast",
-                    default=False,
-                    preferred=False,
-                    cost_input=0.0,
-                    cost_output=0.0,
-                    cost_category="free",
-                    max_input_tokens=8000,
-                    max_output_tokens=8000
-                )
-            ]
+            llm_models=self.default_llm_models,
+            supports_file_upload=False # Explicitly False
+        )
+        self.config_with_file_support = ProviderConfig(
+            name="mock_files", # Changed name to distinguish in tests
+            provider_type="mock",
+            env_key="MOCK_API_KEY",
+            system_prompt="Test system prompt for file upload",
+            llm_models=self.default_llm_models,
+            supports_file_upload=True
         )
 
     def test_mock_provider_initialization(self):
         """Test that the MockProvider can be initialized"""
-        # Import the MockProvider
-        from pydantic_llm_tester.llms import MockProvider
-        
-        # Initialize the provider
-        provider = MockProvider(self.config)
-        
-        # Check basic properties
+        provider = MockProvider(self.config_no_file_support)
         self.assertEqual(provider.name, "mock")
-        self.assertEqual(provider.config, self.config)
+        self.assertEqual(provider.config, self.config_no_file_support)
+        self.assertFalse(provider.supports_file_upload)
+
+        provider_files = MockProvider(self.config_with_file_support)
+        self.assertEqual(provider_files.name, "mock_files")
+        self.assertEqual(provider_files.config, self.config_with_file_support)
+        self.assertTrue(provider_files.supports_file_upload)
         
     def test_mock_provider_get_response(self):
         """Test that the MockProvider.get_response works correctly"""
-        # Import the MockProvider
-        from pydantic_llm_tester.llms import MockProvider
-        
-        # Initialize the provider
-        provider = MockProvider(self.config)
-        
-        # Prepare a test prompt with a job-related source
+        provider = MockProvider(self.config_no_file_support)
         prompt = "Analyze this job posting"
         source = "MACHINE LEARNING ENGINEER with 5+ years of experience required"
         
-        # Call get_response
         response_text, usage_data = provider.get_response(prompt, source)
         
-        # Check that we got a response
         self.assertIsNotNone(response_text)
         self.assertIsInstance(response_text, str)
         self.assertTrue(len(response_text) > 0)
         
-        # Check usage data
         self.assertIsInstance(usage_data, UsageData)
         self.assertEqual(usage_data.provider, "mock")
         self.assertGreater(usage_data.prompt_tokens, 0)
         self.assertGreater(usage_data.completion_tokens, 0)
-        # The total cost may not be exactly 0.0 due to pricing calculation
         self.assertAlmostEqual(usage_data.total_cost, 0.0, places=3)
         
     def test_mock_provider_with_product_source(self):
         """Test that the MockProvider works with product description sources"""
-        # Import the MockProvider
-        from pydantic_llm_tester.llms import MockProvider
-        
-        # Initialize the provider
-        provider = MockProvider(self.config)
-        
-        # Prepare a test prompt with a product-related source
+        provider = MockProvider(self.config_no_file_support)
         prompt = "Analyze this product description"
-        source = "The latest smartphone with 6GB RAM and 128GB storage"
+        source = "The latest smartphone with 6GB RAM and 128GB storage" # Corrected source
         
-        # Call get_response
         response_text, usage_data = provider.get_response(prompt, source)
         
-        # Check that we got a response
         self.assertIsNotNone(response_text)
         self.assertIsInstance(response_text, str)
         self.assertTrue(len(response_text) > 0)
-        
-        # The response should contain product-related JSON
-        self.assertIn("{", response_text)
+        self.assertIn("{", response_text) # Expecting JSON-like mock response
         self.assertIn("}", response_text)
         
     def test_mock_provider_different_models(self):
         """Test that the MockProvider works with different model names"""
-        # Import the MockProvider
-        from pydantic_llm_tester.llms import MockProvider
-        
-        # Initialize the provider
-        provider = MockProvider(self.config)
-        
-        # Prepare a test prompt
+        provider = MockProvider(self.config_no_file_support)
         prompt = "Analyze this text"
-        source = "Sample source text for testing"
+        source = "Sample source text for testing" # Corrected source
         
-        # Call get_response with different model names
         response1, usage1 = provider.get_response(prompt, source, model_name="mock:default")
         response2, usage2 = provider.get_response(prompt, source, model_name="mock:fast")
         
-        # Check that model names are correctly reflected in usage data
         self.assertEqual(usage1.model, "mock:default")
         self.assertEqual(usage2.model, "mock:fast")
         
     def test_mock_provider_in_registry(self):
         """Test that the MockProvider can be loaded from the registry"""
-        # Import the registry
         from pydantic_llm_tester.llms import get_llm_provider, reset_provider_cache
         
-        # Reset the cache to ensure a clean test
         reset_provider_cache()
+        provider_from_registry = get_llm_provider("mock") 
         
-        # Get the mock provider from the registry
-        provider = get_llm_provider("mock")
+        self.assertIsNotNone(provider_from_registry)
+        self.assertEqual(provider_from_registry.name, "mock")
+
+    def test_mock_provider_file_upload_supported(self):
+        """Test file upload when provider supports it."""
+        provider = MockProvider(self.config_with_file_support)
+        self.assertTrue(provider.supports_file_upload)
+
+        dummy_files = ["/path/to/file1.txt", "another/file.pdf"]
+        prompt = "Analyze these files"
+        source = "Some source text."
+
+        response_text, usage_data = provider.get_response(prompt, source, files=dummy_files)
+
+        self.assertIsNotNone(response_text)
+        self.assertEqual(provider.last_received_files, dummy_files)
+
+    def test_mock_provider_file_upload_not_supported_by_provider_config(self):
+        """Test file upload when provider config says it's not supported."""
+        provider = MockProvider(self.config_no_file_support) # This config has supports_file_upload=False
+        self.assertFalse(provider.supports_file_upload)
+
+        dummy_files = ["/path/to/file1.txt"]
+        prompt = "Analyze this file"
+        source = "Some source text."
+
+        # Check that the correct error is raised from BaseLLM
+        with self.assertRaisesRegex(NotImplementedError, "Provider mock does not support file uploads."):
+            provider.get_response(prompt, source, files=dummy_files)
         
-        # Check that we got a provider
-        self.assertIsNotNone(provider)
-        self.assertEqual(provider.name, "mock")
+        self.assertIsNone(provider.last_received_files)
+
+    def test_mock_provider_file_upload_no_files_passed(self):
+        """Test behavior when no files are passed, even if supported."""
+        provider = MockProvider(self.config_with_file_support) # Supports files
+        self.assertTrue(provider.supports_file_upload)
+
+        prompt = "Analyze this"
+        source = "Some source text."
+
+        response_text, usage_data = provider.get_response(prompt, source) # No files argument
+        self.assertIsNotNone(response_text)
+        self.assertIsNone(provider.last_received_files)
+
+        response_text_none, usage_data_none = provider.get_response(prompt, source, files=None) # Explicit files=None
+        self.assertIsNotNone(response_text_none)
+        self.assertIsNone(provider.last_received_files)
+
+    def test_mock_provider_file_upload_not_supported_by_default_config(self):
+        """Test file upload when provider config is minimal (relies on BaseLLM/ProviderConfig defaults)."""
+        minimal_config = ProviderConfig(
+            name="mock_minimal", # Different name to avoid collision if registry is involved
+            provider_type="mock",
+            env_key="MOCK_API_KEY",
+            llm_models=self.default_llm_models
+            # supports_file_upload is not set, defaults to False in ProviderConfig Pydantic model
+        )
+        provider = MockProvider(minimal_config)
+        # BaseLLM.__init__ sets self.supports_file_upload from config.supports_file_upload.
+        # ProviderConfig.supports_file_upload defaults to False.
+        self.assertFalse(provider.supports_file_upload, 
+                         f"Provider supports_file_upload was {provider.supports_file_upload}, expected False")
+
+        dummy_files = ["/path/to/file1.txt"]
+        prompt = "Analyze this file"
+        source = "Some source text."
+
+        with self.assertRaisesRegex(NotImplementedError, "Provider mock_minimal does not support file uploads."):
+            provider.get_response(prompt, source, files=dummy_files)
+        
+        self.assertIsNone(provider.last_received_files)
 
 
 if __name__ == '__main__':

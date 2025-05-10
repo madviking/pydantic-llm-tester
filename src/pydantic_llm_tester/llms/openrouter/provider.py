@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Dict, Any, Tuple, Union
+from typing import Dict, Any, Tuple, Union, Optional, List # Added Optional, List
 import importlib # Import importlib
 
 # Import OpenAI library components directly at the top level
@@ -43,9 +43,9 @@ except ImportError as e:
 class OpenRouterProvider(BaseLLM):
     """Provider implementation for OpenRouter using OpenAI-compatible API"""
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models: Optional[List[str]] = None): # Added llm_models
         """Initialize the OpenRouter provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
         self.client = None # Initialize client to None
 
         # Check if OpenAI SDK is available using importlib
@@ -94,7 +94,7 @@ class OpenRouterProvider(BaseLLM):
             self.client = None # Ensure client is None on error
 
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the OpenRouter API
         using the OpenAI client library.
 
@@ -103,6 +103,8 @@ class OpenRouterProvider(BaseLLM):
             system_prompt: System prompt from config.
             model_name: Full OpenRouter model name (e.g., "google/gemini-flash-1.5").
             model_config: Model configuration object.
+            files: Optional list of file paths. Support for this via OpenRouter
+                   depends on the underlying model and OpenRouter's passthrough capabilities.
 
         Returns:
             Tuple of (response_text, usage_data_dict).
@@ -121,6 +123,12 @@ class OpenRouterProvider(BaseLLM):
         max_tokens = model_config.max_output_tokens if model_config and model_config.max_output_tokens else 2048
 
         self.logger.info(f"Sending request to OpenRouter model {model_name} with max_tokens={max_tokens}")
+
+        if files and self.supports_file_upload:
+            # TODO: Investigate how OpenRouter handles file uploads for various models.
+            # This might require specific formatting or might not be supported for all models.
+            # For now, just log that files were received.
+            self.logger.info(f"OpenRouter provider received files: {files}. Support depends on the specific OpenRouter model and its underlying API.")
 
         try:
             # Make the API call using the OpenAI client

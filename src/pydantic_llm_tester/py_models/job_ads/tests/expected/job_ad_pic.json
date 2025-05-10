@@ -1,0 +1,95 @@
+{
+  "title": "SENIOR MACHINE LEARNING ENGINEER",
+  "company": "DataVision Analytics",
+  "department": "AI Research Division",
+  "location": {
+    "city": "Boston",
+    "state": "Massachusetts",
+    "country": "United States"
+  },
+  "salary": {
+    "range": "$150,000 - $190,000",
+    "currency": "USD",
+    "period": "annually"
+  },
+  "employment_type": "Full-time",
+  "experience": {
+    "years": "5+ years",
+    "level": "Senior"
+  },
+  "required_skills": [
+    "Python",
+    "TensorFlow/PyTorch",
+    "computer vision or NLP algorithms",
+    "distributed computing",
+    "data preprocessing",
+    "feature engineering",
+    "ML system architecture",
+    "ML optimization",
+    "statistics",
+    "linear algebra"
+  ],
+  "preferred_skills": [
+    "GPT models",
+    "fine-tuning",
+    "edge deployment",
+    "ML infrastructure",
+    "MLOps",
+    "Cloud platforms (AWS SageMaker, Google AI Platform)",
+    "data annotation workflows"
+  ],
+  "education": [
+    {
+      "degree": "Master's degree",
+      "field": "Computer Science, AI, or related field",
+      "required": true
+    },
+    {
+      "degree": "PhD",
+      "field": "Machine Learning or related field",
+      "required": false
+    }
+  ],
+  "responsibilities": [
+    "Design and implement novel ML architectures for complex problems",
+    "Lead research projects exploring state-of-the-art approaches",
+    "Mentor junior team members on ML best practices",
+    "Collaborate with product teams to translate research into valuable features",
+    "Stay current with ML research and evaluate new techniques",
+    "Optimize models for performance and deployment constraints",
+    "Contribute to research papers and patents"
+  ],
+  "benefits": [
+    {
+      "name": "Comprehensive health, dental, and vision insurance",
+      "description": "Includes coverage for dependents and domestic partners"
+    },
+    {
+      "name": "401(k) matching program",
+      "description": "Up to 5% match with immediate vesting"
+    },
+    {
+      "name": "Flexible work arrangements",
+      "description": "Option for 2 days remote work per week"
+    },
+    {
+      "name": "Professional development budget",
+      "description": "$5,000 annual stipend for conferences, courses, and certifications"
+    },
+    {
+      "name": "Generous paid time off",
+      "description": "4 weeks vacation, plus sick leave and holidays"
+    }
+  ],
+  "description": "As a Senior ML Engineer, you will be at the forefront of our AI research initiatives, working in cross-functional teams to design and implement machine learning solutions that advance our computer vision and NLP capabilities. You'll collaborate closely with research scientists, software engineers, and product managers to transform cutting-edge research into scalable, production-ready systems. This role requires a blend of theoretical knowledge and practical implementation skills. You'll face complex challenges requiring innovative approaches while maintaining a focus on creating real-world impact through your work.",
+  "application_deadline": "2025-04-30",
+  "contact_info": {
+    "name": "Dr. Sarah Chen",
+    "email": "ml-recruiting@datavisionanalytics.com",
+    "phone": "(617) 555-9876",
+    "website": "https://careers.datavisionanalytics.com/ml-engineer"
+  },
+  "remote": true,
+  "travel_required": "Occasional travel (10-15%) for conferences, team off-sites, and client meetings",
+  "posting_date": "2025-03-15"
+}

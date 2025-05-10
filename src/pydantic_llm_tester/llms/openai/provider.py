@@ -37,7 +37,7 @@ class OpenAIProvider(BaseLLM):
         self.logger.info("OpenAI client initialized")
         
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the OpenAI API
         
         Args:
@@ -45,6 +45,10 @@ class OpenAIProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            files: Optional list of file paths. Note: Standard OpenAI chat completions
+                   don't directly use file paths in this manner. Vision models or
+                   assistants handle files differently. This is a placeholder for
+                   future, more specific file handling.
             
         Returns:
             Tuple of (response_text, usage_data)
@@ -63,7 +67,17 @@ class OpenAIProvider(BaseLLM):
         
         # Make the API call
         self.logger.info(f"Sending request to OpenAI model {model_name}")
-        
+
+        if files and self.supports_file_upload:
+            # TODO: Implement actual file handling for OpenAI.
+            # This might involve reading file content for text,
+            # or preparing image data for vision-capable models.
+            # For now, just log that files were received.
+            self.logger.info(f"OpenAI provider received files: {files}. Specific handling not yet implemented.")
+            # Depending on the model, this might mean constructing a different message format.
+            # E.g., for gpt-4-vision-preview, image URLs or base64 data would be part of the 'user' message content.
+            # If these are text files, their content might need to be inlined into the prompt.
+
         # Check if model supports response_format (only newer py_models like gpt-4o and gpt-4-turbo support it)
         supports_json_response_format = any(name in model_name for name in ['gpt-4o', 'gpt-4-turbo'])
         

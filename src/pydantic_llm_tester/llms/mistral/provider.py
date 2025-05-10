@@ -21,9 +21,9 @@ from pydantic_llm_tester.utils.cost_manager import UsageData
 class MistralProvider(BaseLLM):
     """Provider implementation for Mistral AI"""
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models: Optional[List[str]] = None): # Added llm_models
         """Initialize the Mistral provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
 
         self.client: Optional[MistralClient] = None # Type hint for clarity
 
@@ -52,7 +52,7 @@ class MistralProvider(BaseLLM):
 
 
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the Mistral API
 
         Args:
@@ -60,6 +60,9 @@ class MistralProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            files: Optional list of file paths. Standard Mistral chat models
+                   are primarily text-based. File handling might involve
+                   inlining text content if applicable.
 
         Returns:
             Tuple of (response_text, usage_data)
@@ -91,6 +94,13 @@ class MistralProvider(BaseLLM):
         # Make the API call
         self.logger.info(f"Sending request to Mistral model {model_name}")
 
+        if files and self.supports_file_upload:
+            # TODO: Implement actual file handling for Mistral if applicable.
+            # For text-based models, this might mean reading text file content
+            # and prepending/appending it to the prompt.
+            # For now, just log that files were received.
+            self.logger.info(f"Mistral provider received files: {files}. Specific handling not yet implemented for this text-centric API.")
+        
         try:
             response = self.client.chat(
                 model=model_name,

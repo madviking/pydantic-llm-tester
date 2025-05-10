@@ -538,11 +538,14 @@ class LLMTester:
                         progress_callback(f"    Sending request to {model_to_use}...")
 
                     # Get response from provider for the specific model
+                    file_paths = test_case.get('file_paths') # Get optional file_paths
+
                     response, usage_data = self.provider_manager.get_response(
                         provider=provider_name,
                         prompt=prompt_text,
                         source=source_text,
-                        model_name=model_to_use # Pass the specific model name
+                        model_name=model_to_use, # Pass the specific model name
+                        files=file_paths # Pass file_paths
                     )
 
                     if progress_callback:

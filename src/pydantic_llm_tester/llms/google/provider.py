@@ -1,6 +1,6 @@
 """Google provider implementation"""
 
-from typing import Dict, Any, Tuple, Union
+from typing import Dict, Any, Tuple, Union, Optional, List
 
 try:
     import google.generativeai as genai
@@ -17,9 +17,9 @@ from pydantic_llm_tester.utils.cost_manager import UsageData
 class GoogleProvider(BaseLLM):
     """Provider implementation for Google Gemini API"""
     
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models: Optional[List[str]] = None): # Added llm_models
         """Initialize the Google provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
         
         # Check if Google Generative AI SDK is available
         if not GOOGLE_AVAILABLE:
@@ -63,7 +63,7 @@ class GoogleProvider(BaseLLM):
         # pick up the credentials automatically.
         
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the Google Gemini API
         
         Args:
@@ -71,6 +71,7 @@ class GoogleProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            files: Optional list of file paths. Gemini models support multimodal input.
             
         Returns:
             Tuple of (response_text, usage_data)
@@ -85,6 +86,16 @@ class GoogleProvider(BaseLLM):
         
         # Make the API call
         self.logger.info(f"Sending request to Google model {model_name}")
+
+        if files and self.supports_file_upload:
+            # TODO: Implement actual file handling for Google Gemini.
+            # This would involve creating 'Part' objects from file paths/URIs or data,
+            # and including them in the content passed to model.generate_content().
+            # E.g., for an image:
+            # import google.generativeai as genai
+            # image_part = Part.from_uri(uri="gs://...", mime_type="image/jpeg")
+            # response = model.generate_content([prompt, image_part])
+            self.logger.info(f"Google provider received files: {files}. Specific handling not yet implemented.")
         
         try:
             # Get model

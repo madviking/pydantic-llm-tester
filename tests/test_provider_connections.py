@@ -156,6 +156,7 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
+from typing import Optional, List # Added import
 from pydantic_llm_tester.utils import ProviderManager, UsageData # Import UsageData here
 from pydantic_llm_tester.llms import BaseLLM # Import BaseLLM for mocking
 
@@ -170,19 +171,23 @@ api_key_required = pytest.mark.skipif(
 
 # Mock OpenAI Provider for testing ProviderManager interaction
 class MockOpenAIProvider(BaseLLM):
-    def __init__(self, config=None, llm_models=None):
+    def __init__(self, config=None, llm_models=None): # llm_models already present
         super().__init__(config, llm_models=llm_models)
         self.name = "openai" # Ensure the mock has the correct name
+        self.last_received_files: Optional[List[str]] = None
 
-    def _call_llm_api(self, prompt, system_prompt, model_name, model_config):
+
+    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, model_config, files: Optional[List[str]] = None): # Added files and type hints
         # Simple mock response
+        self.last_received_files = files
         return "Mocked OpenAI response: Hello World", {"prompt_tokens": 5, "completion_tokens": 2}
 
     # Override get_response to return a simple mock UsageData
-    def get_response(self, prompt, source, model_name=None):
+    def get_response(self, prompt: str, source: str, model_name: Optional[str] = None, files: Optional[List[str]] = None): # Added files and type hints
+         self.last_received_files = files
          return "Mocked OpenAI response: Hello World", UsageData(
              provider=self.name,
-             model=model_name or "gpt-3.5-turbo",
+             model=model_name or "gpt-3.5-turbo", # Use a default if model_name is None
              prompt_tokens=len(prompt.split()),
              completion_tokens=len("Mocked OpenAI response: Hello World".split())
          )
@@ -226,7 +231,8 @@ def test_openai_connection(mock_get_llm_provider):
         mock_openai_provider_instance.get_response.assert_called_once_with(
              prompt="Say hello",
              source="This is a test",
-             model_name="gpt-3.5-turbo"
+             model_name="gpt-3.5-turbo",
+             files=None # Added files=None
         )
         # Optionally check the returned usage data if needed
         assert usage.provider == "openai"
