@@ -112,7 +112,7 @@ def run_command(
     output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file for report/JSON (default: stdout)."),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON instead of Markdown report."),
     optimize: bool = typer.Option(False, "--optimize", help="Optimize prompts before running final tests."),
-    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter test cases by pattern (e.g., 'module/name'). Not fully implemented.")
+    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter test cases by name (case-insensitive substring match).")
 ):
     """
     Run the LLM test suite with the specified configurations.

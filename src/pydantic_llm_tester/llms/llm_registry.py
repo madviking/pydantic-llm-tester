@@ -30,20 +30,33 @@ def get_llm_provider(provider_name: str, llm_models: Optional[List[str]] = None)
     """
     # Check cache first
     if provider_name in _provider_instances:
-        # If llm_models filter is provided, we might need to re-initialize
-        # or ensure the cached instance is compatible. For simplicity now,
-        # if a filter is provided and the instance is cached, we'll assume
-        # the cached instance is sufficient or will handle filtering internally.
-        # A more robust approach might involve caching based on provider+models.
-        # For now, just return the cached instance.
-        return _provider_instances[provider_name]
+        cached_instance = _provider_instances[provider_name]
+        # Access the filter the cached instance was initialized with
+        # Ensure 'llm_models_filter' attribute exists, default to None if not (though it should exist via BaseLLM)
+        cached_filter = getattr(cached_instance, 'llm_models_filter', None)
+
+        # Normalize current and cached filters for comparison.
+        # Sorting ensures that the order of model names in the list doesn't affect cache matching.
+        current_filter_tuple = tuple(sorted(llm_models)) if llm_models is not None else None
+        cached_filter_tuple = tuple(sorted(cached_filter)) if cached_filter is not None else None
+
+        if current_filter_tuple == cached_filter_tuple:
+            logger.debug(f"Returning cached instance of {provider_name} with matching llm_models_filter: {current_filter_tuple}")
+            return cached_instance
+        else:
+            logger.info(f"Recreating instance for {provider_name} due to different llm_models_filter. "
+                        f"Requested: {current_filter_tuple}, Cached instance had: {cached_filter_tuple}")
+            # Proceed to create a new instance, which will replace the one in cache.
     
     # Create new provider instance, passing the llm_models filter
     provider = create_provider(provider_name, llm_models=llm_models)
     if provider:
+        # Cache the new instance (or updated instance)
         _provider_instances[provider_name] = provider
+        logger.debug(f"Cached new/updated instance for {provider_name} with llm_models_filter: {tuple(sorted(llm_models)) if llm_models is not None else None}")
         return provider
     
+    logger.warning(f"Failed to create provider {provider_name}.")
     return None
 
 

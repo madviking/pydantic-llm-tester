@@ -6,26 +6,37 @@ import sys
 # Add the project root to the path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pydantic_llm_tester.llms import BaseLLM
+from typing import Optional, List, Type # Added Type
+from pydantic import BaseModel as PydanticBaseModel # Alias to avoid clash if BaseLLM is also BaseModel
+from pydantic_llm_tester.llms import BaseLLM, ProviderConfig, ModelConfig 
 from pydantic_llm_tester.utils import UsageData
 
+
+# Dummy Pydantic model for testing
+class DummyModel(PydanticBaseModel):
+    field: str
 
 class MockBaseLLM(BaseLLM):
     """Mock implementation of BaseLLM for testing"""
     
-    def __init__(self, config=None):
-        super().__init__(config)
-        # Default response for testing
+    def __init__(self, config: Optional[ProviderConfig] = None, llm_models: Optional[List[str]] = None): 
+        super().__init__(config, llm_models=llm_models) 
         self.response_text = "Mock response from BaseLLM"
+        self.last_received_files: Optional[List[str]] = None
+        self.last_received_model_class: Optional[Type[PydanticBaseModel]] = None
     
-    def _call_llm_api(self, prompt, system_prompt, model_name, model_config):
+    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, model_config: ModelConfig, model_class: Type[PydanticBaseModel], files: Optional[List[str]] = None): 
         """Implement the abstract method with mock behavior"""
+        self.last_received_files = files
+        self.last_received_model_class = model_class
         return self.response_text, {"prompt_tokens": 10, "completion_tokens": 20}
         
-    def get_response(self, prompt, source, model_name=None):
+    def get_response(self, prompt: str, source: str, model_class: Type[PydanticBaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None): 
         """Override get_response for direct testing"""
+        self.last_received_files = files 
+        self.last_received_model_class = model_class
         return self.response_text, UsageData(
-            provider=self.name,
+            provider=self.name if self.name else "mock_base_llm", 
             model="test-model",
             prompt_tokens=100,
             completion_tokens=50
@@ -47,7 +58,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
         another_provider.name = "another_provider"
         
         # Configure get_llm_provider to return our mock instances
-        get_llm_provider_mock = MagicMock(side_effect=lambda name: 
+        get_llm_provider_mock = MagicMock(side_effect=lambda name, llm_models=None:
             test_provider if name == "test_provider" else
             another_provider if name == "another_provider" else None
         )
@@ -64,8 +75,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
             
             # Check that get_llm_provider was called for each provider
             get_llm_provider_mock.assert_has_calls([
-                call("test_provider"),
-                call("another_provider")
+                call("test_provider", llm_models=None),
+                call("another_provider", llm_models=None)
             ], any_order=True)
             
             # Check that provider instances were stored
@@ -111,6 +122,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
                 provider="test_provider",
                 prompt="Test prompt",
                 source="Test source",
+                model_class=DummyModel, # Pass dummy model class
                 model_name="custom-model"
             )
             
@@ -118,7 +130,9 @@ class TestProviderManagerRefactored(unittest.TestCase):
             test_provider.get_response.assert_called_once_with(
                 prompt="Test prompt",
                 source="Test source",
-                model_name="custom-model"
+                model_class=DummyModel, # Expect dummy model class
+                model_name="custom-model",
+                files=None 
             )
             
             # Check the response and usage data
@@ -169,11 +183,19 @@ class TestProviderManagerRefactored(unittest.TestCase):
             response, usage = manager.get_response(
                 provider="mock_test",
                 prompt="Test prompt",
-                source="Test source"
+                source="Test source",
+                model_class=DummyModel # Pass dummy model class
             )
             
             # Check that the mock provider's get_response was called
-            mock_provider.get_response.assert_called_once()
+            # We need to check arguments if its signature changed
+            mock_provider.get_response.assert_called_once_with(
+                prompt="Test prompt",
+                source="Test source",
+                model_class=DummyModel,
+                model_name=None, # Default model_name if not specified
+                files=None
+            )
             
             # Check the response
             self.assertEqual(response, "Mock response")
@@ -203,7 +225,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
                 manager.get_response(
                     provider="unknown",
                     prompt="Test prompt",
-                    source="Test source"
+                    source="Test source",
+                    model_class=DummyModel # Pass dummy model class
                 )
             
             # Check that the error mentions the provider
@@ -236,7 +259,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
                 manager.get_response(
                     provider="test_provider",
                     prompt="Test prompt",
-                    source="Test source"
+                    source="Test source",
+                    model_class=DummyModel # Pass dummy model class
                 )
             
             # Check that the error contains the provider error message

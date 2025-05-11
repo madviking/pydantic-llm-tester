@@ -46,7 +46,8 @@ class TestProviderManager:
         response, usage_data = manager.get_response(
             provider="mock_provider",
             prompt="Extract information from this job post.",
-            source="SENIOR MACHINE LEARNING ENGINEER position at DataVision Analytics"
+            source="SENIOR MACHINE LEARNING ENGINEER position at DataVision Analytics",
+            model_class=DummyModel # Pass dummy model class
         )
         
         # Check response has job ad content
@@ -63,7 +64,8 @@ class TestProviderManager:
         response, usage_data = manager.get_response(
             provider="mock_provider",
             prompt="Extract information from this product description.",
-            source="Wireless Earbuds X1 by TechGear"
+            source="Wireless Earbuds X1 by TechGear",
+            model_class=DummyModel # Pass dummy model class
         )
         
         # Check response has product description content
@@ -124,10 +126,11 @@ class TestProviderManager:
                     # Skip model name for mock_google, we'll handle it separately
                     pass
                 
-                response = manager.get_response(
+                response, _ = manager.get_response( # Ignore usage for this simple test
                     provider=provider,
                     prompt="Hello, please respond with a simple 'Hello World'",
                     source="This is a test.",
+                    model_class=DummyModel, # Pass dummy model class
                     model_name=model_name
                 )
                 
@@ -156,8 +159,10 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from pydantic_llm_tester.utils import ProviderManager, UsageData # Import UsageData here
-from pydantic_llm_tester.llms import BaseLLM # Import BaseLLM for mocking
+from typing import Optional, List, Type, Any # Added Type, Any
+from pydantic import BaseModel as PydanticBaseModel # Alias for dummy model
+from pydantic_llm_tester.utils import ProviderManager, UsageData 
+from pydantic_llm_tester.llms import BaseLLM, ModelConfig # Added ModelConfig
 
 # Mark tests that require API keys
 api_key_required = pytest.mark.skipif(
@@ -168,21 +173,29 @@ api_key_required = pytest.mark.skipif(
     reason="API keys required for this test"
 )
 
+# Dummy Pydantic model for testing
+class DummyModel(PydanticBaseModel):
+    field: str
+
 # Mock OpenAI Provider for testing ProviderManager interaction
 class MockOpenAIProvider(BaseLLM):
     def __init__(self, config=None, llm_models=None):
         super().__init__(config, llm_models=llm_models)
-        self.name = "openai" # Ensure the mock has the correct name
+        self.name = "openai" 
+        self.last_received_files: Optional[List[str]] = None
+        self.last_received_model_class: Optional[Type[PydanticBaseModel]] = None
 
-    def _call_llm_api(self, prompt, system_prompt, model_name, model_config):
-        # Simple mock response
+    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, model_config: ModelConfig, model_class: Type[PydanticBaseModel], files: Optional[List[str]] = None):
+        self.last_received_files = files
+        self.last_received_model_class = model_class
         return "Mocked OpenAI response: Hello World", {"prompt_tokens": 5, "completion_tokens": 2}
 
-    # Override get_response to return a simple mock UsageData
-    def get_response(self, prompt, source, model_name=None):
+    def get_response(self, prompt: str, source: str, model_class: Type[PydanticBaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None):
+         self.last_received_files = files
+         self.last_received_model_class = model_class
          return "Mocked OpenAI response: Hello World", UsageData(
              provider=self.name,
-             model=model_name or "gpt-3.5-turbo",
+             model=model_name or "gpt-3.5-turbo", 
              prompt_tokens=len(prompt.split()),
              completion_tokens=len("Mocked OpenAI response: Hello World".split())
          )
@@ -213,20 +226,23 @@ def test_openai_connection(mock_get_llm_provider):
     
     # Test getting a response
     try:
-        response, usage = manager.get_response( # Capture usage data
+        response, usage = manager.get_response( 
             provider="openai",
             prompt="Say hello",
             source="This is a test",
-            model_name="gpt-3.5-turbo"  # Use smaller model for testing
+            model_class=DummyModel, # Pass dummy model class
+            model_name="gpt-3.5-turbo"
         )
         assert response and len(response) > 0
         # Verify that get_llm_provider was called
-        mock_get_llm_provider.assert_called_once_with("openai")
+        mock_get_llm_provider.assert_called_once_with("openai", llm_models=None)
         # Verify that the mock provider's get_response was called
         mock_openai_provider_instance.get_response.assert_called_once_with(
              prompt="Say hello",
              source="This is a test",
-             model_name="gpt-3.5-turbo"
+             model_class=DummyModel, # Expect dummy model class
+             model_name="gpt-3.5-turbo",
+             files=None 
         )
         # Optionally check the returned usage data if needed
         assert usage.provider == "openai"
@@ -247,11 +263,12 @@ def test_anthropic_connection():
     
     # Test getting a response
     try:
-        response = manager.get_response(
+        response, _ = manager.get_response( # Ignore usage for this simple test
             provider="anthropic",
             prompt="Say hello",
             source="This is a test",
-            model_name="claude-3-haiku-20240307"  # Use smaller model for testing
+            model_class=DummyModel, # Pass dummy model class
+            model_name="claude-3-haiku-20240307"
         )
         assert response and len(response) > 0
     except Exception as e:
@@ -269,11 +286,12 @@ def test_mistral_connection():
     
     # Test getting a response
     try:
-        response = manager.get_response(
+        response, _ = manager.get_response(
             provider="mistral",
             prompt="Say hello",
             source="This is a test",
-            model_name="mistral-small-latest"  # Use smaller model for testing
+            model_class=DummyModel, # Pass dummy model class
+            model_name="mistral-small-latest"
         )
         assert response and len(response) > 0
     except Exception as e:
@@ -293,10 +311,11 @@ def test_google_connection():
     
     # Test getting a response
     try:
-        response = manager.get_response(
+        response, _ = manager.get_response(
             provider="mock_google",
             prompt="Say hello",
-            source="This is a test"
+            source="This is a test",
+            model_class=DummyModel # Pass dummy model class
         )
         
         # Verify we got a valid response from the mock

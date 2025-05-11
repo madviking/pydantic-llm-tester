@@ -3,7 +3,8 @@ Manager for LLM provider connections
 """
 
 import logging
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Type # Added Type
+from pydantic import BaseModel # Added BaseModel for type hint
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -59,8 +60,8 @@ class ProviderManager:
                     self.logger.info(f"Using mock provider for {provider}")
                     continue
                 
-                # Get provider from registry
-                provider_instance = get_llm_provider(provider)
+                # Get provider from registry, passing the llm_models filter
+                provider_instance = get_llm_provider(provider, llm_models=self.llm_models)
                 if not provider_instance:
                     self.initialization_errors[provider] = f"Provider {provider} not found in registry"
                     self.logger.warning(f"Provider {provider} not found in registry")
@@ -74,7 +75,7 @@ class ProviderManager:
                 self.logger.error(f"Failed to initialize {provider} provider: {str(e)}")
                 self.initialization_errors[provider] = str(e)
     
-    def get_response(self, provider: str, prompt: str, source: str, model_name: Optional[str] = None) -> Tuple[str, Optional[UsageData]]:
+    def get_response(self, provider: str, prompt: str, source: str, model_class: Type[BaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, Optional[UsageData]]:
         """
         Get a response from a provider
         
@@ -82,7 +83,9 @@ class ProviderManager:
             provider: Provider name
             prompt: Prompt text
             source: Source text
+            model_class: The Pydantic model class for schema guidance.
             model_name: Optional specific model name to use
+            files: Optional list of file paths to upload
             
         Returns:
             Tuple of (response_text, usage_data)
@@ -133,7 +136,9 @@ class ProviderManager:
             response_text, usage_data = provider_instance.get_response(
                 prompt=prompt,
                 source=source,
-                model_name=model_name
+                model_class=model_class, # Pass model_class
+                model_name=model_name,
+                files=files 
             )
             
             # Log usage info

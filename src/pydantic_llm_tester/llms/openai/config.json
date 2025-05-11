@@ -4,6 +4,7 @@
   "env_key": "OPENAI_API_KEY",
   "env_key_secret": "",
   "system_prompt": "You are a helpful data extraction assistant. Extract the requested information accurately from the provided text in JSON format.",
+  "supports_file_upload": true,
   "llm_models": [
     {
       "name": "gpt-4",

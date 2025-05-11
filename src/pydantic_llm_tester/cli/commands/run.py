@@ -22,7 +22,7 @@ ModelsOptionPy = typer.Option(None, "--py_models", "-m", help="Specify Pydantic 
 ModelsOptionLLM = typer.Option(None, "--llm_models", help="Specify LLM models to test (e.g., 'gpt-4o'). Can be used multiple times.")
 TestDirOption = typer.Option(None, "--test-dir", help="Directory containing test files (default: uses LLMTester default).")
 
-@app.command("tests") # Explicit command name 'tests' under 'run' group, or maybe just 'run' on main app? Let's use 'tests' for now.
+# Removed @app.command("tests") decorator. This is now a logic function.
 def run_tests(
     providers: Optional[List[str]] = ProvidersOption,
     py_models: Optional[List[str]] = ModelsOptionPy,
@@ -31,7 +31,7 @@ def run_tests(
     output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file for report/JSON (default: stdout)."),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON instead of Markdown report."),
     optimize: bool = typer.Option(False, "--optimize", help="Optimize prompts before running final tests."),
-    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter test cases by pattern (e.g., 'module/name'). Not fully implemented.") # Added filter option
+    filter: Optional[str] = typer.Option(None, "--filter", "-f", help="Filter test cases by name (case-insensitive substring match).")
 ):
     """
     Run the LLM test suite with the specified configurations.
@@ -51,13 +51,13 @@ def run_tests(
         output_file=output_file,
         output_json=json_output, # Corrected parameter name
         optimize=optimize,
-        test_filter=filter
+        test_name_filter=filter # Changed test_filter to test_name_filter
     )
 
     if not success:
         raise typer.Exit(code=1)
 
-@app.command("list")
+# Removed @app.command("list") decorator. This is now a logic function.
 def list_items(
     providers: Optional[List[str]] = ProvidersOption,
     py_models: Optional[List[str]] = ModelsOptionPy,

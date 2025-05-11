@@ -1,0 +1,5 @@
+Analyze the provided image, which is expected to be a job advertisement.
+Extract relevant job details based on the JobAd schema.
+If the image contains text, prioritize extracting information from that text.
+Provide an analysis or description of the image content in the 'image_analysis' field of the JobAd schema.
+If specific fields like job_title or company_name cannot be determined from the image, use "Unknown (from image)" for those fields.

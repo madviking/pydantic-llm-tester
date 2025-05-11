@@ -4,6 +4,7 @@
   "env_key": "GOOGLE_API_KEY",
   "env_key_secret": "",
   "system_prompt": "Extract the requested information from the provided text as accurate JSON format. Ensure all fields are properly typed and structured.",
+  "supports_file_upload": true,
   "llm_models": [
     {
       "name": "gemini-1.5-pro",
@@ -59,6 +60,17 @@
     },
     {
       "name": "gemini-pro",
+      "default": false,
+      "preferred": true,
+      "enabled": true,
+      "cost_input": 0.5,
+      "cost_output": 1.5,
+      "cost_category": "standard",
+      "max_input_tokens": 30720,
+      "max_output_tokens": 2048
+    },
+    {
+      "name": "gemini-2.5-flash-preview-04-17",
       "default": false,
       "preferred": true,
       "enabled": true,

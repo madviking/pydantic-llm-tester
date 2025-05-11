@@ -24,6 +24,12 @@ class ContactInfo(BaseModel):
     phone: Optional[str] = Field(None, description="Phone number for inquiries")
     website: Optional[HttpUrl] = Field(None, description="Company or application website")
 
+class ExperienceRequirement(BaseModel):
+    """Experience requirements for the job"""
+    
+    years: int = Field(..., description="Number of years of experience required")
+    level: str = Field(..., description="Level of experience (e.g., junior, mid, senior)")
+    preferred: bool = Field(..., description="Whether this experience is preferred or required")
 
 class EducationRequirement(BaseModel):
     """Education requirements for the job"""
@@ -31,6 +37,14 @@ class EducationRequirement(BaseModel):
     degree: str = Field(..., description="Required degree")
     field: str = Field(..., description="Field of study")
     required: bool = Field(..., description="Whether this education is required or preferred")
+
+class Location(BaseModel):
+    """Location of the job"""
+    
+    city: str = Field(..., description="City where the job is located")
+    state: Optional[str] = Field(None, description="State where the job is located")
+    country: str = Field(..., description="Country where the job is located")
+    remote: bool = Field(..., description="Whether the job is remote or not")
 
 
 class JobAd(BaseModel):
@@ -47,10 +61,10 @@ class JobAd(BaseModel):
     title: str = Field(..., description="Job title")
     company: str = Field(..., description="Company name")
     department: Optional[str] = Field(None, description="Department within the company")
-    location: Dict[str, str] = Field(..., description="Job location with city, state, country")
-    salary: Dict[str, Any] = Field(..., description="Salary information including range, currency, and period")
+    location: Location = Field(..., description="Job location with city, state, country")
+    salary: str = Field(..., description="Salary information including range, currency, and period")
     employment_type: str = Field(..., description="Type of employment (full-time, part-time, contract, etc.)")
-    experience: Dict[str, Any] = Field(..., description="Experience requirements including years and level")
+    experience: ExperienceRequirement = Field(..., description="Experience requirements including years and level")
     required_skills: List[str] = Field(..., description="List of required skills")
     preferred_skills: List[str] = Field(default_factory=list, description="List of preferred skills")
     education: List[EducationRequirement] = Field(default_factory=list, description="List of education requirements")
@@ -61,10 +75,15 @@ class JobAd(BaseModel):
     contact_info: ContactInfo = Field(..., description="Contact information for applications")
     remote: bool = Field(..., description="Whether the job is remote or not")
     travel_required: Optional[str] = Field(None, description="Travel requirements if any")
-    posting_date: date = Field(..., description="Date when the job was posted")
+    posting_date: Optional[date] = Field(..., description="Date when the job was posted")
+    image_analysis: Optional[str] = Field(None, description="Analysis of the image content, if applicable")
     
     @classmethod
-    def get_test_cases(cls) -> List[Dict[str, str]]:
+    def get_skip_fields(cls):
+        return {"image_analysis", "some_other_field"}
+
+    @classmethod
+    def get_test_cases(cls) -> List[Dict[str, Any]]: # Changed return type hint
         """
         Discover test cases for this module
         
@@ -106,7 +125,45 @@ class JobAd(BaseModel):
             }
             
             test_cases.append(test_case)
-        
+
+        # Add the new image-based test case
+        image_test_case_name = "job_ad_from_image"
+        image_source_file = f"{image_test_case_name}_source.txt"
+        image_prompt_file = f"{image_test_case_name}_prompt.txt"
+        image_expected_file = f"{image_test_case_name}.json"
+        image_file_to_upload = "job_ad_pic.png" # This is in the sources directory
+
+        # Construct full paths for this specific test case
+        image_source_path = os.path.join(sources_dir, image_source_file)
+        image_prompt_path = os.path.join(prompts_dir, image_prompt_file)
+        image_expected_path = os.path.join(expected_dir, image_expected_file)
+        # Path to the image file itself, relative to the project root for clarity in definition
+        # but LLMTester might need to resolve it. For now, let's assume it's discoverable from sources_dir.
+        actual_image_file_path = os.path.join(sources_dir, image_file_to_upload)
+
+
+        # Check if all files for the image test case exist
+        if all(os.path.exists(p) for p in [image_source_path, image_prompt_path, image_expected_path, actual_image_file_path]):
+            image_test_case = {
+                'module': cls.MODULE_NAME,
+                'name': image_test_case_name,
+                'model_class': cls,
+                'source_path': image_source_path,
+                'prompt_path': image_prompt_path,
+                'expected_path': image_expected_path,
+                'file_paths': [actual_image_file_path] # List of file paths for upload
+            }
+            test_cases.append(image_test_case)
+        else:
+            # Log a warning if any of the required files for the image test case are missing
+            missing_files = []
+            if not os.path.exists(image_source_path): missing_files.append(image_source_path)
+            if not os.path.exists(image_prompt_path): missing_files.append(image_prompt_path)
+            if not os.path.exists(image_expected_path): missing_files.append(image_expected_path)
+            if not os.path.exists(actual_image_file_path): missing_files.append(actual_image_file_path)
+            # Consider logging this warning using the class's logger if available, or print
+            print(f"Warning: Skipping image test case '{image_test_case_name}' for module '{cls.MODULE_NAME}' due to missing files: {missing_files}")
+
         return test_cases
     
     @classmethod

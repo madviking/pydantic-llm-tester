@@ -1,7 +1,8 @@
 """Mistral provider implementation"""
 
 import logging
-from typing import Dict, Any, Tuple, Optional, List, Union
+import json # Added json import
+from typing import Dict, Any, Tuple, Optional, List, Union, Type # Added Type
 
 try:
     # Import the client directly
@@ -14,16 +15,16 @@ except ImportError as e:
     # Log the import error for debugging
     logging.warning(f"Could not import Mistral SDK: {e}. Install with 'pip install mistralai'")
 
-from ..base import BaseLLM, ModelConfig
+from ..base import BaseLLM, ModelConfig, BaseModel # Added BaseModel
 from pydantic_llm_tester.utils.cost_manager import UsageData
 
 
 class MistralProvider(BaseLLM):
     """Provider implementation for Mistral AI"""
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models: Optional[List[str]] = None): # Added llm_models
         """Initialize the Mistral provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
 
         self.client: Optional[MistralClient] = None # Type hint for clarity
 
@@ -52,7 +53,7 @@ class MistralProvider(BaseLLM):
 
 
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the Mistral API
 
         Args:
@@ -60,6 +61,10 @@ class MistralProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            model_class: The Pydantic model class for schema guidance.
+            files: Optional list of file paths. Standard Mistral chat models
+                   are primarily text-based. File handling might involve
+                   inlining text content if applicable.
 
         Returns:
             Tuple of (response_text, usage_data)
@@ -73,9 +78,28 @@ class MistralProvider(BaseLLM):
         max_tokens = model_config.max_output_tokens
 
         # Prepare messages in the new format (list of dictionaries)
+        
+        # Ensure we have a valid system prompt
+        if not system_prompt:
+            system_prompt = "You are a helpful AI assistant. Your primary goal is to extract structured data from the user's input."
+
+        # Enhance system_prompt with Pydantic schema instructions
+        try:
+            schema_str = json.dumps(model_class.model_json_schema(), indent=2)
+        except AttributeError:
+            schema_str = model_class.schema_json(indent=2)
+            
+        schema_instruction = (
+            f"\n\nYour output MUST be a JSON object that strictly conforms to the following JSON Schema:\n"
+            f"```json\n{schema_str}\n```\n"
+            "Ensure that the generated JSON is valid and adheres to this schema. "
+            "If certain information is not present in the input, use appropriate null or default values as defined in the schema."
+        )
+        effective_system_prompt = f"{system_prompt}\n{schema_instruction}" if system_prompt else schema_instruction.strip()
+
         messages: List[Dict[str, str]] = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
+        if effective_system_prompt: # Use the enhanced system prompt
+            messages.append({"role": "system", "content": effective_system_prompt})
 
         messages.append({"role": "user", "content": prompt})
 
@@ -91,6 +115,13 @@ class MistralProvider(BaseLLM):
         # Make the API call
         self.logger.info(f"Sending request to Mistral model {model_name}")
 
+        if files and self.supports_file_upload:
+            # TODO: Implement actual file handling for Mistral if applicable.
+            # For text-based models, this might mean reading text file content
+            # and prepending/appending it to the prompt.
+            # For now, just log that files were received.
+            self.logger.info(f"Mistral provider received files: {files}. Specific handling not yet implemented for this text-centric API.")
+        
         try:
             response = self.client.chat(
                 model=model_name,

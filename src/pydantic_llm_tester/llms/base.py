@@ -1,6 +1,6 @@
 """Base LLM provider class and related utilities"""
 
-from typing import Dict, Any, Tuple, Optional, List, Union
+from typing import Dict, Any, Tuple, Optional, List, Union, Type # Added Type
 from abc import ABC, abstractmethod
 import logging
 import os
@@ -32,9 +32,11 @@ class ProviderConfig(BaseModel):
     env_key_secret: Optional[str] = Field(None, description="Environment variable name for secondary key/secret")
     system_prompt: str = Field("", description="Default system prompt to use")
     llm_models: List[ModelConfig] = Field(..., description="Available models for this provider")
+    supports_file_upload: bool = Field(False, description="Whether this provider supports file uploads")
 
 class BaseLLM(ABC):
     """Base class for all LLM providers"""
+    supports_file_upload: bool = False
     
     def __init__(self, config: Optional[ProviderConfig] = None, llm_models: Optional[List[str]] = None):
         """Initialize provider with optional config and model filter"""
@@ -42,18 +44,25 @@ class BaseLLM(ABC):
         self.llm_models_filter = llm_models # Store the list of desired LLM models
         self.name = config.name if config else self.__class__.__name__.lower().replace('provider', '')
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
+        if config:
+            self.supports_file_upload = config.supports_file_upload
     
-    def get_response(self, prompt: str, source: str, model_name: Optional[str] = None) -> Tuple[str, UsageData]:
+    def get_response(self, prompt: str, source: str, model_class: Type[BaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
         """Get response from LLM for the given prompt and source
         
         Args:
             prompt: The prompt text to send
             source: The source text to include in the prompt
+            model_class: The Pydantic model class for schema guidance.
             model_name: Optional model name to use
+            files: Optional list of file paths to upload
             
         Returns:
             Tuple of response text and usage data
         """
+        if files and not self.supports_file_upload:
+            raise NotImplementedError(f"Provider {self.name} does not support file uploads.")
+            
         # Get model config
         model_config = self.get_model_config(model_name)
 
@@ -84,7 +93,9 @@ class BaseLLM(ABC):
                 prompt=full_prompt,
                 system_prompt=system_prompt,
                 model_name=clean_model_name,
-                model_config=model_config
+                model_config=model_config,
+                model_class=model_class, # Pass model_class
+                files=files
             )
             
             elapsed_time = time.time() - start_time
@@ -125,7 +136,7 @@ class BaseLLM(ABC):
     
     @abstractmethod
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the LLM
         
         Args:
@@ -133,6 +144,8 @@ class BaseLLM(ABC):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            model_class: The Pydantic model class for schema guidance.
+            files: Optional list of file paths to upload
             
         Returns:
             Tuple of (response_text, usage_data)

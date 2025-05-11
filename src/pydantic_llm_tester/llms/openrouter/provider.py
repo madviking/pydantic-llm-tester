@@ -2,7 +2,8 @@
 
 import logging
 import os
-from typing import Dict, Any, Tuple, Union
+import json # Added json import
+from typing import Dict, Any, Tuple, Union, Optional, List, Type # Added Type
 import importlib # Import importlib
 
 # Import OpenAI library components directly at the top level
@@ -26,26 +27,27 @@ except ImportError:
 # Import base classes from the project
 # Assuming standard project structure allows these imports
 try:
-    from ..base import BaseLLM, ModelConfig
+    from ..base import BaseLLM, ModelConfig, BaseModel # Added BaseModel
     from pydantic_llm_tester.utils.cost_manager import UsageData # Relative import for UsageData
 except ImportError as e:
     # Fallback for potential import issues, log error
     logging.getLogger(__name__).error(f"Failed to import base classes: {e}. Using dummy classes.")
-    class BaseModel: # Dummy Pydantic-like base
+    class PydanticBaseModel: # Dummy Pydantic-like base # Renamed to avoid clash
         def __init__(self, **kwargs): pass
     class BaseLLM: # Dummy BaseLLM
-        def __init__(self, config=None): self.config = config; self.logger = logging.getLogger(__name__)
+        def __init__(self, config=None, llm_models=None): self.config = config; self.logger = logging.getLogger(__name__) # Added llm_models
         def get_api_key(self): return os.environ.get(self.config.env_key) if self.config else None
-    class ModelConfig(BaseModel): pass
-    class UsageData(BaseModel): pass
+    class ModelConfig(PydanticBaseModel): pass # Use renamed dummy
+    class UsageData(PydanticBaseModel): pass # Use renamed dummy
+    class BaseModel(PydanticBaseModel): pass # Define dummy BaseModel if ..base fails
 
 
 class OpenRouterProvider(BaseLLM):
     """Provider implementation for OpenRouter using OpenAI-compatible API"""
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, llm_models: Optional[List[str]] = None): # Added llm_models
         """Initialize the OpenRouter provider"""
-        super().__init__(config)
+        super().__init__(config, llm_models=llm_models) # Pass llm_models to super
         self.client = None # Initialize client to None
 
         # Check if OpenAI SDK is available using importlib
@@ -94,7 +96,7 @@ class OpenRouterProvider(BaseLLM):
             self.client = None # Ensure client is None on error
 
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call to the OpenRouter API
         using the OpenAI client library.
 
@@ -103,6 +105,9 @@ class OpenRouterProvider(BaseLLM):
             system_prompt: System prompt from config.
             model_name: Full OpenRouter model name (e.g., "google/gemini-flash-1.5").
             model_config: Model configuration object.
+            model_class: The Pydantic model class for schema guidance.
+            files: Optional list of file paths. Support for this via OpenRouter
+                   depends on the underlying model and OpenRouter's passthrough capabilities.
 
         Returns:
             Tuple of (response_text, usage_data_dict).
@@ -114,7 +119,21 @@ class OpenRouterProvider(BaseLLM):
 
         # Ensure we have a valid system prompt (provide a default if empty)
         if not system_prompt:
-            system_prompt = "You are a helpful assistant." # Basic default
+            system_prompt = "You are a helpful AI assistant. Your primary goal is to extract structured data from the user's input." # More generic default
+
+        # Enhance system_prompt with Pydantic schema instructions
+        try:
+            schema_str = json.dumps(model_class.model_json_schema(), indent=2)
+        except AttributeError:
+            schema_str = model_class.schema_json(indent=2)
+            
+        schema_instruction = (
+            f"\n\nYour output MUST be a JSON object that strictly conforms to the following JSON Schema:\n"
+            f"```json\n{schema_str}\n```\n"
+            "Ensure that the generated JSON is valid and adheres to this schema. "
+            "If certain information is not present in the input, use appropriate null or default values as defined in the schema."
+        )
+        effective_system_prompt = f"{system_prompt}\n{schema_instruction}" if system_prompt else schema_instruction.strip()
 
         # Determine max tokens for the response
         # Use model_config.max_output_tokens if available, otherwise a sensible default
@@ -122,18 +141,36 @@ class OpenRouterProvider(BaseLLM):
 
         self.logger.info(f"Sending request to OpenRouter model {model_name} with max_tokens={max_tokens}")
 
+        if files and self.supports_file_upload:
+            # TODO: Investigate how OpenRouter handles file uploads for various models.
+            # This might require specific formatting or might not be supported for all models.
+            # For now, just log that files were received.
+            self.logger.info(f"OpenRouter provider received files: {files}. Support depends on the specific OpenRouter model and its underlying API.")
+
         try:
+            # Prepare messages
+            messages = [
+                {"role": "system", "content": effective_system_prompt},
+                {"role": "user", "content": prompt} # OpenRouter typically doesn't support complex content lists like OpenAI for vision
+            ]
+
+            request_params = {
+                "model": model_name, # Pass the full OpenRouter model ID
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.1,
+            }
+
+            # OpenRouter itself doesn't have a 'response_format' param at its top-level API.
+            # It passes through params to underlying models. Some might support it.
+            # For simplicity and robustness, we rely on the system prompt schema injection.
+            # If a specific underlying model (e.g., an OpenAI model via OpenRouter) supports it,
+            # OpenRouter might pass it. We can add it if we know the model supports it.
+            # Example: if "gpt-4o" in model_name: request_params["response_format"] = {"type": "json_object"}
+            # For now, relying on prompt.
+
             # Make the API call using the OpenAI client
-            response = self.client.chat.completions.create(
-                model=model_name, # Pass the full OpenRouter model ID
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=max_tokens,
-                temperature=0.1,  # Lower temperature for more deterministic results, adjust if needed
-                # Add other parameters like top_p if required
-            )
+            response = self.client.chat.completions.create(**request_params)
 
             # Extract response text
             if response.choices and response.choices[0].message:

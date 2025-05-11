@@ -1,11 +1,12 @@
 """Mock provider implementation for testing purposes"""
 
 import re
-from typing import Dict, Any, Tuple, Union
+from typing import Dict, Any, Tuple, Union, Optional, List, Type # Added Type
 import time
 import random
+import json # Added json for schema dump, though mock won't use it
 
-from ..base import BaseLLM, ModelConfig
+from ..base import BaseLLM, ModelConfig, ProviderConfig, BaseModel # Added BaseModel
 from pydantic_llm_tester.utils.cost_manager import UsageData
 
 class MockProvider(BaseLLM):
@@ -15,6 +16,8 @@ class MockProvider(BaseLLM):
         """Initialize the Mock provider"""
         super().__init__(config, llm_models=llm_models) # Pass llm_models to super
         self.logger.info("Mock provider initialized")
+        self.last_received_files: Optional[List[str]] = None # For test inspection
+        self.last_received_model_class: Optional[Type[BaseModel]] = None # For test inspection
         
         # Set up mock response registry
         self.response_registry = {}
@@ -31,7 +34,7 @@ class MockProvider(BaseLLM):
         self.logger.debug(f"Registered mock response for key: {key}")
         
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
         """Implementation-specific API call for mocked responses
         
         Args:
@@ -39,11 +42,26 @@ class MockProvider(BaseLLM):
             system_prompt: System prompt from config
             model_name: Clean model name (without provider prefix)
             model_config: Model configuration
+            model_class: The Pydantic model class for schema guidance.
+            files: Optional list of file paths
             
         Returns:
             Tuple of (response_text, usage_data)
         """
         self.logger.info(f"Mock provider called with model {model_name}")
+        self.last_received_files = files
+        self.last_received_model_class = model_class # Store model_class
+        if files:
+            self.logger.info(f"Mock provider received files: {files}")
+        if model_class:
+            self.logger.info(f"Mock provider received model_class: {model_class.__name__}")
+            # Optionally log the schema string if needed for debugging
+            # try:
+            #     schema_str = json.dumps(model_class.model_json_schema(), indent=2)
+            # except AttributeError:
+            #     schema_str = model_class.schema_json(indent=2)
+            # self.logger.debug(f"Mock provider received model_class schema: {schema_str}")
+
         
         # Add simulated delay to mimic real API call
         delay = random.uniform(0.1, 0.5)
