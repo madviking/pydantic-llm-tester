@@ -70,7 +70,7 @@
       "max_output_tokens": 2048
     },
     {
-      "name": "gemini-2.5-pro-exp-03-25",
+      "name": "gemini-2.5-flash-preview-04-17",
       "default": false,
       "preferred": true,
       "enabled": true,

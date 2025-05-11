@@ -1,0 +1,80 @@
+{
+  "title": "Fullstack Python Developer - Remote Work",
+  "company": "BairesDev",
+  "department": null,
+  "location": {
+    "city": "Plovdiv",
+    "state": null,
+    "country": "Bulgaria",
+    "remote": true
+  },
+  "salary": "Excellent compensation in USD or your local currency if preferred",
+  "employment_type": "Full-time",
+  "experience": {
+    "years": 3,
+    "level": "Mid-Senior",
+    "preferred": false
+  },
+  "required_skills": [
+    "Python (3+ years experience)",
+    "Pandas (Strong experience)",
+    "Frontend development (HTML/CSS/JavaScript) (Proficiency)",
+    "AWS Cloud Services (Experience)",
+    "Upper Intermediate English level"
+  ],
+  "preferred_skills": [
+    "Streamlit (Experience)",
+    "AWS Bedrock (Knowledge)",
+    "Containerization (Docker, Kubernetes) (Knowledge)",
+    "Database design principles (Understanding)"
+  ],
+  "education": [],
+  "responsibilities": [
+    "Develop Python backend applications and APIs.",
+    "Build data analysis solutions using Pandas.",
+    "Create responsive frontend interfaces.",
+    "Implement database interactions and AWS integrations.",
+    "Collaborate with teams to deliver high-quality solutions."
+  ],
+  "benefits": [
+    {
+      "name": "Remote Work",
+      "description": "100% remote work (from anywhere)."
+    },
+    {
+      "name": "Compensation",
+      "description": "Excellent compensation in USD or your local currency if preferred."
+    },
+    {
+      "name": "Work Setup",
+      "description": "Hardware and software setup for you to work from home."
+    },
+    {
+      "name": "Flexible Hours",
+      "description": "Create your own schedule."
+    },
+    {
+      "name": "Paid Time Off",
+      "description": "Paid parental leaves, vacations, and national holidays."
+    },
+    {
+      "name": "Work Environment",
+      "description": "Innovative and multicultural work environment: collaborate and learn from the global Top 1% of talent."
+    },
+    {
+      "name": "Growth Opportunities",
+      "description": "Supportive environment with mentorship, promotions, skill development, and diverse growth opportunities."
+    }
+  ],
+  "description": "At BairesDev\u00ae, we've been leading the way in technology projects for over 15 years. We deliver cutting-edge solutions to giants like Google and the most innovative startups in Silicon Valley.\n\nOur diverse 4,000+ team, composed of the world's Top 1% of tech talent, works remotely on roles that drive significant impact worldwide.\n\nWhen you apply for this position, you're taking the first step in a process that goes beyond the ordinary. We aim to align your passions and skills with our vacancies, setting you on a path to exceptional career development and success.\n\nFullstack Python Developer at BairesDev\n\nWe are looking for a Fullstack Python Developer to join our development team. This role focuses on building robust backend applications with Python while creating responsive frontend interfaces using modern web technologies. You'll have the opportunity to work on diverse projects while growing your technical skills in a collaborative environment.",
+  "application_deadline": null,
+  "contact_info": {
+    "name": null,
+    "email": null,
+    "phone": null,
+    "website": null
+  },
+  "remote": true,
+  "travel_required": null,
+  "posting_date": null
+}

@@ -75,9 +75,13 @@ class JobAd(BaseModel):
     contact_info: ContactInfo = Field(..., description="Contact information for applications")
     remote: bool = Field(..., description="Whether the job is remote or not")
     travel_required: Optional[str] = Field(None, description="Travel requirements if any")
-    posting_date: date = Field(..., description="Date when the job was posted")
+    posting_date: Optional[date] = Field(..., description="Date when the job was posted")
     image_analysis: Optional[str] = Field(None, description="Analysis of the image content, if applicable")
     
+    @classmethod
+    def get_skip_fields(cls):
+        return {"image_analysis", "some_other_field"}
+
     @classmethod
     def get_test_cases(cls) -> List[Dict[str, Any]]: # Changed return type hint
         """

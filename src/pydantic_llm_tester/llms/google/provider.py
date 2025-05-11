@@ -48,53 +48,26 @@ try:
         Part = ActualPart
         _module_logger.info("Imported Part from google.genai.types")
     except (ImportError, AttributeError): # Catch AttributeError if .types doesn't exist
-        try:
-            Part = genai_sdk.Part # Try direct attribute
-            _module_logger.info("Imported Part directly from google.genai.Part")
-        except (ImportError, AttributeError):
-            _module_logger.warning("Could not import 'Part' from google.genai.types or google.genai.Part. Multimodal features may be unavailable.")
-            class PartPlaceholder: # Minimal placeholder
-                def __init__(self, text=None, inline_data=None): self.text = text; self.inline_data=inline_data
-            Part = PartPlaceholder
-    
+        _module_logger.warning("Could not import 'Part' from google.genai.types or google.genai.Part. Multimodal features may be unavailable.")
+
     try:
         from google.genai.types import Blob as ActualBlob
         Blob = ActualBlob
     except (ImportError, AttributeError):
-        try:
-            Blob = genai_sdk.Blob
-        except (ImportError, AttributeError):
-            _module_logger.warning("Could not import 'Blob' type. Image processing might fail.")
-            class BlobPlaceholder: 
-                def __init__(self, mime_type, data): pass
-            Blob = BlobPlaceholder
+        _module_logger.warning("Could not import 'Blob' type. Image processing might fail.")
 
     try:
         from google.genai.types import HarmCategory as ActualHarmCategory, HarmBlockThreshold as ActualHarmBlockThreshold
         HarmCategory = ActualHarmCategory
         HarmBlockThreshold = ActualHarmBlockThreshold
     except (ImportError, AttributeError):
-        try:
-            HarmCategory = genai_sdk.HarmCategory
-            HarmBlockThreshold = genai_sdk.HarmBlockThreshold
-        except (ImportError, AttributeError):
-            _module_logger.warning("Could not import HarmCategory/HarmBlockThreshold. Safety settings may be limited.")
-            class HarmCategoryPlaceholder: HARM_CATEGORY_HATE_SPEECH=None; HARM_CATEGORY_HARASSMENT=None; HARM_CATEGORY_SEXUALLY_EXPLICIT=None; HARM_CATEGORY_DANGEROUS_CONTENT=None
-            HarmCategory = HarmCategoryPlaceholder
-            class HarmBlockThresholdPlaceholder: BLOCK_NONE=None
-            HarmBlockThreshold = HarmBlockThresholdPlaceholder
+        _module_logger.warning("Could not import HarmCategory/HarmBlockThreshold. Safety settings may be limited.")
 
     try:
         from google.genai.types import GenerationConfig as ActualGenerationConfig
         GenerationConfig = ActualGenerationConfig
     except (ImportError, AttributeError):
-        try:
-            GenerationConfig = genai_sdk.GenerationConfig
-        except (ImportError, AttributeError):
-            _module_logger.warning("Could not import 'GenerationConfig' type. Config might not be applied correctly.")
-            class GenerationConfigPlaceholder:
-                def __init__(self, **kwargs): pass
-            GenerationConfig = GenerationConfigPlaceholder
+        _module_logger.warning("Could not import 'GenerationConfig' type. Config might not be applied correctly.")
 
 except ImportError as e:
     _module_logger.error(f"Failed to import primary 'google.genai' SDK module. Google provider will be unavailable. Error: {e}")
@@ -110,6 +83,30 @@ except ImportError as e:
 from ..base import BaseLLM, ModelConfig, BaseModel, ProviderConfig
 from pydantic_llm_tester.utils.cost_manager import UsageData
 
+def serialize_part(part):
+    # Dump all attributes for debugging
+    result = {"type": "Part"}
+    try:
+        for attr in dir(part):
+            if not attr.startswith("_"):
+                try:
+                    value = getattr(part, attr)
+                    # Don't dump raw image data, just its length
+                    if attr == "data" and isinstance(value, (bytes, bytearray)):
+                        result["data_len"] = len(value)
+                    else:
+                        # Try to serialize, fallback to str
+                        try:
+                            json.dumps(value)
+                            result[attr] = value
+                        except Exception:
+                            result[attr] = str(value)
+                except Exception as e:
+                    result[attr] = f"<error: {e}>"
+    except Exception as e:
+        result["error"] = f"Could not serialize part: {e}"
+    return result
+
 class GoogleProvider(BaseLLM):
     """Provider implementation for Google Gemini API using the new Google Gen AI SDK"""
     
@@ -117,7 +114,7 @@ class GoogleProvider(BaseLLM):
         super().__init__(config, llm_models=llm_models)
         
         self.client_configured_status = False 
-        self.part_type_available = (Part is not None and Part.__name__ != 'PartPlaceholder')
+        self.part_type_available = (ActualPart is not None and ActualPart.__name__ != 'PartPlaceholder')
         self.safety_types_available = (HarmCategory is not None and HarmCategory.__name__ != 'HarmCategoryPlaceholder' and \
                                        HarmBlockThreshold is not None and HarmBlockThreshold.__name__ != 'HarmBlockThresholdPlaceholder')
         self.blob_type_available = (Blob is not None and Blob.__name__ != 'BlobPlaceholder')
@@ -145,14 +142,15 @@ class GoogleProvider(BaseLLM):
             f"\n\nOutput MUST be JSON conforming to this schema:\n```json\n{schema_str}\n```"
         )
 
-        # Prepare content parts for the new API (list of dicts)
-        full_prompt_text_parts = [effective_system_prompt, schema_instruction, prompt]
-        content_payload: List[dict] = []
-        for text_content in full_prompt_text_parts:
-            content_payload.append({"text": text_content})
+        # Combine all prompt text into a single string as recommended by Gemini docs
+        combined_prompt = f"{effective_system_prompt}\n{schema_instruction}\n{prompt}"
+
+        # Use the Gemini SDK's Part class for images, and plain strings for text
+        content_payload: List[Any] = []
 
         if is_multimodal_request:
             self.logger.info(f"Google provider processing files: {files}")
+            # Try image first, then prompt (as in Gemini docs)
             for file_path in files:
                 if not os.path.exists(file_path):
                     continue
@@ -160,25 +158,52 @@ class GoogleProvider(BaseLLM):
                 if mime_type in ["image/jpeg", "image/png", "image/gif", "image/webp"]:
                     with open(file_path, "rb") as f:
                         image_bytes = f.read()
-                    # For google-genai >=1.0.0, image part is {"inline_data": {"mime_type": ..., "data": ...}}
-                    content_payload.append({
-                        "inline_data": {
-                            "mime_type": mime_type,
-                            "data": image_bytes
-                        }
-                    })
-                    self.logger.info(f"Added image {file_path} to Google request.")
+                    if ActualPart is not None and hasattr(ActualPart, "from_bytes"):
+                        image_part = ActualPart.from_bytes(data=image_bytes, mime_type=mime_type)
+                        content_payload.append(image_part)
+                        self.logger.info(f"Added image {file_path} to Google request as Part.from_bytes.")
+                    else:
+                        self.logger.warning("Gemini SDK Part.from_bytes not available, cannot add image.")
                 else:
                     self.logger.warning(f"Unsupported file type '{mime_type}' for Google GenAI.")
+            content_payload.append(combined_prompt)
+        else:
+            # Text-only: just send the combined prompt
+            content_payload.append(combined_prompt)
 
         self.logger.info(f"Sending request to Google model {model_name}")
 
+        # Debug: Write a serializable version of the content payload to file
+        serializable_payload = []
+        for item in content_payload:
+            if isinstance(item, str):
+                serializable_payload.append({"type": "str", "value": item})
+            else:
+                serializable_payload.append(serialize_part(item))
+
+        # try:
+        #     with open("test_results/google_raw_content_payload.txt", "w") as f:
+        #         f.write(json.dumps(serializable_payload, indent=2))
+        # except Exception as e:
+        #     self.logger.warning(f"Could not write content payload to file: {e}")
+        #
+        # print("Combined prompt:", combined_prompt)
+
         try:
+            my_file = _GOOGLE_GENAI_CLIENT.files.upload(file=file_path)
+
+            """
+            COUPLE NOTES HERE:
+            - gemini-2.5-pro-exp-03-25 would fail on RECITATION almost in all cases. Many people reporting this problem.
+            - default token limits are very low
+            - increasing temperature might help for RECITATION
+            - general reliability has been extremely poor (11.5.2025), I expect this to be a temporary problem
+            """
+
             # Use the new google-genai API: call generate_content via client.models
             gen_conf_dict = {
                 "temperature": 0.1,
-                "max_output_tokens": model_config.max_output_tokens,
-                "response_mime_type": "application/json"
+                "max_output_tokens": 20000  # PATCH: Increase output tokens for debugging
             }
 
             # Safety settings are not yet supported in the new API as objects, so skip for now
@@ -188,6 +213,12 @@ class GoogleProvider(BaseLLM):
                 config=gen_conf_dict
             )
 
+            # put to file for debugging
+            # with open("test_results/google_raw_response.txt", "w") as f:
+            #     f.write("repr(response):\n")
+            #     f.write(repr(response.text))
+            #     f.write("\n\n")
+                    
             # Extract response text
             response_text = ""
             # The new API returns response.candidates[0].content.parts[0].text for text
@@ -200,6 +231,20 @@ class GoogleProvider(BaseLLM):
                     elif gen_conf_dict.get("response_mime_type") == "application/json":
                         # If JSON was expected but not found in parts[0].text (e.g. content is None due to blocking)
                         self.logger.warning(f"Expected JSON response, but parts[0].text not found. Response: {response}")
+                        try:
+                            self.logger.debug(f"Full raw response object (repr): {repr(response)}")
+                            if hasattr(response, '__dict__'):
+                                self.logger.debug(f"Full raw response __dict__: {response.__dict__}")
+                            # Write raw response to file for debugging
+                            # with open("test_results/google_raw_response.txt", "w") as f:
+                            #     f.write("repr(response):\n")
+                            #     f.write(repr(response))
+                            #     f.write("\n\n")
+                            #     if hasattr(response, '__dict__'):
+                            #         f.write("response.__dict__:\n")
+                            #         f.write(str(response.__dict__))
+                        except Exception as e:
+                            self.logger.debug(f"Could not dump full raw response: {e}")
                         response_text = "" # Return empty string, will fail JSON parsing downstream as expected
                     else:
                         # Fallback for non-JSON expected responses or other issues
@@ -207,6 +252,20 @@ class GoogleProvider(BaseLLM):
                 elif gen_conf_dict.get("response_mime_type") == "application/json":
                     # If JSON was expected but candidates or content is missing
                     self.logger.warning(f"Expected JSON response, but candidates or content missing. Response: {response}")
+                    try:
+                        self.logger.debug(f"Full raw response object (repr): {repr(response)}")
+                        if hasattr(response, '__dict__'):
+                            self.logger.debug(f"Full raw response __dict__: {response.__dict__}")
+                        # Write raw response to file for debugging
+                        # with open("test_results/google_raw_response.txt", "w") as f:
+                        #     f.write("repr(response):\n")
+                        #     f.write(repr(response))
+                        #     f.write("\n\n")
+                        #     if hasattr(response, '__dict__'):
+                        #         f.write("response.__dict__:\n")
+                        #         f.write(str(response.__dict__))
+                    except Exception as e:
+                        self.logger.debug(f"Could not dump full raw response: {e}")
                     response_text = "" # Return empty string
                 else:
                     # Fallback for non-JSON expected responses or other issues

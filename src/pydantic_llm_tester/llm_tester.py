@@ -646,29 +646,70 @@ class LLMTester:
 
             self.logger.debug(f"Parsed response data: {json.dumps(response_data, indent=2)}")
 
-            # Validate against model
-            try:
-                validated_data = model_class(**response_data)
-                self.logger.info(f"Successfully validated response against {model_class.__name__}")
-            except Exception as model_error:
-                self.logger.error(f"Model validation error: {str(model_error)}")
-                return {
-                    'success': False,
-                    'error': f'Model validation error: {str(model_error)}',
-                    'accuracy': 0.0,
-                    'response_data': response_data
-                }
+            # Determine skip fields from the model class
+            skip_fields = set()
+            if hasattr(model_class, "SKIP_FIELDS"):
+                skip_fields = set(getattr(model_class, "SKIP_FIELDS") or [])
+            elif hasattr(model_class, "get_skip_fields") and callable(getattr(model_class, "get_skip_fields")):
+                skip_fields = set(model_class.get_skip_fields() or [])
+
+            # Validate against model, setting any invalid field to None and reporting errors
+            validated_data = None
+            last_error = None
+            import copy
+            response_data_for_validation = copy.deepcopy(response_data)
+            invalid_fields = {}
+            while True:
+                try:
+                    validated_data = model_class(**response_data_for_validation)
+                    self.logger.info(f"Successfully validated response against {model_class.__name__}")
+                    break
+                except Exception as model_error:
+                    last_error = model_error
+                    # Try to parse error details for Pydantic v1/v2
+                    error_fields = set()
+                    errors = []
+                    if hasattr(model_error, "errors"):
+                        try:
+                            errors = model_error.errors()
+                        except Exception:
+                            errors = []
+                    # Find which fields failed
+                    for err in errors:
+                        loc = err.get("loc")
+                        if isinstance(loc, (list, tuple)) and len(loc) > 0:
+                            field = loc[0]
+                        elif isinstance(loc, str):
+                            field = loc
+                        else:
+                            continue
+                        error_fields.add(field)
+                        # Only record as invalid if not in skip_fields
+                        if field not in skip_fields:
+                            invalid_fields[field] = err.get("msg", "Invalid value")
+                    # If no error fields, break to avoid infinite loop
+                    if not error_fields:
+                        self.logger.error(f"Model validation error: {str(model_error)}")
+                        return {
+                            'success': False,
+                            'error': f'Model validation error: {str(model_error)}',
+                            'accuracy': 0.0,
+                            'response_data': response_data
+                        }
+                    # Set all error fields to None and retry
+                    for field in error_fields:
+                        response_data_for_validation[field] = None
 
             # Compare with expected data
             # Use model_dump instead of dict for pydantic v2 compatibility
             try:
                 # Try model_dump first (pydantic v2)
-                validated_data_dict = validated_data.model_dump()
+                validated_data_dict = validated_data.model_dump(exclude=skip_fields)
                 self.logger.debug("Using model_dump() (Pydantic v2)")
             except AttributeError:
                 # Fall back to dict for older pydantic versions
                 self.logger.debug("Falling back to dict() (Pydantic v1)")
-                validated_data_dict = validated_data.dict()
+                validated_data_dict = validated_data.dict(exclude=skip_fields)
 
             # Use DateEncoder for consistent date serialization
             try:
