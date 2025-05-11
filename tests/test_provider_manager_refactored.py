@@ -58,7 +58,7 @@ class TestProviderManagerRefactored(unittest.TestCase):
         another_provider.name = "another_provider"
         
         # Configure get_llm_provider to return our mock instances
-        get_llm_provider_mock = MagicMock(side_effect=lambda name: 
+        get_llm_provider_mock = MagicMock(side_effect=lambda name, llm_models=None:
             test_provider if name == "test_provider" else
             another_provider if name == "another_provider" else None
         )
@@ -75,8 +75,8 @@ class TestProviderManagerRefactored(unittest.TestCase):
             
             # Check that get_llm_provider was called for each provider
             get_llm_provider_mock.assert_has_calls([
-                call("test_provider"),
-                call("another_provider")
+                call("test_provider", llm_models=None),
+                call("another_provider", llm_models=None)
             ], any_order=True)
             
             # Check that provider instances were stored

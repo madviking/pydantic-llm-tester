@@ -235,7 +235,7 @@ def test_openai_connection(mock_get_llm_provider):
         )
         assert response and len(response) > 0
         # Verify that get_llm_provider was called
-        mock_get_llm_provider.assert_called_once_with("openai")
+        mock_get_llm_provider.assert_called_once_with("openai", llm_models=None)
         # Verify that the mock provider's get_response was called
         mock_openai_provider_instance.get_response.assert_called_once_with(
              prompt="Say hello",
