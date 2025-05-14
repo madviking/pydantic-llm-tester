@@ -172,7 +172,9 @@ class UsageData:
         model: str,
         prompt_tokens: int,
         completion_tokens: int,
-        total_tokens: Optional[int] = None
+        total_tokens: Optional[int] = None,
+        cost_input_rate: Optional[float] = None, # Cost per 1M tokens
+        cost_output_rate: Optional[float] = None # Cost per 1M tokens
     ):
         self.provider = provider
         self.model = model
@@ -180,10 +182,16 @@ class UsageData:
         self.completion_tokens = completion_tokens
         self.total_tokens = total_tokens or (prompt_tokens + completion_tokens)
         
-        # Calculate costs
-        self.prompt_cost, self.completion_cost, self.total_cost = calculate_cost(
-            provider, model, prompt_tokens, completion_tokens
-        )
+        if cost_input_rate is not None and cost_output_rate is not None:
+            # Calculate costs directly using provided rates
+            self.prompt_cost = (prompt_tokens / 1_000_000) * cost_input_rate
+            self.completion_cost = (completion_tokens / 1_000_000) * cost_output_rate
+            self.total_cost = self.prompt_cost + self.completion_cost
+        else:
+            # Fallback to calculate_cost if rates are not provided
+            self.prompt_cost, self.completion_cost, self.total_cost = calculate_cost(
+                provider, model, prompt_tokens, completion_tokens
+            )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert usage data to dictionary"""

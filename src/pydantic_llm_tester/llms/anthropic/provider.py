@@ -37,8 +37,12 @@ class AnthropicProvider(BaseLLM):
             return
             
         # Initialize Anthropic client
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.logger.info("Anthropic client initialized")
+        self.client = anthropic.Anthropic(
+            api_key=api_key,
+            timeout=120.0, # Overall timeout for the request in seconds (increased from 30.0)
+            max_retries=2 # Number of retries
+        )
+        self.logger.info("Anthropic client initialized with timeout and retries")
         
     def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
                      model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:

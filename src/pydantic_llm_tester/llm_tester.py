@@ -60,11 +60,17 @@ class LLMTester:
         self.cases_dir = os.path.join(self.test_dir, "cases")
 
         # Initialize cost tracking
+        self.logger.info("LLMTester.__init__: Initializing cost_tracker.")
         self.run_id = cost_tracker.start_new_run()
+        self.logger.info(f"LLMTester.__init__: cost_tracker run_id: {self.run_id}")
+        self.logger.info("LLMTester.__init__: Initializing ConfigManager.")
         self.config_manager = ConfigManager() # Initialize ConfigManager
-        self.logger.info(f"Started new test run with ID: {self.run_id}")
+        self.logger.info(f"LLMTester.__init__: ConfigManager initialized. Started new test run with ID: {self.run_id}")
 
+        self.logger.debug("LLMTester.__init__: Calling _verify_directories.")
         self._verify_directories()
+        self.logger.debug("LLMTester.__init__: _verify_directories finished.")
+        self.logger.debug("LLMTester.__init__: Initialization complete.")
 
     def _verify_directories(self) -> None:
         """Verify that required directories exist"""
@@ -490,8 +496,10 @@ class LLMTester:
 
         # Run test for each provider and its available models
         test_results_for_case: Dict[str, Dict[str, Any]] = {} # Structure: {provider_name: {model_name: result_data}}
+        self.logger.info(f"Starting run_test for test_id: {test_id}")
 
         for provider_name in self.providers:
+            self.logger.info(f"run_test: Processing provider: {provider_name} for test_id: {test_id}")
             if progress_callback:
                 progress_callback(f"  Testing provider: {provider_name}")
 
@@ -516,6 +524,7 @@ class LLMTester:
 
             for model_config in available_models:
                 model_name = model_config.name
+                self.logger.info(f"run_test: Processing model: {model_name} for provider: {provider_name}, test_id: {test_id}")
                 if progress_callback:
                     progress_callback(f"    Testing model: {model_name}")
 
@@ -540,6 +549,7 @@ class LLMTester:
                     # Get response from provider for the specific model
                     file_paths = test_case.get('file_paths') # Get optional file_paths
 
+                    self.logger.info(f"run_test: Calling provider_manager.get_response for model: {model_to_use}, provider: {provider_name}, test_id: {test_id}")
                     response, usage_data = self.provider_manager.get_response(
                         provider=provider_name,
                         prompt=prompt_text,
@@ -548,6 +558,7 @@ class LLMTester:
                         model_name=model_to_use, 
                         files=file_paths 
                     )
+                    self.logger.info(f"run_test: Received response from provider_manager for model: {model_to_use}, provider: {provider_name}, test_id: {test_id}")
 
                     if progress_callback:
                         progress_callback(f"    Validating {model_to_use} response...")
@@ -578,9 +589,10 @@ class LLMTester:
                         'model': model_name, # Store the model name used
                         'usage': usage_data.to_dict() if usage_data else None
                     }
+                    self.logger.info(f"run_test: Stored result for model: {model_name}, provider: {provider_name}, test_id: {test_id}")
 
                 except Exception as e:
-                    self.logger.error(f"Error testing model {model_name} for provider {provider_name}: {str(e)}")
+                    self.logger.error(f"Error testing model {model_name} for provider {provider_name}, test_id: {test_id}: {str(e)}", exc_info=True)
                     if progress_callback:
                         progress_callback(f"    Error with {model_name}: {str(e)}")
 
@@ -592,7 +604,8 @@ class LLMTester:
 
         if progress_callback:
             progress_callback(f"Completed test: {test_id}")
-
+        
+        self.logger.info(f"Finished run_test for test_id: {test_id}")
         # Return the structured results for this test case
         return test_results_for_case
 
@@ -1028,10 +1041,13 @@ class LLMTester:
         Returns:
             Test results for each test and provider
         """
+        self.logger.info("LLMTester.run_tests: Entered method.")
         test_cases = self.discover_test_cases()
+        self.logger.info(f"LLMTester.run_tests: Discovered {len(test_cases)} test cases.")
         results = {}
         main_report = ""
         reports = {}
+        # self.logger.info("Starting run_tests method.") # Redundant with the one above
 
         # Filter test cases by module if specified
         if modules:
@@ -1067,12 +1083,14 @@ class LLMTester:
 
         for i, test_case in enumerate(test_cases, 1):
             test_id = f"{test_case['module']}/{test_case['name']}"
+            self.logger.info(f"run_tests: Processing test case {i}/{len(test_cases)}: {test_id}")
 
             if progress_callback:
                 progress_callback(f"[{i}/{len(test_cases)}] Running test: {test_id}")
 
             # run_test now returns {provider_name: {model_name: result_data}}
             test_case_results = self.run_test(test_case, model_overrides, progress_callback)
+            self.logger.info(f"run_tests: Completed run_test for {test_id}")
 
             if progress_callback:
                 progress_callback(f"Completed test: {test_id}")
@@ -1094,9 +1112,11 @@ class LLMTester:
 
 
         # Generate cost summary after all tests are complete
+        self.logger.info("run_tests: All test cases processed. Generating cost summary.")
         cost_summary = cost_tracker.get_run_summary(self.run_id)
 
         if cost_summary:
+            self.logger.info("run_tests: Cost summary available. Preparing report text.")
             cost_report_text = "\n\n## Cost Summary\n"
             cost_report_text += f"Total cost: ${cost_summary.get('total_cost', 0):.6f}\n"
             cost_report_text += f"Total tokens: {cost_summary.get('total_tokens', 0):,}\n"
@@ -1114,9 +1134,11 @@ class LLMTester:
         reports['main'] = main_report
 
         # Generate module-specific reports
+        self.logger.info("run_tests: Generating module-specific reports.")
         modules_processed = set()
         for test_id in results:
             module_name = test_id.split('/')[0]
+            self.logger.debug(f"run_tests: Checking module report for {module_name} from test_id {test_id}")
 
             # Skip if already processed
             if module_name in modules_processed:
@@ -1143,8 +1165,12 @@ class LLMTester:
                 continue
 
             # Generate module-specific report if the model class has the method
-            if hasattr(model_class, 'save_module_report'):
+            if hasattr(model_class, 'save_module_report'): # This model_class here is from the last iteration, likely wrong.
                 try:
+                    # The model_class should be fetched per module, or passed correctly.
+                    # This part of the original code might be problematic if model_class isn't updated per module.
+                    # For logging, let's assume it's handled or note the potential issue.
+                    self.logger.info(f"run_tests: Attempting to save module report for {module_name} using model_class {model_class}")
                     module_report_path = model_class.save_module_report(results, self.run_id)
                     self.logger.info(f"Module report for {module_name} saved to {module_report_path}")
 

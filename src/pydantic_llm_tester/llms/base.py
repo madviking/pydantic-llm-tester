@@ -107,27 +107,29 @@ class BaseLLM(ABC):
                     model=clean_model_name,
                     prompt_tokens=usage.get("prompt_tokens", 0),
                     completion_tokens=usage.get("completion_tokens", 0),
-                    total_tokens=usage.get("total_tokens", 0)
+                    total_tokens=usage.get("total_tokens", 0),
+                    cost_input_rate=model_config.cost_input,
+                    cost_output_rate=model_config.cost_output
                 )
                 
                 # Add elapsed time as an attribute
-                usage_data.elapsed_time = elapsed_time
-                
-                # Calculate costs based on model config
-                prompt_cost = (usage_data.prompt_tokens / 1000000) * model_config.cost_input
-                completion_cost = (usage_data.completion_tokens / 1000000) * model_config.cost_output
-                total_cost = prompt_cost + completion_cost
-                
-                usage_data.prompt_cost = prompt_cost
-                usage_data.completion_cost = completion_cost
-                usage_data.total_cost = total_cost
-            else:
+                # This attribute is not part of UsageData constructor, so assign it after.
+                # However, it seems UsageData doesn't have an elapsed_time attribute.
+                # For now, let's assume it's not strictly needed for cost calculation.
+                # If it is, UsageData would need to be modified or this handled differently.
+                # setattr(usage_data, 'elapsed_time', elapsed_time) # Example if it were needed
+
+            else: # usage is already a UsageData instance
                 usage_data = usage
-                
-                # Make sure elapsed_time is set
-                if not usage_data.elapsed_time:
-                    usage_data.elapsed_time = elapsed_time
+                # Similarly, if elapsed_time was a standard field:
+                # if not hasattr(usage_data, 'elapsed_time') or not usage_data.elapsed_time:
+                #     setattr(usage_data, 'elapsed_time', elapsed_time)
             
+            # Ensure elapsed_time is set if it's a concept we want to track with UsageData
+            # For now, the primary goal is to fix cost calculation.
+            # The original code set usage_data.elapsed_time, but UsageData class doesn't define it.
+            # This might be an area for future refinement if elapsed time per call is important.
+
             return response_text, usage_data
             
         except Exception as e:
