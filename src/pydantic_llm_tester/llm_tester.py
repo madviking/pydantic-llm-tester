@@ -6,7 +6,7 @@ import os
 import importlib
 import json
 import sys
-from typing import List, Dict, Any, Optional, Type, Tuple
+from typing import List, Dict, Any, Optional, Type, Tuple, Set
 import logging
 import inspect
 import numbers
@@ -19,7 +19,7 @@ try:
 except ImportError:
     RAPIDFUZZ_AVAILABLE = False
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .utils.prompt_optimizer import PromptOptimizer
 from .utils.report_generator import ReportGenerator, DateEncoder
@@ -555,8 +555,8 @@ class LLMTester:
                         prompt=prompt_text,
                         source=source_text,
                         model_class=model_class, # Pass model_class
-                        model_name=model_to_use, 
-                        files=file_paths 
+                        model_name=model_to_use,
+                        files=file_paths
                     )
                     self.logger.info(f"run_test: Received response from provider_manager for model: {model_to_use}, provider: {provider_name}, test_id: {test_id}")
 
@@ -604,12 +604,13 @@ class LLMTester:
 
         if progress_callback:
             progress_callback(f"Completed test: {test_id}")
-        
+
         self.logger.info(f"Finished run_test for test_id: {test_id}")
         # Return the structured results for this test case
         return test_results_for_case
 
-    def _validate_response(self, response: str, model_class: Type[BaseModel], expected_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_response(self, response: str, model_class: Type[BaseModel], expected_data: Dict[str, Any]) -> Dict[
+        str, Any]:
         """
         Validate a response against the pydantic model and expected data
 
@@ -619,134 +620,213 @@ class LLMTester:
             expected_data: Expected data for comparison
 
         Returns:
-            Validation results
+            Validation results dictionary
         """
         self.logger.info(f"Validating response against model {model_class.__name__}")
         self.logger.debug(f"Expected data: {json.dumps(expected_data, indent=2)}")
         self.logger.debug(f"Raw response: {response[:500]}...")
 
+        # Get skip fields configuration from model class
+        skip_fields = set()
+        if hasattr(model_class, "SKIP_FIELDS"):
+            skip_fields = set(getattr(model_class, "SKIP_FIELDS") or [])
+        elif hasattr(model_class, "get_skip_fields") and callable(getattr(model_class, "get_skip_fields")):
+            skip_fields = set(model_class.get_skip_fields() or [])
+
         try:
-            # Parse the response as JSON
-            try:
-                response_data = json.loads(response)
-                self.logger.info("Successfully parsed response as JSON")
-            except json.JSONDecodeError as e:
-                self.logger.warning(f"Failed to parse response as JSON: {str(e)}")
-                # If response is not valid JSON, try to extract JSON from text
-                import re
-                json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response) or re.search(r'{[\s\S]*}', response)
-                if json_match:
-                    try:
-                        response_data = json.loads(json_match.group(1))
-                        self.logger.info("Successfully extracted and parsed JSON from response text")
-                    except json.JSONDecodeError as e2:
-                        self.logger.error(f"Failed to parse extracted JSON: {str(e2)}")
-                        self.logger.debug(f"Extracted text: {json_match.group(1)}")
-                        return {
-                            'success': False,
-                            'error': f'Found JSON-like text but failed to parse: {str(e2)}',
-                            'accuracy': 0.0,
-                            'response_excerpt': response[:1000]
-                        }
-                else:
-                    self.logger.error("Response is not valid JSON and could not extract JSON from text")
-                    return {
-                        'success': False,
-                        'error': 'Response is not valid JSON and could not extract JSON from text',
-                        'accuracy': 0.0,
-                        'response_excerpt': response[:1000]
-                    }
+            # Parse the response JSON
+            response_data = self._parse_json_response(response)
+            if isinstance(response_data, dict) and "success" in response_data and response_data["success"] is False:
+                # This is an error result from _parse_json_response
+                return response_data
 
-            self.logger.debug(f"Parsed response data: {json.dumps(response_data, indent=2)}")
+            # Validate the data against the model
+            validation_result = self._validate_against_model(response_data, model_class, skip_fields)
+            
+            # Calculate accuracy against expected data
+            # Even if validation fails, we still want to calculate accuracy on the raw response data
+            # because we can still compute partial matching between the response and expected data
+            data_to_compare = validation_result.get("validated_data") if validation_result.get("success", False) else response_data
+            accuracy = self._calculate_accuracy(data_to_compare, expected_data)
+            self.logger.info(f"Calculated accuracy: {accuracy:.2f}%")
 
-            # Determine skip fields from the model class
-            skip_fields = set()
-            if hasattr(model_class, "SKIP_FIELDS"):
-                skip_fields = set(getattr(model_class, "SKIP_FIELDS") or [])
-            elif hasattr(model_class, "get_skip_fields") and callable(getattr(model_class, "get_skip_fields")):
-                skip_fields = set(model_class.get_skip_fields() or [])
+            # If validation succeeded, return the success case
+            if validation_result.get("success", False):
+                return {
+                    'success': True,
+                    'validated_data': validation_result["validated_data"],
+                    'accuracy': accuracy
+                }
+            else:
+                # If validation failed, include the accuracy calculation anyway
+                # but mark it as a validation failure
+                return {
+                    'success': False,
+                    'error': validation_result.get("error", "Validation failed"),
+                    'response_data': response_data, 
+                    'accuracy': accuracy
+                }
 
-            # Validate against model, setting any invalid field to None and reporting errors
-            validated_data = None
-            last_error = None
-            import copy
-            response_data_for_validation = copy.deepcopy(response_data)
-            invalid_fields = {}
-            while True:
+        except Exception as e:
+            self.logger.error(f"Unexpected error during validation: {str(e)}", exc_info=True)
+            # Even in case of exception, try to calculate some accuracy if we have the response data
+            accuracy = 0.0
+            response_data = None
+            
+            # Try to extract JSON if we haven't already
+            if isinstance(response, str):
                 try:
-                    validated_data = model_class(**response_data_for_validation)
-                    self.logger.info(f"Successfully validated response against {model_class.__name__}")
-                    break
-                except Exception as model_error:
-                    last_error = model_error
-                    # Try to parse error details for Pydantic v1/v2
-                    error_fields = set()
-                    errors = []
-                    if hasattr(model_error, "errors"):
-                        try:
-                            errors = model_error.errors()
-                        except Exception:
-                            errors = []
-                    # Find which fields failed
-                    for err in errors:
-                        loc = err.get("loc")
-                        if isinstance(loc, (list, tuple)) and len(loc) > 0:
-                            field = loc[0]
-                        elif isinstance(loc, str):
-                            field = loc
-                        else:
-                            continue
-                        error_fields.add(field)
-                        # Only record as invalid if not in skip_fields
-                        if field not in skip_fields:
-                            invalid_fields[field] = err.get("msg", "Invalid value")
-                    # If no error fields, break to avoid infinite loop
-                    if not error_fields:
-                        self.logger.error(f"Model validation error: {str(model_error)}")
-                        return {
-                            'success': False,
-                            'error': f'Model validation error: {str(model_error)}',
-                            'accuracy': 0.0,
-                            'response_data': response_data
-                        }
-                    # Set all error fields to None and retry
-                    for field in error_fields:
-                        response_data_for_validation[field] = None
+                    response_data = json.loads(response)
+                    # If we can extract JSON, calculate accuracy even with the exception
+                    accuracy = self._calculate_accuracy(response_data, expected_data)
+                    self.logger.info(f"Calculated fallback accuracy: {accuracy:.2f}%")
+                except:
+                    pass
+            
+            return {
+                'success': False,
+                'error': str(e),
+                'accuracy': accuracy,
+                'response_data': response_data,
+                'response_excerpt': response[:1000] if isinstance(response, str) else str(response)[:1000]
+            }
 
-            # Compare with expected data
-            # Use model_dump instead of dict for pydantic v2 compatibility
+    def _parse_json_response(self, response: str) -> Dict[str, Any]:
+        """
+        Parse JSON from response text, attempting to extract JSON from markup if needed
+
+        Args:
+            response: Response text that should contain JSON
+
+        Returns:
+            Parsed JSON data or error dict
+        """
+        try:
+            response_data = json.loads(response)
+            self.logger.info("Successfully parsed response as JSON")
+            return response_data
+        except json.JSONDecodeError as e:
+            self.logger.warning(f"Failed to parse response as JSON: {str(e)}")
+
+            # Try to extract JSON from markdown code blocks or raw JSON
+            import re
+            json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response) or re.search(r'{[\s\S]*}', response)
+
+            if not json_match:
+                self.logger.error("Response is not valid JSON and could not extract JSON from text")
+                return {
+                    'success': False,
+                    'error': 'Response is not valid JSON and could not extract JSON from text',
+                    'accuracy': 0.0,
+                    'response_excerpt': response[:1000]
+                }
+
             try:
-                # Try model_dump first (pydantic v2)
-                validated_data_dict = validated_data.model_dump(exclude=skip_fields)
-                self.logger.debug("Using model_dump() (Pydantic v2)")
-            except AttributeError:
-                # Fall back to dict for older pydantic versions
-                self.logger.debug("Falling back to dict() (Pydantic v1)")
-                validated_data_dict = validated_data.dict(exclude=skip_fields)
+                # For the raw JSON pattern, we need the matched text itself
+                json_text = json_match.group(1) if '```json' in json_match.group(0) else json_match.group(0)
+                response_data = json.loads(json_text)
+                self.logger.info("Successfully extracted and parsed JSON from response text")
+                return response_data
+            except json.JSONDecodeError as e2:
+                self.logger.error(f"Failed to parse extracted JSON: {str(e2)}")
+                self.logger.debug(f"Extracted text: {json_match.group(0)[:500]}")
+                return {
+                    'success': False,
+                    'error': f'Found JSON-like text but failed to parse: {str(e2)}',
+                    'accuracy': 0.0,
+                    'response_excerpt': response[:1000]
+                }
 
-            # Use DateEncoder for consistent date serialization
+    def _validate_against_model(self, data: Dict[str, Any], model_class: Type[BaseModel],
+                                skip_fields: Set[str]) -> Dict[str, Any]:
+        """
+        Validate data against a Pydantic model
+
+        Args:
+            data: Data to validate
+            model_class: Pydantic model class to validate against
+            skip_fields: Fields to exclude from validation
+
+        Returns:
+            Validation result with validated data or error
+        """
+        # Try direct validation first
+        try:
+            validated_data = model_class(**data)
+            self.logger.info(f"Successfully validated data against {model_class.__name__}")
+
+            # Convert model to dict using Pydantic v2 method
+            validated_data_dict = validated_data.model_dump(exclude=skip_fields)
+
+            # Log the validated data
             try:
                 self.logger.debug(f"Validated data: {json.dumps(validated_data_dict, indent=2, cls=DateEncoder)}")
             except TypeError as e:
                 self.logger.warning(f"Could not serialize validated data: {str(e)}")
-                self.logger.debug("Validated data could not be fully serialized to JSON for logging")
-
-            accuracy = self._calculate_accuracy(validated_data_dict, expected_data)
-            self.logger.info(f"Calculated accuracy: {accuracy:.2f}%")
 
             return {
                 'success': True,
-                'validated_data': validated_data_dict,
-                'accuracy': accuracy
+                'validated_data': validated_data_dict
             }
+        except ValidationError as validation_error:
+            # For validation errors, extract what we can
+            self.logger.warning(f"Validation error: {validation_error}")
+
+            # Try to create a partial model by removing problematic fields
+            from pydantic import create_model
+
+            # Extract all model fields
+            model_fields = {}
+            for field_name, field_info in model_class.model_fields.items():
+                if field_name not in skip_fields:
+                    model_fields[field_name] = (field_info.annotation, ... if field_info.is_required() else None)
+
+            # Create a new model with all fields optional
+            optional_model = create_model(
+                f"Optional{model_class.__name__}",
+                **{name: (anno, None) for name, (anno, _) in model_fields.items()}
+            )
+
+            try:
+                # Validate with the relaxed model
+                partial_validated = optional_model(**data)
+                partial_dict = partial_validated.model_dump(exclude=skip_fields)
+
+                # Log validation issues
+                error_fields = []
+                for error in validation_error.errors():
+                    if error.get("loc") and error["loc"][0] not in skip_fields:
+                        error_fields.append(str(error["loc"][0]))
+
+                if error_fields:
+                    self.logger.warning(f"Fields with validation errors: {', '.join(error_fields)}")
+
+                self.logger.info("Created partial validated model with some invalid fields removed")
+
+                return {
+                    'success': True,
+                    'validated_data': partial_dict,
+                    'partial_validation': True,
+                    'invalid_fields': error_fields
+                }
+            except Exception as e:
+                self.logger.error(f"Failed to create partial model: {str(e)}")
+                return {
+                    'success': False,
+                    'error': f'Model validation failed: {str(validation_error)}',
+                    'accuracy': 0.0,
+                    'response_data': data
+                }
         except Exception as e:
-            self.logger.error(f"Unexpected error during validation: {str(e)}", exc_info=True)
+            # Handle other general exceptions
+            self.logger.error(f"Model validation error: {str(e)}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': f'Model validation error: {str(e)}',
                 'accuracy': 0.0,
-                'response_excerpt': response[:1000] if isinstance(response, str) else str(response)[:1000]
+                'response_data': data
             }
+
 
     def _calculate_accuracy(
         self,
