@@ -71,6 +71,7 @@ class LLMTester:
         self._verify_directories()
         self.logger.debug("LLMTester.__init__: _verify_directories finished.")
         self.logger.debug("LLMTester.__init__: Initialization complete.")
+        self.all_test_results: Dict[str, Dict[str, Any]] = {} # Initialize attribute to store results
 
     def _verify_directories(self) -> None:
         """Verify that required directories exist"""
@@ -238,14 +239,18 @@ class LLMTester:
             self.logger.warning(f"Model class {model_class} (Type: {type(model_class)}) for module {module_name} does not have get_test_cases method. Skipping.")
             return []
 
+        # Get the module directory from the model_path
+        module_dir = os.path.dirname(model_path)
+
         try:
-            module_test_cases = model_class.get_test_cases()
+            module_test_cases = model_class.get_test_cases(module_dir) # Pass module_dir
             if module_test_cases:
                 self.logger.info(f"Found {len(module_test_cases)} test cases for module {module_name}")
-                # Add module_name and model_path to each test case
+                # Add module_name, model_path, and module_dir to each test case
                 for tc in module_test_cases:
                     tc['module'] = module_name # Ensure module name is set
                     tc['model_path'] = model_path
+                    tc['module_dir'] = module_dir # Add module_dir to test case
                 test_cases.extend(module_test_cases)
             else:
                 self.logger.warning(f"No test cases found for module {module_name}")
@@ -1245,13 +1250,23 @@ class LLMTester:
                 continue
 
             # Generate module-specific report if the model class has the method
-            if hasattr(model_class, 'save_module_report'): # This model_class here is from the last iteration, likely wrong.
+            if hasattr(model_class, 'save_module_report'):
                 try:
-                    # The model_class should be fetched per module, or passed correctly.
-                    # This part of the original code might be problematic if model_class isn't updated per module.
-                    # For logging, let's assume it's handled or note the potential issue.
-                    self.logger.info(f"run_tests: Attempting to save module report for {module_name} using model_class {model_class}")
-                    module_report_path = model_class.save_module_report(results, self.run_id)
+                    # Find a test case for this module to get the module_dir
+                    module_dir = None
+                    for test_id_iter, test_result_iter in results.items():
+                        if test_id_iter.startswith(module_name + "/"):
+                            module_dir = test_case.get('module_dir') # Get module_dir from the current test_case
+                            if module_dir:
+                                break # Found module_dir from the current test_case
+
+                    if not module_dir:
+                         self.logger.warning(f"Could not find module_dir for module {module_name} during report saving.")
+                         continue
+
+
+                    self.logger.info(f"run_tests: Attempting to save module report for {module_name} using model_class {model_class} and module_dir {module_dir}")
+                    module_report_path = model_class.save_module_report(results, self.run_id, module_dir) # Pass module_dir
                     self.logger.info(f"Module report for {module_name} saved to {module_report_path}")
 
                     # Read the report content
@@ -1265,6 +1280,7 @@ class LLMTester:
                 except Exception as e:
                     self.logger.error(f"Error generating module report for {module_name}: {str(e)}")
 
+        self.all_test_results = results # Store the results in an instance attribute
         return results
 
     def save_cost_report(self, output_dir: Optional[str] = None) -> Dict[str, str]:
@@ -1297,55 +1313,56 @@ class LLMTester:
             self.logger.warning("No cost data available to save module-specific reports")
             return report_paths
 
-        # For each model used, save a module-specific report
+        # For each module that had tests run, save a module-specific cost report
         modules_processed = set()
-        for test_id in cost_data.get('tests', {}):
+        # Iterate through the results to get module names, model classes, and module_dirs
+        # This assumes save_cost_report is called after run_tests and results are available.
+        # A more robust approach would be to pass the test_cases list to save_cost_report.
+        # For now, we'll iterate through the results structure to find the necessary info.
+        for test_id, test_results in self.all_test_results.items(): # Use self.all_test_results which is populated in run_tests
             module_name = test_id.split('/')[0]
 
-            # Skip if already processed
-            if module_name in modules_processed:
+            # Skip if already processed or is the test module
+            if module_name in modules_processed or module_name == 'test':
                 continue
 
             modules_processed.add(module_name)
 
-            # Skip test module as it's used for unit tests
-            if module_name == 'test':
-                continue
-
-            # Get model class
-            # model_class = self._find_model_class(module_name) # Original problematic line
+            # Find the model_class and module_dir for this module from the results
             model_class = None
-            # Find the model_class from the test_case data associated with this module
-            # This requires access to the original test_cases list or a mapping.
-            # For simplicity, let's assume we can retrieve it if needed, or adjust logic.
-            # A more robust way would be to ensure model_class is consistently available.
-            # For now, let's try to find it from the test_case data associated with this module.
-            # This requires self.discover_test_cases() to have been called or its result stored.
-            # For now, let's assume we need to re-discover or have it available.
-            # A simpler approach for now, if this method is called after run_tests,
-            # is to pass the results from run_tests which now contain model_class.
-            # However, save_cost_report is standalone.
+            module_dir = None
+            # Iterate through the results for this test_id to find model_class and module_dir
+            # (assuming they are stored in the results structure, which I added in the previous step)
+            for provider_results in test_results.values():
+                 for model_result in provider_results.values():
+                      model_class = model_result.get('model_class')
+                      # The module_dir is stored in the original test_case, not the results.
+                      # I need to find the original test_case for this module.
+                      # This reinforces the idea that passing test_cases to save_cost_report is better.
+                      # For now, let's find the module_dir from the discovered test cases.
+                      # This is still inefficient but avoids re-discovery *within* this loop.
+                      found_tc_for_module = next((tc for tc in self.discover_test_cases() if tc['module'] == module_name), None)
+                      if found_tc_for_module:
+                           module_dir = found_tc_for_module.get('module_dir')
+                      break # Found model_class and attempted to find module_dir, can break inner loops
+                 if model_class and module_dir:
+                      break # Found both, break outer loop
 
-            # Let's try to get it from the test_cases discovered at initialization or by re-discovering.
-            # This is inefficient if called multiple times.
-            # A better long-term solution might be to pass `all_test_results` (which includes model_class)
-            # to `save_cost_report` if it's meant to operate on a completed run.
-
-            # For now, let's attempt to find it by re-discovering, acknowledging this isn't optimal.
-            # This is a placeholder for a potentially better way to access model_class here.
-            discovered_test_cases = self.discover_test_cases() # Inefficient, but for fixing the direct error
-            found_tc_for_module = next((tc for tc in discovered_test_cases if tc['module'] == module_name), None)
-            if found_tc_for_module:
-                model_class = found_tc_for_module.get('model_class')
 
             if not model_class:
-                self.logger.warning(f"Could not find model class for module {module_name} during cost report saving.")
+                self.logger.warning(f"Could not retrieve model class for module {module_name} during cost report saving.")
                 continue
+
+            if not module_dir:
+                 self.logger.warning(f"Could not retrieve module_dir for module {module_name} during cost report saving.")
+                 continue
+
 
             # Save module-specific report if the model class has the method
             if hasattr(model_class, 'save_module_cost_report'):
                 try:
-                    module_report_path = model_class.save_module_cost_report(cost_data, self.run_id)
+                    self.logger.info(f"save_cost_report: Attempting to save module cost report for {module_name} using model_class {model_class} and module_dir {module_dir}")
+                    module_report_path = model_class.save_module_cost_report(cost_data, self.run_id, module_dir) # Pass module_dir
                     self.logger.info(f"Module cost report for {module_name} saved to {module_report_path}")
                     report_paths[module_name] = module_report_path
                 except Exception as e:
