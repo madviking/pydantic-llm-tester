@@ -2,37 +2,18 @@
   "name": "mock",
   "provider_type": "mock",
   "env_key": "",
-  "system_prompt": "You are a mock LLM provider for testing purposes.",
+  "system_prompt": "You are a mock LLM. Respond with mock data.",
   "llm_models": [
     {
-      "name": "mock:default",
+      "name": "mock-model",
       "default": true,
-      "preferred": false,
+      "preferred": true,
+      "enabled": true,
       "cost_input": 0.0,
       "cost_output": 0.0,
-      "cost_category": "free",
-      "max_input_tokens": 16000,
-      "max_output_tokens": 16000
-    },
-    {
-      "name": "mock:fast",
-      "default": false,
-      "preferred": false,
-      "cost_input": 0.0,
-      "cost_output": 0.0,
-      "cost_category": "free",
-      "max_input_tokens": 8000,
-      "max_output_tokens": 8000
-    },
-    {
-      "name": "mock:large",
-      "default": false,
-      "preferred": false,
-      "cost_input": 0.0,
-      "cost_output": 0.0,
-      "cost_category": "free",
-      "max_input_tokens": 32000,
-      "max_output_tokens": 32000
+      "max_input_tokens": 4000,
+      "max_output_tokens": 1000,
+      "supports_response_format_json": true
     }
   ]
 }

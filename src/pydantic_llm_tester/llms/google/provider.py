@@ -22,67 +22,36 @@ Blob = None
 GenerationConfig = None
 
 try:
-    import google.genai as sdk_alias # Use a generic alias first
-    genai_sdk = sdk_alias # Assign to genai_sdk for use in the file
-    NEW_GOOGLE_GENAI_SDK_AVAILABLE = True
-    _module_logger.info(f"Successfully imported 'google.genai' SDK as genai_sdk (version: {getattr(genai_sdk, '__version__', 'unknown')}).")
-    # Prepare a Client instance for the new API
-    _GOOGLE_GENAI_CLIENT = None
-    try:
-        # Try to instantiate the client with API key if available
-        import os
-        api_key = os.environ.get("GOOGLE_API_KEY")
-        if api_key:
-            _GOOGLE_GENAI_CLIENT = genai_sdk.Client(api_key=api_key)
-        else:
-            _GOOGLE_GENAI_CLIENT = genai_sdk.Client()
-        _module_logger.info("Instantiated google.genai.Client for API calls.")
-    except Exception as e:
-        _module_logger.error(f"Failed to instantiate google.genai.Client: {e}")
-        _GOOGLE_GENAI_CLIENT = None
-
-    # Try importing types from the new SDK. Paths are speculative.
-    # Common patterns: genai_sdk.types.Part or genai_sdk.Part
-    try:
-        from google.genai.types import Part as ActualPart
-        Part = ActualPart
-        _module_logger.info("Imported Part from google.genai.types")
-    except (ImportError, AttributeError): # Catch AttributeError if .types doesn't exist
-        _module_logger.warning("Could not import 'Part' from google.genai.types or google.genai.Part. Multimodal features may be unavailable.")
-
-    try:
-        from google.genai.types import Blob as ActualBlob
-        Blob = ActualBlob
-    except (ImportError, AttributeError):
-        _module_logger.warning("Could not import 'Blob' type. Image processing might fail.")
-
-    try:
-        from google.genai.types import HarmCategory as ActualHarmCategory, HarmBlockThreshold as ActualHarmBlockThreshold
-        HarmCategory = ActualHarmCategory
-        HarmBlockThreshold = ActualHarmBlockThreshold
-    except (ImportError, AttributeError):
-        _module_logger.warning("Could not import HarmCategory/HarmBlockThreshold. Safety settings may be limited.")
-
-    try:
-        from google.genai.types import GenerationConfig as ActualGenerationConfig
-        GenerationConfig = ActualGenerationConfig
-    except (ImportError, AttributeError):
-        _module_logger.warning("Could not import 'GenerationConfig' type. Config might not be applied correctly.")
-
-except ImportError as e:
-    _module_logger.error(f"Failed to import primary 'google.genai' SDK module. Google provider will be unavailable. Error: {e}")
-    # NEW_GOOGLE_GENAI_SDK_AVAILABLE remains False
-
-try:
+    # Main SDK import
+    import google.genai as genai_sdk
+    import os
     import google.auth
+
+    NEW_GOOGLE_GENAI_SDK_AVAILABLE = True
     GOOGLE_AUTH_AVAILABLE = True
-except ImportError as e:
-    _module_logger.error(f"Failed to import 'google.auth' SDK. Error: {e}")
-    # GOOGLE_AUTH_AVAILABLE remains False
+
+    _module_logger.info(
+        f"Successfully imported 'google.genai' SDK (version: {getattr(genai_sdk, '__version__', 'unknown')}).")
+
+    # Client instantiation
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    _GOOGLE_GENAI_CLIENT = genai_sdk.Client(api_key=api_key) if api_key else genai_sdk.Client()
+    _module_logger.info("Instantiated google.genai.Client for API calls.")
+
+    # Import necessary types
+    from google.genai.types import Part, Blob, HarmCategory, HarmBlockThreshold, GenerationConfig
+except Exception as e:
+    NEW_GOOGLE_GENAI_SDK_AVAILABLE = False
+    _GOOGLE_GENAI_CLIENT = None
+    _module_logger.error(f"Failed to set up Google GenAI SDK: {e}")
 
 from ..base import BaseLLM, ModelConfig, BaseModel, ProviderConfig
 from pydantic_llm_tester.utils.cost_manager import UsageData
 
+
+"""
+This is needed only for debugging, but left here as Google has been little temperemental with their API.
+"""
 def serialize_part(part):
     # Dump all attributes for debugging
     result = {"type": "Part"}
@@ -114,7 +83,7 @@ class GoogleProvider(BaseLLM):
         super().__init__(config, llm_models=llm_models)
         
         self.client_configured_status = False 
-        self.part_type_available = (ActualPart is not None and ActualPart.__name__ != 'PartPlaceholder')
+        self.part_type_available = (Part is not None and Part.__name__ != 'PartPlaceholder')
         self.safety_types_available = (HarmCategory is not None and HarmCategory.__name__ != 'HarmCategoryPlaceholder' and \
                                        HarmBlockThreshold is not None and HarmBlockThreshold.__name__ != 'HarmBlockThresholdPlaceholder')
         self.blob_type_available = (Blob is not None and Blob.__name__ != 'BlobPlaceholder')
@@ -158,8 +127,8 @@ class GoogleProvider(BaseLLM):
                 if mime_type in ["image/jpeg", "image/png", "image/gif", "image/webp"]:
                     with open(file_path, "rb") as f:
                         image_bytes = f.read()
-                    if ActualPart is not None and hasattr(ActualPart, "from_bytes"):
-                        image_part = ActualPart.from_bytes(data=image_bytes, mime_type=mime_type)
+                    if Part is not None and hasattr(Part, "from_bytes"):
+                        image_part = Part.from_bytes(data=image_bytes, mime_type=mime_type)
                         content_payload.append(image_part)
                         self.logger.info(f"Added image {file_path} to Google request as Part.from_bytes.")
                     else:
@@ -174,12 +143,12 @@ class GoogleProvider(BaseLLM):
         self.logger.info(f"Sending request to Google model {model_name}")
 
         # Debug: Write a serializable version of the content payload to file
-        serializable_payload = []
-        for item in content_payload:
-            if isinstance(item, str):
-                serializable_payload.append({"type": "str", "value": item})
-            else:
-                serializable_payload.append(serialize_part(item))
+        # serializable_payload = []
+        # for item in content_payload:
+        #     if isinstance(item, str):
+        #         serializable_payload.append({"type": "str", "value": item})
+        #     else:
+        #         serializable_payload.append(serialize_part(item))
 
         # try:
         #     with open("test_results/google_raw_content_payload.txt", "w") as f:
@@ -190,8 +159,6 @@ class GoogleProvider(BaseLLM):
         # print("Combined prompt:", combined_prompt)
 
         try:
-            my_file = _GOOGLE_GENAI_CLIENT.files.upload(file=file_path)
-
             """
             COUPLE NOTES HERE:
             - gemini-2.5-pro-exp-03-25 would fail on RECITATION almost in all cases. Many people reporting this problem.

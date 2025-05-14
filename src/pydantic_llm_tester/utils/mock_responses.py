@@ -19,17 +19,15 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
           "location": {
             "city": "Boston",
             "state": "Massachusetts",
-            "country": "United States"
+            "country": "United States",
+            "remote": true
           },
-          "salary": {
-            "range": "$150,000 - $190,000",
-            "currency": "USD",
-            "period": "annually"
-          },
+          "salary": "$150,000 - $190,000 USD annually",
           "employment_type": "Full-time",
           "experience": {
-            "years": "5+ years",
-            "level": "Senior"
+            "years": 5,
+            "level": "Senior",
+            "preferred": true
           },
           "required_skills": [
             "Python",
@@ -92,17 +90,15 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
           "location": {
             "city": "Austin",
             "state": "Texas",
-            "country": "United States"
+            "country": "United States",
+            "remote": true
           },
-          "salary": {
-            "range": "$120,000 - $160,000",
-            "currency": "USD",
-            "period": "annually"
-          },
+          "salary": "$120,000 - $160,000 USD annually",
           "employment_type": "Full-time",
           "experience": {
-            "years": "3+ years",
-            "level": "Mid-level to Senior"
+            "years": 3,
+            "level": "Mid-level to Senior",
+            "preferred": true
           },
           "required_skills": [
             "JavaScript/TypeScript",
@@ -161,17 +157,15 @@ MOCK_RESPONSES: Dict[str, Dict[str, str]] = {
           "location": {
             "city": "Seattle",
             "state": "Washington",
-            "country": "United States"
+            "country": "United States", 
+            "remote": true
           },
-          "salary": {
-            "range": "$130,000 - $170,000",
-            "currency": "USD",
-            "period": "annually"
-          },
+          "salary": "$130,000 - $170,000 USD annually",
           "employment_type": "Full-time",
           "experience": {
-            "years": "2+ years",
-            "level": "Mid-level"
+            "years": 2,
+            "level": "Mid-level",
+            "preferred": true
           },
           "required_skills": [
             "Java",

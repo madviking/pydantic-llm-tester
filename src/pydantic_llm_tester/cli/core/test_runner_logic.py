@@ -169,24 +169,32 @@ def run_test_suite(
     print("\nChecking provider configurations and API keys...")
     for provider_name in providers_to_check:
         try:
-            config = load_provider_config(provider_name)
-            if config and config.env_key:
-                # Check if the required environment variable is set and not empty
-                api_key = os.environ.get(config.env_key)
-                if api_key:
+            # Adjust lookup name for mock providers
+            config_lookup_name = provider_name
+            if provider_name.startswith("mock_") and provider_name != "mock":
+                config_lookup_name = "mock"
+            
+            config = load_provider_config(config_lookup_name)
+            if config:
+                # Special handling for mock providers - they don't need a real API key check
+                is_mock_provider_type = config.provider_type == "mock" # Check provider_type from config
+                
+                if is_mock_provider_type or not config.env_key:
                     usable_providers.append(provider_name)
-                    logger.info(f"Provider '{provider_name}' enabled (API key found for {config.env_key}).")
-                else:
-                    print(f"Skipping provider '{provider_name}': Required environment variable '{config.env_key}' not set.")
-                    logger.warning(f"Skipping provider '{provider_name}': Required environment variable '{config.env_key}' not set.")
+                    logger.info(f"Provider '{provider_name}' enabled (mock provider or no API key required).")
+                elif config.env_key:
+                    # Check if the required environment variable is set and not empty
+                    api_key = os.environ.get(config.env_key)
+                    if api_key:
+                        usable_providers.append(provider_name)
+                        logger.info(f"Provider '{provider_name}' enabled (API key found for {config.env_key}).")
+                    else:
+                        print(f"Skipping provider '{provider_name}': Required environment variable '{config.env_key}' not set.")
+                        logger.warning(f"Skipping provider '{provider_name}': Required environment variable '{config.env_key}' not set.")
             else:
-                # Provider does not require an API key (e.g., mock provider) or config not found
-                if config:
-                    usable_providers.append(provider_name)
-                    logger.info(f"Provider '{provider_name}' enabled (no API key required or config loaded).")
-                else:
-                    print(f"Skipping provider '{provider_name}': Configuration not found.")
-                    logger.warning(f"Skipping provider '{provider_name}': Configuration not found.")
+                # Config not found
+                print(f"Skipping provider '{provider_name}': Configuration not found.")
+                logger.warning(f"Skipping provider '{provider_name}': Configuration not found.")
 
         except Exception as e:
             print(f"Error checking config for provider '{provider_name}': {e}")

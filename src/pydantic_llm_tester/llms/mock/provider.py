@@ -98,11 +98,13 @@ class MockProvider(BaseLLM):
         
         # Create usage data
         usage_data = UsageData(
-            provider="mock",
+            provider="mock", # Or self.name, though "mock" is fine for mock provider
             model=model_name,
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            total_tokens=total_tokens
+            total_tokens=total_tokens,
+            cost_input_rate=model_config.cost_input,
+            cost_output_rate=model_config.cost_output
         )
         
         # Add elapsed time manually since it's not part of the standard UsageData fields
