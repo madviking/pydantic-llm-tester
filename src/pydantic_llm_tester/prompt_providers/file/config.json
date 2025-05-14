@@ -1,0 +1,30 @@
+{
+  "name": "file",
+  "provider_type": "file",
+  "version": "1.0.0",
+  "description": "File-based prompt provider with versioning and performance tracking",
+  "storage_structure": {
+    "versions_dir": "versions",
+    "metadata_suffix": ".meta.json",
+    "performance_file": "performance.json",
+    "index_file": "index.json",
+    "system_prompts_dir": "system_prompts"
+  },
+  "versioning": {
+    "version_retention": 10,
+    "version_format": "v{timestamp}"
+  },
+  "performance_tracking": {
+    "enabled": true,
+    "metrics": [
+      "accuracy",
+      "tokens.total",
+      "cost",
+      "validation_success"
+    ]
+  },
+  "compatibility": {
+    "support_legacy_paths": true,
+    "migrate_existing_prompts": false
+  }
+}
