@@ -383,3 +383,12 @@ When an LLM needs to work on this project, the following files/concepts are cent
 - **Documentation in `docs/`**: Especially guides on adding providers/models and the API usage.
 
 By understanding these components, an LLM can effectively analyze, modify, and extend the `pydantic-llm-tester` framework.
+
+## 12. Additional IMPORTANT guidelines for work
+- No function should be longer than 200 lines.
+- No class should be longer than 700 lines.
+- Feel free to create new files to make things more modular.
+- Configuration should be kept in pyllm_config.json - extend that when needed. No other config files besides provide config files. 
+- ALWAYS write tests before implementing. TDD!
+- ALWAYS stop for approval after creating the tests. 
+- ALWAYS run tests after making changes.
