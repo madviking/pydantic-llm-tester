@@ -42,11 +42,7 @@ def _display_provider_status():
         print("No providers discovered.")
         return
 
-    enabled_file_path = provider_logic.get_enabled_providers_path()
-    if not os.path.exists(enabled_file_path):
-         print("(No 'enabled_providers.json' found. All discovered providers are enabled by default)")
-    else:
-         print(f"(Based on '{provider_logic.ENABLED_PROVIDERS_FILENAME}')")
+    print("(Status based on pyllm_config.json)") # Updated message
 
     sorted_providers = sorted(status_dict.keys())
     for provider in sorted_providers:

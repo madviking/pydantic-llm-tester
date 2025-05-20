@@ -22,8 +22,7 @@ def list_providers():
     """
     List all discoverable providers and their enabled/disabled status.
 
-    Status is based on the presence and content of 'enabled_providers.json'
-    in the project root. If the file doesn't exist, all providers are enabled.
+    Status is based on the 'enabled' flag in the pyllm_config.json file.
     """
     logger.info("Executing 'providers list' command.")
     status_dict = provider_logic.get_enabled_status()
@@ -32,11 +31,7 @@ def list_providers():
         print("No providers discovered in 'src/llms/'.")
         return
 
-    enabled_file_path = provider_logic.get_enabled_providers_path()
-    if not os.path.exists(enabled_file_path):
-         print("No 'enabled_providers.json' found. All discovered providers are considered enabled:")
-    else:
-         print(f"Provider Status (based on '{provider_logic.ENABLED_PROVIDERS_FILENAME}'):")
+    print("Provider Status (based on pyllm_config.json):")
 
     # Sort by provider name for consistent output
     sorted_providers = sorted(status_dict.keys())
@@ -50,9 +45,7 @@ def enable_provider(
     provider_name: str = typer.Argument(..., help="Name of the provider to enable.")
 ):
     """
-    Enable a specific provider by adding it to 'enabled_providers.json'.
-
-    Creates the file if it doesn't exist.
+    Enable a specific provider by setting its 'enabled' flag to true in pyllm_config.json.
     """
     logger.info(f"Executing 'providers enable' for provider: {provider_name}")
     success, message = provider_logic.enable_provider(provider_name)
@@ -67,7 +60,7 @@ def disable_provider(
     provider_name: str = typer.Argument(..., help="Name of the provider to disable.")
 ):
     """
-    Disable a specific provider by removing it from 'enabled_providers.json'.
+    Disable a specific provider by setting its 'enabled' flag to false in pyllm_config.json.
     """
     logger.info(f"Executing 'providers disable' for provider: {provider_name}")
     success, message = provider_logic.disable_provider(provider_name)

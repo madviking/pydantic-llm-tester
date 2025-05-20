@@ -1,17 +1,16 @@
 import os
 import logging
-from typing import List, Set, Dict, Tuple # Added Dict and Tuple
+from typing import List, Set, Dict, Tuple
 
 # Use absolute imports for clarity within the package
 from pydantic_llm_tester.utils.common import (
     get_package_dir,
-    get_enabled_providers_path,
-    read_json_file,
-    write_json_file,
-    ENABLED_PROVIDERS_FILENAME
+    read_json_file, # Keep read_json_file for other uses if any
+    write_json_file # Keep write_json_file for other uses if any
 )
+from pydantic_llm_tester.utils.config_manager import ConfigManager # Import ConfigManager
 # Import provider factory functions for discovery and cache management
-from pydantic_llm_tester.llms.provider_factory import reset_caches, get_available_providers as factory_get_available # Renamed to avoid conflict
+from pydantic_llm_tester.llms.provider_factory import get_available_providers as factory_get_available # Renamed to avoid conflict
 
 logger = logging.getLogger(__name__)
 
@@ -42,71 +41,34 @@ def get_discovered_providers() -> List[str]:
     # TODO: Add external provider discovery if needed later
     return sorted(discovered)
 
-def read_enabled_providers() -> Set[str]:
-    """
-    Reads the set of enabled providers from the enabled_providers.json file.
-    Returns an empty set if the file doesn't exist or is invalid.
-    """
-    enabled_file_path = get_enabled_providers_path()
-    data = read_json_file(enabled_file_path)
-
-    if data is None:
-        # File doesn't exist or couldn't be read/parsed
-        return set() # Treat as empty list
-
-    if isinstance(data, list) and all(isinstance(item, str) for item in data):
-        return set(data)
-    else:
-        logger.warning(f"Invalid format in '{enabled_file_path}'. Expected list of strings. Treating as empty.")
-        return set()
-
-def write_enabled_providers(providers: Set[str]) -> bool:
-    """
-    Writes the set of enabled providers to the enabled_providers.json file.
-    Returns True on success, False on failure.
-    """
-    enabled_file_path = get_enabled_providers_path()
-    # Convert set to sorted list for consistent file output
-    sorted_list = sorted(list(providers))
-    return write_json_file(enabled_file_path, sorted_list)
-
 def is_provider_enabled(provider_name: str) -> bool:
-    """Checks if a specific provider is currently enabled."""
-    enabled_file_path = get_enabled_providers_path()
-    if not os.path.exists(enabled_file_path):
-        # If file doesn't exist, all discovered providers are implicitly enabled
-        return provider_name in get_discovered_providers()
-    else:
-        # If file exists, only those listed are enabled
-        return provider_name in read_enabled_providers()
+    """Checks if a specific provider is currently enabled based on ConfigManager."""
+    config_manager = ConfigManager()
+    providers_config = config_manager.get_providers()
+    return providers_config.get(provider_name, {}).get("enabled", False) # Default to False if provider or enabled key missing
 
 def get_enabled_status() -> Dict[str, bool]:
     """
-    Gets the enabled status for all discovered providers.
+    Gets the enabled status for all discovered providers based on ConfigManager.
 
     Returns:
         Dict mapping provider name to boolean enabled status.
     """
     all_providers = get_discovered_providers()
-    enabled_file_path = get_enabled_providers_path()
+    config_manager = ConfigManager()
+    providers_config = config_manager.get_providers()
     status = {}
 
-    if not os.path.exists(enabled_file_path):
-        logger.info(f"'{ENABLED_PROVIDERS_FILENAME}' not found. All discovered providers considered enabled.")
-        for provider in all_providers:
-            status[provider] = True
-    else:
-        enabled_set = read_enabled_providers()
-        logger.info(f"Read enabled providers from '{enabled_file_path}': {enabled_set}")
-        for provider in all_providers:
-            status[provider] = provider in enabled_set
+    for provider in all_providers:
+        # Get enabled status from config, default to False if provider or enabled key missing
+        status[provider] = providers_config.get(provider, {}).get("enabled", False)
 
     return status
 
 
 def enable_provider(provider_name: str) -> Tuple[bool, str]:
     """
-    Enables a provider by adding it to enabled_providers.json.
+    Enables a provider by setting its 'enabled' flag to true in pyllm_config.json.
 
     Args:
         provider_name: The name of the provider to enable.
@@ -114,35 +76,33 @@ def enable_provider(provider_name: str) -> Tuple[bool, str]:
     Returns:
         Tuple of (success: bool, message: str).
     """
-    all_providers = get_discovered_providers()
-    if provider_name not in all_providers:
-        return False, f"Provider '{provider_name}' not found or not discoverable. Available: {', '.join(all_providers)}"
+    config_manager = ConfigManager()
+    providers_config = config_manager.config.get("providers", {}) # Access the underlying config dict
 
-    enabled_file_path = get_enabled_providers_path()
-    enabled_set = read_enabled_providers()
+    if provider_name not in providers_config:
+        # Check if it's a discoverable provider at all before adding to config
+        if provider_name not in get_discovered_providers():
+             return False, f"Provider '{provider_name}' not found or not discoverable. Available: {', '.join(get_discovered_providers())}"
 
-    if not os.path.exists(enabled_file_path):
-        # File doesn't exist, create it with just this provider
-        if write_enabled_providers({provider_name}):
-            reset_caches() # Clear factory cache
-            return True, f"Created '{ENABLED_PROVIDERS_FILENAME}' and enabled '{provider_name}'."
-        else:
-            return False, f"Error writing to {enabled_file_path}."
+        # Provider is discoverable but not in config, add it and enable
+        providers_config[provider_name] = {"enabled": True}
+        config_manager.config["providers"] = providers_config # Ensure change is reflected
+        config_manager.save_config()
+        return True, f"Provider '{provider_name}' added to config and enabled."
+
+    # Provider is in config, update enabled status
+    if providers_config[provider_name].get("enabled", False):
+        return True, f"Provider '{provider_name}' is already enabled."
     else:
-        # File exists, add if not present
-        if provider_name in enabled_set:
-            return True, f"Provider '{provider_name}' is already enabled."
-        else:
-            enabled_set.add(provider_name)
-            if write_enabled_providers(enabled_set):
-                reset_caches() # Clear factory cache
-                return True, f"Provider '{provider_name}' enabled successfully."
-            else:
-                return False, f"Error writing to {enabled_file_path}."
+        providers_config[provider_name]["enabled"] = True
+        config_manager.config["providers"] = providers_config # Ensure change is reflected
+        config_manager.save_config()
+        return True, f"Provider '{provider_name}' enabled successfully."
+
 
 def disable_provider(provider_name: str) -> Tuple[bool, str]:
     """
-    Disables a provider by removing it from enabled_providers.json.
+    Disables a provider by setting its 'enabled' flag to false in pyllm_config.json.
 
     Args:
         provider_name: The name of the provider to disable.
@@ -150,32 +110,29 @@ def disable_provider(provider_name: str) -> Tuple[bool, str]:
     Returns:
         Tuple of (success: bool, message: str).
     """
-    enabled_file_path = get_enabled_providers_path()
+    config_manager = ConfigManager()
+    providers_config = config_manager.config.get("providers", {}) # Access the underlying config dict
 
-    if not os.path.exists(enabled_file_path):
-        return False, f"'{ENABLED_PROVIDERS_FILENAME}' not found. Cannot disable '{provider_name}'. (All discovered providers are enabled by default)."
-
-    enabled_set = read_enabled_providers()
-
-    if provider_name not in enabled_set:
-        # Check if it's a valid provider at all
-        status_msg = f"Provider '{provider_name}' is not currently enabled in {ENABLED_PROVIDERS_FILENAME}."
+    if provider_name not in providers_config:
+        # If provider not in config, it's implicitly disabled
+        status_msg = f"Provider '{provider_name}' is not in pyllm_config.json, so it's already disabled."
         if provider_name not in get_discovered_providers():
              status_msg += f" It is also not a discoverable provider."
-        return True, status_msg # Not an error if already disabled
+        return True, status_msg # Not an error if not in config
 
-    # Remove the provider and write back
-    enabled_set.discard(provider_name) # Use discard to avoid error if somehow not present
-    if write_enabled_providers(enabled_set):
-        reset_caches() # Clear factory cache
-        return True, f"Provider '{provider_name}' disabled successfully."
+    # Provider is in config, update enabled status
+    if not providers_config[provider_name].get("enabled", False):
+        return True, f"Provider '{provider_name}' is already disabled."
     else:
-        return False, f"Error writing to {enabled_file_path}."
+        providers_config[provider_name]["enabled"] = False
+        config_manager.config["providers"] = providers_config # Ensure change is reflected
+        config_manager.save_config()
+        return True, f"Provider '{provider_name}' disabled successfully."
 
 def get_available_providers_from_factory() -> List[str]:
     """
     Gets the list of providers considered available by the provider_factory.
-    This respects the enabled_providers.json file.
+    This respects the enabled status in pyllm_config.json via the factory.
     """
-    reset_caches() # Ensure cache is clear before checking
+    # The factory's get_available_providers already uses ConfigManager
     return factory_get_available()

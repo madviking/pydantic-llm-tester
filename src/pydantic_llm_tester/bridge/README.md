@@ -7,8 +7,8 @@ Bridge makes it easier to integrate pydantic_llm_tester to your project.
 
 ### implementation steps (update here as progressing):
 #### Phase 1
-[ ]   Extend config pytests
-[ ]   Remove any mentioning of enabled_providers.json --- provider enabled/disabled status is determined in pyllm_config.json. Use config manager to access this data (like is_py_models_enabled())
+[x]   Extend config pytests
+[x]   Remove any mentioning of enabled_providers.json --- provider enabled/disabled status is determined in pyllm_config.json. Use config manager to access this data (like is_py_models_enabled())
 
 STOP FOR REVIEW
 

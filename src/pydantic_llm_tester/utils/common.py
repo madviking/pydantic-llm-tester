@@ -8,7 +8,6 @@ from typing import List, Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 # --- Constants ---
-ENABLED_PROVIDERS_FILENAME = "enabled_providers.json"
 DEFAULT_CONFIG_FILENAME = "pyllm_config.json"
 
 # --- Path Helpers ---
@@ -76,10 +75,6 @@ def get_provider_config_path(provider_name: str) -> str:
 def get_templates_dir() -> str:
     """Gets the absolute path to the templates directory."""
     return os.path.join(get_cli_dir(), 'templates')
-
-def get_enabled_providers_path() -> str:
-    """Gets the absolute path to the enabled_providers.json file in the project root."""
-    return os.path.join(get_project_root(), ENABLED_PROVIDERS_FILENAME)
 
 def get_default_config_path() -> str:
     """Gets the absolute path to the pyllm_config.json file in the project root."""

@@ -73,8 +73,7 @@ pydantic-llm-tester/ (Project Root)
 ├── pyproject.toml            # Build system, dependencies, project metadata
 ├── setup.py                  # Minimal setup script (defers to pyproject.toml)
 ├── requirements.txt          # List of dependencies
-├── pyllm_config.json         # Optional: Global test settings, py_models paths
-├── enabled_providers.json    # Optional: Explicitly enabled providers
+├── pyllm_config.json         # Optional: Global test settings, py_models paths, and enabled/disabled provider status
 └── external_providers.json   # Optional: Paths to external providers
 ```
 
@@ -86,8 +85,7 @@ pydantic-llm-tester/ (Project Root)
     - `src/pydantic_llm_tester/`: The actual Python package.
 - `tests/`: Contains all automated tests.
 - `docs/`: Contains all project documentation.
-- `pyllm_config.json` (optional): Global configuration for test settings, output directories, default `py_models` paths.
-- `enabled_providers.json` (optional): If present, lists active providers. Managed by `llm-tester providers enable/disable`.
+- `pyllm_config.json` (optional): Global configuration for test settings, output directories, default `py_models` paths, and enabled/disabled provider status.
 - `external_providers.json` (optional): If present, lists paths to external provider directories.
 - `.env` (typically in `src/pydantic_llm_tester/` or project root, not versioned): Stores API keys.
 

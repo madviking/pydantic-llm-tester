@@ -68,8 +68,7 @@ Key Directories:
     - `setup.py`: Minimal setup script (defers to `pyproject.toml`).
     - `requirements.txt`: Often lists dependencies (though `pyproject.toml` is the primary source).
     - `LICENSE`: Project license (MIT).
-    - `pyllm_config.json`: (Optional) Global configuration for test settings, output directories, default py_models paths.
-    - `enabled_providers.json`: (Optional) Explicitly lists enabled providers. If not present, all discovered providers are active.
+    - `pyllm_config.json`: (Optional) Global configuration for test settings, output directories, default py_models paths, and enabled/disabled provider status.
     - `external_providers.json`: (Optional) Lists paths to external provider directories.
     - `.env`: (Typically in `src/pydantic_llm_tester/` or project root, managed by `llm-tester configure keys`) Stores API keys. Should be in `.gitignore`.
 
@@ -80,7 +79,7 @@ Key Directories:
 - **Clean Separation of Concerns:** Distinct systems for providers, `py_models`, test execution (runner), and utilities.
 - **Consistent Interfaces:** Providers implement `BaseLLM`, `py_models` extend Pydantic's `BaseModel`.
 - **Configuration Over Coding:** Behavior is primarily driven by JSON configuration files and environment variables, minimizing the need for code changes for common adjustments. This is a core philosophy.
-- **Centralized Path Management:** Key project paths (e.g., for `py_models`, `.env` file, output directories) are managed centrally, primarily within `src/pydantic_llm_tester/utils/common.py`, `src/pydantic_llm_tester/utils/config_manager.py`, and the `src/pydantic_llm_tester/cli/commands/paths.py` module, providing consistent path resolution.
+- **Centralized Path Management:** Key project paths (e.g., for `py_models`, `.env` file, output directories) are managed centrally, primarily within `src/pydantic_llm_tester/utils/config_manager.py` and the `src/pydantic_llm_tester/cli/commands/paths.py` module, providing consistent path resolution. (Removed common.py mention as enabled_providers.json path logic was removed)
 - **Testing and Validation:** Core focus on validating LLM outputs against Pydantic schemas and calculating accuracy.
 - **Cost Awareness:** Tracks token usage and calculates costs.
 - **User Experience:** Supports CLI and interactive modes, provides clear feedback and reports.
@@ -92,7 +91,7 @@ Key Directories:
 - **`ProviderFactory` (`src/pydantic_llm_tester/llms/provider_factory.py`):** Creates provider instances.
 - **`LLMRegistry` (`src/pydantic_llm_tester/llms/llm_registry.py`):** Manages and caches provider instances.
 - **`ProviderManager` (`src/pydantic_llm_tester/utils/provider_manager.py`):** High-level class for interacting with multiple providers.
-- **Discovery:** Providers are discovered from subdirectories in `src/pydantic_llm_tester/llms/` and optionally from paths defined in `external_providers.json`.
+- **Discovery:** Providers are discovered from subdirectories in `src/pydantic_llm_tester/llms/` and optionally from paths defined in `external_providers.json`. Enabled status is determined by `pyllm_config.json`.
 
 **Py_Model System (Extraction Schemas):**
 - **Pydantic Models (`src/pydantic_llm_tester/py_models/<model_name>/model.py`):** Define the structure of data to be extracted. These classes must:
@@ -145,7 +144,7 @@ Understanding the sequence of operations when a test run is initiated is crucial
         *   `ProviderManager` (`src/pydantic_llm_tester/utils/provider_manager.py`) is initialized with the list of target providers and LLM models.
             *   It discovers all available provider modules within `src/pydantic_llm_tester/llms/` and any paths specified in `external_providers.json`.
             *   For each discovered provider, its `config.json` is loaded to fetch details like the API key's environment variable name, default system prompt, and the list of LLM models it supports.
-            *   Provider instances are created using `ProviderFactory` and managed by `LLMRegistry`. These instances are filtered based on `enabled_providers.json` (if it exists) and the `--providers` / `--llm_models` CLI flags.
+            *   Provider instances are created using `ProviderFactory` and managed by `LLMRegistry`. These instances are filtered based on the 'enabled' flag in `pyllm_config.json` and the `--providers` / `--llm_models` CLI flags. (Updated description)
         *   `CostTracker` (`src/pydantic_llm_tester/utils/cost_manager.py`) is initialized, and a new unique `run_id` is generated.
         *   Other utilities like `ReportGenerator` and `PromptOptimizer` are instantiated.
 
@@ -212,7 +211,7 @@ Configuration is managed through several files and environment variables:
 - **`pyllm_config.json` (Project Root or User-defined):**
     - `test_settings`: Controls test runner behavior (e.g., `output_dir`, `save_optimized_prompts`, `default_modules`, `py_models_path`).
     - `py_models`: Can define paths to custom `py_model` directories.
-- **`enabled_providers.json` (Project Root):** Optional. If present, lists active providers. Managed by `llm-tester providers enable/disable`.
+    - `providers`: Defines provider-specific settings, including the `enabled` flag for each provider. (Updated description)
 - **`external_providers.json` (Project Root):** Optional. Lists paths to directories containing external provider implementations.
 - **Provider Configs (`src/pydantic_llm_tester/llms/<provider_name>/config.json`):**
     - `name`: Provider identifier.
@@ -241,8 +240,8 @@ The CLI is accessed via the `llm-tester` command (entry point: `src/pydantic_llm
 - **`list`**: Lists discovered test cases, providers, and models without running tests.
     - Options: `--providers`, `--py_models`, `--llm_models`, `--test-dir`.
 - **`providers`**: Manage LLM providers.
-    - `list`: Shows discoverable and enabled providers.
-    - `enable <name>` / `disable <name>`: Manages `enabled_providers.json`.
+    - `list`: Shows discoverable providers and their enabled/disabled status based on `pyllm_config.json`. (Updated description)
+    - `enable <name>` / `disable <name>`: Manages the 'enabled' flag for a provider in `pyllm_config.json`. (Updated description)
     - `manage list <provider>`: Lists LLM models within a provider's config.
     - `manage enable/disable <provider> <model_name>`: Toggles `enabled` flag in provider's `config.json`.
     - `manage update <provider>`: Updates model details from API (e.g., OpenRouter costs/limits).
@@ -326,7 +325,7 @@ This section outlines common scenarios for extending or modifying the framework 
 *   **Adding a New LLM Provider:**
     *   **Goal:** Integrate a new LLM API not currently supported.
     *   **Key Files/Process:**
-        *   Create a new directory: `src/pydantic_llm_tester/llms/<new_provider_name>/`
+        *   Use `llm-tester scaffold provider <new_provider_name>` or manually create directory: `src/pydantic_llm_tester/llms/<new_provider_name>/`
         *   Implement `provider.py`: Class inherits from `BaseLLM` (`src/pydantic_llm_tester/llms/base.py`). Key method: `_call_llm_api()`.
         *   Create `config.json`: Define provider name, API key env var, supported `llm_models` with their params (cost, tokens).
         *   Ensure `__init__.py` in the new directory.
@@ -379,7 +378,7 @@ When an LLM needs to work on this project, the following files/concepts are cent
 - **`src/pydantic_llm_tester/llms/<provider_name>/provider.py`**: How individual providers implement `BaseLLM`.
 - **`src/pydantic_llm_tester/py_models/<model_name>/model.py`**: How Pydantic schemas and their test cases are defined.
 - **`src/pydantic_llm_tester/cli/main.py`**: The CLI structure and command definitions.
-- **Configuration Files:** Understanding `pyllm_config.json`, provider `config.json` files, `enabled_providers.json`, and `.env` for API keys.
+- **Configuration Files:** Understanding `pyllm_config.json`, provider `config.json` files, and `.env` for API keys. (Updated description)
 - **Documentation in `docs/`**: Especially guides on adding providers/models and the API usage.
 
 By understanding these components, an LLM can effectively analyze, modify, and extend the `pydantic-llm-tester` framework.

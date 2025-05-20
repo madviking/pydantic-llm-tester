@@ -89,7 +89,7 @@ class ProviderManager:
 
 Provider configuration consists of:
 
-1. **Provider Enablement** (`enabled_providers.json` at project root): Optional file listing enabled provider names. If not present, all discovered providers are active.
+1. **Provider Enablement** (`pyllm_config.json` at project root): The 'enabled' flag within the provider's section in `pyllm_config.json` determines if a provider is active.
 2. **Provider Configuration** (`src/pydantic_llm_tester/llms/<provider_name>/config.json`):
    - Provider-specific information (API key env var name, default system prompt).
    - Available LLM models for that provider and their specific configurations (name, default/preferred/enabled flags, cost, token limits).

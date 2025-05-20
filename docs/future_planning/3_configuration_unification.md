@@ -1,7 +1,7 @@
 # Unified Configuration System Plan
 
 ## Overview
-This document outlines the plan to establish a unified configuration system for the `pydantic-llm-tester` project. The current configuration is fragmented across `pyllm_config.json` (managed by `src/utils/config_manager.py`), `external_providers.json`, `models_pricing.json`, environment variables, and potentially provider-specific `config.json` files within `src/llms/`. This new system aims to centralize configuration management, making it more robust, easier to understand, and simpler to extend.
+This document outlines the plan to establish a unified configuration system for the `pydantic-llm-tester` project. The current configuration is fragmented across `pyllm_config.json` (managed by `src/utils/config_manager.py`, now including provider enabled status which was previously in `enabled_providers.json`), `external_providers.json`, `models_pricing.json`, environment variables, and potentially provider-specific `config.json` files within `src/llms/`. This new system aims to centralize configuration management, making it more robust, easier to understand, and simpler to extend.
 
 ## Principles
 -   **Single Source of Truth (Logical):** While configuration data might still reside in multiple physical locations (e.g., a primary config file, `.env` file, default values), the application should access it through a single, consistent interface.
@@ -170,7 +170,7 @@ Refactor existing configuration consumers (e.g., `ConfigManager`, provider loadi
 2.  **Refactor Provider Loading (`src/llms/provider_factory.py` and individual providers):**
     *   Provider classes (`BaseLLM` subclasses) should receive their specific configuration (API keys, enabled models, default model) from `get_app_settings().providers.get(provider_name)`.
     *   The logic for loading provider-specific `config.json` files (e.g., `src/llms/openai/config.json`) should be replaced. Model lists and their properties (like `input_cost_per_token`) should now come from OpenRouter data (via `CostInformationService`) or be defined within the `ProviderSettings.llm_models` in `AppSettings` if they are not on OpenRouter or need overrides.
-    *   The concept of "enabled providers" (previously from `enabled_providers.json` or `pyllm_config.json`) will now be determined by `ProviderSettings.enabled` in `AppSettings`.
+    *   The concept of "enabled providers" (previously from `pyllm_config.json`) will now be determined by `ProviderSettings.enabled` in `AppSettings`. (Updated description)
 3.  **Refactor `src/utils/config_manager.py::ConfigManager`:**
     *   This class and its associated `pyllm_config.json` are largely superseded.
     *   Identify any unique functionalities of `ConfigManager` not covered by `AppSettings` (e.g., dynamic registration of py_models if that's still needed beyond a simple directory scan).

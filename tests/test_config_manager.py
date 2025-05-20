@@ -1,6 +1,6 @@
 import os
 import json
-from unittest.mock import patch
+from unittest.mock import patch, mock_open
 from pydantic_llm_tester.utils import ConfigManager
 
 @patch('src.pydantic_llm_tester.utils.config_manager.ConfigManager.is_py_models_enabled', return_value=True) # Patch to return True
@@ -10,7 +10,7 @@ def test_load_config_creates_default_if_not_exists(mock_is_py_models_enabled, te
     # Check the content of the created config file
     with open(temp_config.config_path, 'r') as f:
         loaded_config = json.load(f)
-    
+
     # Assert that the loaded config matches the default config structure
     # We don't need to assert the exact content of 'py_models' as it depends on discovery,
     # but the structure should be there.

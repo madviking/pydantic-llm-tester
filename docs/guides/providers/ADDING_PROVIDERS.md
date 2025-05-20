@@ -198,13 +198,13 @@ No changes are needed in the parent `src/pydantic_llm_tester/llms/__init__.py` f
 
 ### 5. Enable the Provider (Optional)
 
-By default, if no `enabled_providers.json` file exists in the project root, all discovered providers are considered enabled. If the file *does* exist, you need to add your new provider's name to it. You can do this manually or use the CLI:
+Provider enabled status is managed in `pyllm_config.json`. By default, newly discovered providers might be disabled depending on your configuration. To ensure your new provider is active, you can enable it using the CLI:
 
 ```bash
 # Activate virtual environment first
 source venv/bin/activate
 
-# Enable your new provider
+# Enable your new provider in pyllm_config.json
 llm-tester providers enable your_provider_name
 ```
 
@@ -290,13 +290,13 @@ Developers using the installed `pydantic-llm-tester` package may want to add cus
     __all__ = ['YourProviderProvider']
     ```
 
-5.  **Enable the Provider (Optional):** If you are using an `enabled_providers.json` file, you will need to add your external provider's name to it.
+5.  **Enable the Provider (Optional):** Provider enabled status is managed in `pyllm_config.json`. To ensure your new external provider is active, you can enable it using the CLI:
 
     ```bash
     # Activate virtual environment first
     source venv/bin/activate
 
-    # Enable your new provider
+    # Enable your new provider in pyllm_config.json
     llm-tester providers enable your_provider_name
     ```
 
@@ -304,16 +304,16 @@ Developers using the installed `pydantic-llm-tester` package may want to add cus
 
 ### 1. Verify Provider Discovery and Status
 
-Use the CLI to check if your provider is discovered and enabled:
+Use the CLI to check if your provider is discovered and enabled (status is based on `pyllm_config.json`):
 
 ```bash
 # Activate virtual environment first
-source venv/bin/activate
+# source venv/bin/activate # If in a virtual environment
 
 # List all providers and their status
 llm-tester providers list
 
-# List py_models configured for your provider (Note: This command might be `llm-tester providers manage list your_provider_name` or similar)
+# List py_models configured for your provider (Note: This command might be `llm-tester providers manage list your_provider_name` or similar based on current CLI structure)
 # llm-tester py_models list --provider your_provider_name # Check current CLI for exact command
 llm-tester providers manage list your_provider_name
 ```

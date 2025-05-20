@@ -9,9 +9,10 @@ from typing import Dict, Type, List, Optional, Any, Tuple
 import inspect
 import importlib.util
 import time
-import requests # Added
+import requests
 
-from .base import BaseLLM, ProviderConfig, ModelConfig # Added ModelConfig
+from .base import BaseLLM, ProviderConfig, ModelConfig
+from pydantic_llm_tester.utils.config_manager import ConfigManager # Import ConfigManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -19,9 +20,6 @@ logger = logging.getLogger(__name__)
 # --- Constants ---
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/models"
 CACHE_DURATION_SECONDS = 3600 * 6 # Cache API response for 6 hours
-
-# --- Constants ---
-ENABLED_PROVIDERS_FILENAME = "enabled_providers.json" # In project root
 
 # --- Caches ---
 # Cache for provider implementations
@@ -41,8 +39,6 @@ _openrouter_api_cache: Dict[str, Any] = {
 
 # Reset caches (for development/testing - remove in production)
 def reset_caches():
-    """Reset all provider caches to force rediscovery"""
-    global _provider_classes, _provider_configs, _external_providers
     """Reset all provider caches to force rediscovery"""
     global _provider_classes, _provider_configs, _external_providers, _openrouter_api_cache
     _provider_classes = {}
@@ -264,36 +260,6 @@ def _merge_static_and_api_models(
     return final_models
 
 # --- End Helper Functions ---
-
-
-# --- Helper Function for Enabled Providers ---
-
-def _load_enabled_providers() -> Optional[List[str]]:
-    """Loads the list of enabled providers from enabled_providers.json in the project root."""
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    enabled_file_path = os.path.join(project_root, ENABLED_PROVIDERS_FILENAME)
-
-    if not os.path.exists(enabled_file_path):
-        logger.debug(f"'{ENABLED_PROVIDERS_FILENAME}' not found. All discovered providers are considered enabled.")
-        return None # Indicate all enabled
-
-    try:
-        with open(enabled_file_path, 'r') as f:
-            data = json.load(f)
-        if isinstance(data, list) and all(isinstance(item, str) for item in data):
-            logger.info(f"Loaded {len(data)} enabled providers from {enabled_file_path}")
-            return data
-        else:
-            logger.warning(f"Invalid format in '{enabled_file_path}'. Expected a list of strings. Ignoring file.")
-            return None # Treat invalid format as all enabled
-    except json.JSONDecodeError:
-        logger.warning(f"Error decoding JSON from '{enabled_file_path}'. Ignoring file.")
-        return None # Treat invalid JSON as all enabled
-    except Exception as e:
-        logger.error(f"Error reading '{enabled_file_path}': {e}. Ignoring file.")
-        return None # Treat other errors as all enabled
-
-# --- End Enabled Providers Helper ---
 
 def discover_provider_classes() -> Dict[str, Type[BaseLLM]]:
     """Discover all provider classes in the llms directory
@@ -646,15 +612,12 @@ def get_available_providers() -> List[str]:
     # Combine internal and external provider names
     all_providers = sorted(list(set(list(provider_classes.keys()) + list(external_providers.keys()))))
 
-    # Load the list of enabled providers
-    enabled_providers_list = _load_enabled_providers()
+    # Get enabled providers from ConfigManager
+    config_manager = ConfigManager()
+    enabled_providers_config = config_manager.get_enabled_providers()
+    enabled_provider_names = set(enabled_providers_config.keys())
 
-    if enabled_providers_list is None:
-        # If file doesn't exist or is invalid, return all discovered providers
-        logger.debug("Returning all discovered providers as enabled list is not configured.")
-        return all_providers
-    else:
-        # Filter the discovered providers based on the enabled list
-        filtered_providers = [p for p in all_providers if p in enabled_providers_list]
-        logger.debug(f"Returning filtered list of enabled providers: {', '.join(filtered_providers)}")
-        return filtered_providers
+    # Filter the discovered providers based on the enabled list from ConfigManager
+    filtered_providers = [p for p in all_providers if p in enabled_provider_names]
+    logger.debug(f"Returning filtered list of enabled providers: {', '.join(filtered_providers)}")
+    return filtered_providers

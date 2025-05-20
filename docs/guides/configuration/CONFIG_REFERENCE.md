@@ -8,27 +8,11 @@ LLM Tester uses several configuration files:
 
 1. **Provider Configurations**: `src/pydantic_llm_tester/llms/<provider_name>/config.json` - Define provider-specific settings and their LLM models.
 2. **Environment Variables**: Typically in a `.env` file (e.g., at project root or `src/pydantic_llm_tester/.env`, path can be specified via CLI `--env` option). Stores API keys.
-3. **`pyllm_config.json`** (Optional, Project Root): Global test settings, default paths for `py_models`, custom `py_model` module definitions.
-4. **`enabled_providers.json`** (Optional, Project Root): Explicitly lists enabled providers. If absent, all discovered providers are active.
-5. **`external_providers.json`** (Optional, Project Root): Lists paths to external provider directories.
+3. **`pyllm_config.json`** (Optional, Project Root): Global test settings, default paths for `py_models`, custom `py_model` module definitions, and enabled/disabled provider status.
+4. **`external_providers.json`** (Optional, Project Root): Lists paths to external provider directories.
 
 *(Note: Older global `config.json` and `models_pricing.json` files at the project root are generally deprecated or unused by the current core logic, which favors the more structured configuration approach above.)*
 
-### Provider Enablement (`enabled_providers.json`)
-
-This optional file, located in the project root directory (where `README.md` is), explicitly lists which providers should be considered active by the framework.
-
-```json
-[
-  "openai",
-  "anthropic",
-  "openrouter"
-]
-```
-
-- If this file **does not exist**, all discovered providers (in `src/pydantic_llm_tester/llms/` and external paths) are considered enabled.
-- If this file **exists**, only the providers listed in the array will be loaded and used by commands like `run` or `recommend-model`.
-- This file is managed by the `llm-tester providers enable <name>` and `llm-tester providers disable <name>` CLI commands.
 
 ### Provider Configuration (`src/pydantic_llm_tester/llms/<provider_name>/config.json`)
 
@@ -139,9 +123,9 @@ These apply to all commands:
    - Usage: `llm-tester providers <subcommand> [args]`
    - Description: Manage LLM providers and their specific LLM models.
    - Subcommands:
-     - `list`: Shows all discoverable providers and whether they are enabled (based on `enabled_providers.json`).
-     - `enable <name>`: Enables a provider by adding it to `enabled_providers.json`. Creates the file if it doesn't exist.
-     - `disable <name>`: Disables a provider by removing it from `enabled_providers.json`.
+     - `list`: Shows all discoverable providers and whether they are enabled (based on `pyllm_config.json`). (Updated description)
+     - `enable <name>`: Enables a provider by setting its 'enabled' flag to true in `pyllm_config.json`. (Updated description)
+     - `disable <name>`: Disables a provider by setting its 'enabled' flag to false in `pyllm_config.json`. (Updated description)
      - `manage list <provider>`: Lists LLM models within a provider's `config.json` and their enabled status.
      - `manage enable <provider> <model_name>`: Enables a specific LLM model within a provider's `config.json`.
      - `manage disable <provider> <model_name>`: Disables a specific LLM model within a provider's `config.json`.
@@ -180,11 +164,11 @@ Configuration values are determined in the following order (highest precedence f
 
 Configuration can be edited in several ways:
 
-1. **Provider Enablement**: Use `llm-tester providers enable <name>` and `llm-tester providers disable <name>`.
+1. **Provider Enablement**: Use `llm-tester providers enable <name>` and `llm-tester providers disable <name>` to modify the 'enabled' flag in `pyllm_config.json`. (Updated description)
 2. **LLM Model Enablement**: Use `llm-tester providers manage enable <provider> <model>` and `llm-tester providers manage disable <provider> <model>`.
 3. **API Keys**: Use the `llm-tester configure keys` command or manually edit the `.env` file.
 4. **Provider Settings**: Manually edit the specific `src/pydantic_llm_tester/llms/<provider_name>/config.json` file for things like the default system prompt or manually adding/removing models (though `llm-tester providers manage update openrouter` is preferred for OpenRouter).
-5. **Directly edit files**: Modify the JSON files (`enabled_providers.json`, provider `config.json`) directly if needed.
+5. **Directly edit files**: Modify the JSON files (`pyllm_config.json`, provider `config.json`) directly if needed. (Updated description)
 
 ## Provider Verification
 
@@ -204,7 +188,7 @@ llm-tester configure keys
 ## Configuration Best Practices
 
 1. **API Keys**: Use `llm-tester configure keys` or manage your `.env` file carefully. Keep this file out of version control (it should be in `.gitignore`).
-2. **Provider Enablement**: Use `enabled_providers.json` (via `llm-tester providers enable/disable`) to control which providers are active, especially if you don't have keys for all of them.
+2. **Provider Enablement**: Use the `llm-tester providers enable/disable` commands to manage the 'enabled' flag in `pyllm_config.json`. (Updated description)
 3. **LLM Model Enablement**: Use `llm-tester providers manage enable/disable` to fine-tune which specific LLM models within a provider are used for testing or recommendations.
 4. **OpenRouter Updates**: Regularly use `llm-tester providers manage update openrouter` to keep pricing and token limits accurate.
 

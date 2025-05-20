@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from pydantic_llm_tester.llms import BaseLLM, ProviderConfig, ModelConfig
 import pydantic_llm_tester.llms.provider_factory # Import the module
+from pydantic_llm_tester.utils.config_manager import ConfigManager # Import ConfigManager
 
 
 class MockValidProvider(BaseLLM):
@@ -254,22 +255,34 @@ class ExternalProvider(BaseLLM):
         self.assertEqual(provider_classes["mock_provider"], MockValidProvider)
         self.assertNotIn("invalid_provider", provider_classes)
 
-    @patch('pydantic_llm_tester.llms.provider_factory._load_enabled_providers', return_value=None)
+    @patch('pydantic_llm_tester.llms.provider_factory.ConfigManager') # Patch ConfigManager
     @patch('pydantic_llm_tester.llms.provider_factory.load_external_providers')
     @patch('pydantic_llm_tester.llms.provider_factory.discover_provider_classes')
-    def test_get_available_providers(self, mock_discover_provider_classes, mock_load_external_providers, mock_load_enabled_providers):
+    def test_get_available_providers(self, mock_discover_provider_classes, mock_load_external_providers, mock_config_manager):
         """Test getting available providers"""
         # Mock discover_provider_classes and load_external_providers
-        mock_discovered_classes = {"mock_provider": MockValidProvider}
+        mock_discovered_classes = {"mock_provider": MockValidProvider, "another_provider": MagicMock()}
         mock_external_providers = {"external": {"module": "external_module", "class": "ExternalProvider"}}
 
         mock_discover_provider_classes.return_value = mock_discovered_classes
         mock_load_external_providers.return_value = mock_external_providers
 
+        # Configure the mocked ConfigManager to return specific enabled providers
+        mock_config_instance = MagicMock()
+        mock_config_instance.get_enabled_providers.return_value = {
+            "mock_provider": {"enabled": True},
+            "external": {"enabled": True}
+        }
+        mock_config_manager.return_value = mock_config_instance
+
         # Call the function
         providers = pydantic_llm_tester.llms.provider_factory.get_available_providers()
 
-        # Check that both internal and external providers are returned
+        # Check that ConfigManager was instantiated and get_enabled_providers was called
+        mock_config_manager.assert_called_once()
+        mock_config_instance.get_enabled_providers.assert_called_once()
+
+        # Check that only the enabled providers are returned
         self.assertEqual(set(providers), {"mock_provider", "external"})
 
     @patch('pydantic_llm_tester.llms.provider_factory.validate_provider_implementation', return_value=True)
