@@ -2,6 +2,10 @@ from typing import TypeVar, Type
 
 from pydantic_llm_tester.py_models.base import BasePyModel
 from pydantic_llm_tester.py_models.job_ads import JobAd
+# Import managers for initialization
+from pydantic_llm_tester.utils.config_manager import ConfigManager
+from pydantic_llm_tester.utils.provider_manager import ProviderManager
+# TODO: Import other necessary managers (e.g., CostManager, ReportGenerator)
 
 T = TypeVar('T', bound=BasePyModel)
 
@@ -13,6 +17,11 @@ class PyllmBridge:
         self.notices = []
         self.cost = 0
         self.analysis = {}
+
+        # Phase 1: Initialize managers
+        self.config_manager = ConfigManager() # Scaffolding
+        self.provider_manager = ProviderManager(self.config_manager) # Scaffolding
+        # TODO: Initialize other managers
 
     """
     Provide a model and prompt, receive the filled model. Retry with a secondary model if it fails.
@@ -41,7 +50,10 @@ class PyllmBridge:
     """
 
     def ask(self, model: Type[T], prompt: str, passes=1, file='') -> T:
-        return model
+        # TODO: Implement logic to use managers and helper methods
+        # TODO: Handle file input and LLM support
+        # TODO: Call _process_passes
+        return model # Scaffolding return
 
     """
     We should see what are the configured llm models for this pydantic model. In addition:
@@ -52,8 +64,35 @@ class PyllmBridge:
         raise NotImplementedError("Subclasses must implement this method.")
 
     def _save_model_config(self, model: BasePyModel) -> None:
-        raise NotImplementedError("Subclasses must implement this method.")
+        # Phase 1: Scaffolding for saving missing test files
+        """
+        Saves expected, prompts, and sources files for a model if they are missing.
+        Adds 'auto_' prefix to generated files.
+        """
+        pass # Scaffolding
 
+    # Phase 1 Implementation Scaffolding (Empty Functions)
+    def _get_primary_provider_and_model(self, model_class: Type[T]):
+        """Determine the primary provider and model based on config and model overrides."""
+        # TODO: Use self.config_manager to get preferred/default provider/model
+        pass # Scaffolding
+
+    def _get_secondary_provider_and_model(self, model_class: Type[T]):
+        """Determine the secondary provider and model based on config and model overrides."""
+        # TODO: Use self.config_manager to get secondary provider/model
+        pass # Scaffolding
+
+    def _call_llm_single_pass(self, provider_name: str, model_name: str, prompt: str, file: str):
+        """Handle a single call to an LLM provider."""
+        # TODO: Use self.provider_manager to get provider instance and call LLM
+        # TODO: Use self.cost_manager to track cost
+        pass # Scaffolding
+
+    def _process_passes(self, model: Type[T], prompt: str, passes: int, file: str):
+        """Handle multiple passes of calling LLMs and refining the result."""
+        # TODO: Implement logic for multiple passes, calling _call_llm_single_pass
+        # TODO: Update self.analysis
+        pass # Scaffolding
 
 
 if __name__ == "__main__":

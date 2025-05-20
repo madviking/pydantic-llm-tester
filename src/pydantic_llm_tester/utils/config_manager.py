@@ -209,3 +209,33 @@ class ConfigManager:
             for name, config in self.get_py_models().items()
             if config.get("enabled", False)
         }
+
+    # PyModel specific LLM model configuration
+    def get_py_model_llm_models(self, model_name: str) -> List[str]:
+        """
+        Get the list of configured LLM models for a specific Pydantic model.
+        Returns an empty list if no models are configured.
+        """
+        py_models = self.config.get("py_models", {})
+        return py_models.get(model_name, {}).get("llm_models", []) # Scaffolding
+
+    def set_py_model_llm_models(self, model_name: str, llm_models: List[str]) -> None:
+        """
+        Set the list of configured LLM models for a specific Pydantic model.
+        Expects llm_models as a list of strings like ['provider:model'].
+        """
+        if "py_models" not in self.config:
+            self.config["py_models"] = {}
+        if model_name not in self.config["py_models"]:
+            self.config["py_models"][model_name] = {}
+
+        # TODO: Add validation for the format of llm_models list
+        self.config["py_models"][model_name]["llm_models"] = llm_models # Scaffolding
+        self.save_config() # Scaffolding
+
+    def _parse_model_string(self, model_string: str) -> Tuple[str, str]:
+        """
+        Helper method to parse a 'provider:model' string into provider and model names.
+        """
+        # TODO: Implement parsing logic and error handling
+        pass # Scaffolding
