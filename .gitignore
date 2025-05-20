@@ -61,3 +61,5 @@ src/pydantic_llm_tester/py_models/*/reports/*
 !src/pydantic_llm_tester/py_models/*/reports/.gitkeep
 old-docs
 keys.txt
+
+**/.claude/settings.local.json

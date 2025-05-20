@@ -53,11 +53,8 @@ echo -e "${GREEN}Virtual environment created and activated${NC}"
 echo
 echo -e "${BLUE}Installing required packages...${NC}"
 
-# Install the package in development mode
-pip install -e .
-
-# Install additional dependencies
-pip install python-dotenv pydantic anthropic openai mistralai
+# Install the package in development mode and dependencies from requirements.txt
+pip install -e . -r requirements.txt
 
 echo -e "${GREEN}Packages installed successfully${NC}"
 
@@ -85,14 +82,15 @@ EOF
     echo -e "${GREEN}.env file created. Edit it to add your API keys.${NC}"
 fi
 
-# Make runner.py executable
-chmod +x runner.py
+# Make the main CLI entry point executable
+chmod +x src/pydantic_llm_tester/cli/main.py
 
 echo
 echo -e "${GREEN}LLM Tester installed successfully!${NC}"
 echo
-echo -e "To run the interactive tool: ${BLUE}./runner.py${NC}"
 echo -e "To activate the virtual environment: ${BLUE}source venv/bin/activate${NC}"
+echo -e "To run the interactive tool: ${BLUE}source venv/bin/activate && python src/pydantic_llm_tester/cli/main.py interactive${NC}"
+echo -e "To run tests: ${BLUE}source venv/bin/activate && PYTHONPATH=./src pytest${NC}"
 echo -e "Make sure to add your API keys to the .env file if you want to use real LLM providers."
 echo
 echo -e "${BLUE}=======================================================${NC}"
