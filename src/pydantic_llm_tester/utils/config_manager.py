@@ -4,7 +4,7 @@ Configuration manager for LLM Tester
 
 import os
 import json
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 
 class ConfigManager:
@@ -33,6 +33,12 @@ class ConfigManager:
             "default_modules": ["job_ads"],
             "py_models_path": "./py_models",
             "py_models_enabled": True # Added py_models_enabled flag
+        },
+        "bridge": {
+            "default_provider": "openai",
+            "default_model": "gpt-4",
+            "secondary_provider": "anthropic",
+            "secondary_model": "claude-3-opus"
         },
         "py_models": {}
     }
@@ -217,7 +223,7 @@ class ConfigManager:
         Returns an empty list if no models are configured.
         """
         py_models = self.config.get("py_models", {})
-        return py_models.get(model_name, {}).get("llm_models", []) # Scaffolding
+        return py_models.get(model_name, {}).get("llm_models", [])
 
     def set_py_model_llm_models(self, model_name: str, llm_models: List[str]) -> None:
         """
@@ -230,12 +236,43 @@ class ConfigManager:
             self.config["py_models"][model_name] = {}
 
         # TODO: Add validation for the format of llm_models list
-        self.config["py_models"][model_name]["llm_models"] = llm_models # Scaffolding
-        self.save_config() # Scaffolding
+        self.config["py_models"][model_name]["llm_models"] = llm_models
+        self.save_config()
+
+    # Bridge configuration methods
+    def get_bridge_settings(self) -> Dict[str, Any]:
+        """Get bridge configuration settings."""
+        return self.config.get("bridge", {})
+
+    def get_bridge_default_provider(self) -> Optional[str]:
+        """Get the default provider for bridge."""
+        return self.get_bridge_settings().get("default_provider")
+
+    def get_bridge_default_model(self) -> Optional[str]:
+        """Get the default model for bridge."""
+        return self.get_bridge_settings().get("default_model")
+
+    def get_bridge_secondary_provider(self) -> Optional[str]:
+        """Get the secondary provider for bridge."""
+        return self.get_bridge_settings().get("secondary_provider")
+
+    def get_bridge_secondary_model(self) -> Optional[str]:
+        """Get the secondary model for bridge."""
+        return self.get_bridge_settings().get("secondary_model")
+
+    def set_bridge_setting(self, setting_name: str, value: Any) -> None:
+        """Update a bridge setting."""
+        if "bridge" not in self.config:
+            self.config["bridge"] = {}
+        self.config["bridge"][setting_name] = value
+        self.save_config()
 
     def _parse_model_string(self, model_string: str) -> Tuple[str, str]:
         """
         Helper method to parse a 'provider:model' string into provider and model names.
+        Raises ValueError if the format is incorrect.
         """
-        # TODO: Implement parsing logic and error handling
-        pass # Scaffolding
+        parts = model_string.split(':')
+        if len(parts) != 2 or not all(parts):
+            raise ValueError(f"Invalid model string format: {model_string}. Expected 'provider:model'.")
+        return parts[0], parts[1]

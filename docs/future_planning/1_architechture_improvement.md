@@ -46,9 +46,9 @@ Decompose the `LLMTester` class into smaller, more focused classes/modules, each
     *   **Methods:** Would encapsulate logic from `_calculate_accuracy` and its private helper methods (`_normalize_value`, `_compare_values`, `_compare_dicts`, etc.).
     *   **Location:** e.g., `src/llm_tester/evaluation/accuracy_calculator.py`
 
-5.  **`CostManager` Integration (from `src/utils/cost_manager.py` or future OpenRouter integration):**
+5.  **`CostTracker` Integration (from `src/utils/cost_manager.py` or future OpenRouter integration):**
     *   The existing `CostTracker` in `src/utils/cost_manager.py` (or its evolution as per `2_cost_management_from_openrouter.md`) should be the primary component for cost tracking and reporting.
-    *   The `LLMTester` facade or `TestRunner` would interact with this `CostManager` to record usage and retrieve cost reports. The `save_cost_report` method in `LLMTester` would likely be removed or delegate directly.
+    *   The `LLMTester` facade or `TestRunner` would interact with this `CostTracker` to record usage and retrieve cost reports. The `save_cost_report` method in `LLMTester` would likely be removed or delegate directly.
 
 6.  **`LLMTester` Facade:**
     *   The `src/llm_tester.py::LLMTester` class would be refactored to become a higher-level facade.

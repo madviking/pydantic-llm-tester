@@ -19,24 +19,37 @@
     "default_modules": [
       "job_ads"
     ],
-    "py_models_path": "./py_models",
     "new_setting": "value"
+  },
+  "bridge": {
+    "default_provider": "openai",
+    "default_model": "gpt-4",
+    "secondary_provider": "anthropic",
+    "secondary_model": "claude-3-opus"
   },
   "py_models": {
     "integration_tests": {
       "enabled": true
     },
     "job_ads": {
-      "enabled": true
+      "enabled": true,
+      "llm_models": [
+        "openai:gpt-4",
+        "anthropic:claude-3-opus"
+      ]
     },
     "product_descriptions": {
-      "enabled": true
-    },
-    "default_path_model": {
-      "path": ".",
-      "enabled": true
+      "enabled": true,
+      "llm_models": [
+        "anthropic:claude-3-opus",
+        "openai:gpt-4"
+      ]
     },
     "config_test_model": {
+      "enabled": true
+    },
+    "test_model": {
+      "path": "/var/folders/t2/l90v_k516tsgp2jk7h3pwd740000gn/T/tmpvsdhwjtv",
       "enabled": true
     }
   }

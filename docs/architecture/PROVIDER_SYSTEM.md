@@ -155,7 +155,7 @@ Provider errors are handled at multiple levels:
 
 ## Cost Management
 
-Provider costs are tracked using the `cost_tracker` instance of the `CostManager` from `src/pydantic_llm_tester/utils/cost_manager.py`:
+Provider costs are tracked using the `cost_tracker` instance of the `CostTracker` from `src/pydantic_llm_tester/utils/cost_manager.py`:
 
 1. `UsageData` objects track token usage
 2. Costs are calculated based on model pricing information
