@@ -30,7 +30,10 @@ For more details on the architecture, see the [documentation](docs/README.md).
 -   Use mock providers for testing without API keys.
 -   Track token usage and costs.
 -   Easily integrate structured data extraction into your applications.
--   **NEW: File Upload Support**: Process and test LLMs with file inputs (e.g., images) for multimodal analysis. See the [guide on Using Files](docs/guides/files/USING_FILES.md) for more details.
+-   **Query model prices**: Compare pricing across providers and models to make cost-effective decisions.
+-   **Configure models**: Add, edit, and manage LLM models for each provider.
+-   **Update cost information**: Keep pricing data current with OpenRouter API integration.
+-   **File Upload Support**: Process and test LLMs with file inputs (e.g., images) for multimodal analysis. See the [guide on Using Files](docs/guides/files/USING_FILES.md) for more details.
 
 ## A word about *word* models
 
@@ -102,7 +105,7 @@ source venv/bin/activate
 llm-tester --help
 ```
 
-For detailed CLI command references, see the [documentation](docs/guides/cli_commands/SCAFFOLDING.md).
+For detailed CLI command references, see the [documentation](docs/guides/cli_commands/).
 
 Key CLI commands:
 
@@ -111,6 +114,24 @@ Key CLI commands:
     llm-tester scaffold --help
     ```
     It is recommended to start by scaffolding a new model or provider.
+
+-   **Model Prices**: Query and display pricing information for LLM models.
+    ```bash
+    llm-tester prices --help
+    ```
+    See [Prices Documentation](docs/guides/cli_commands/PRICES.md) for details.
+
+-   **Model Configuration**: Manage LLM models for providers (add, edit, remove, list).
+    ```bash
+    llm-tester models --help
+    ```
+    See [Models Documentation](docs/guides/cli_commands/MODELS.md) for details.
+
+-   **Cost Management**: Update and manage model costs from OpenRouter API.
+    ```bash
+    llm-tester costs --help
+    ```
+    See [Costs Documentation](docs/guides/cli_commands/COSTS.md) for details.
 
 -   **Running Tests**: Execute tests against configured providers.
     ```bash

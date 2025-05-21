@@ -1,11 +1,12 @@
 import logging
 import typer
 import os # Added import
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 # Import core logic functions that the UI will call
 from pydantic_llm_tester.cli.core import config_logic, test_runner_logic, recommend_logic
 from pydantic_llm_tester.cli.core import provider_logic, llm_model_logic as model_logic
+from pydantic_llm_tester.cli.core import model_config_logic
 # Import core scaffolding logic
 from pydantic_llm_tester.cli.core.scaffold_logic import scaffold_provider_files, scaffold_model_files
 # Import ConfigManager directly
@@ -407,6 +408,270 @@ def _manage_schemas_menu():
     typer.pause("Press Enter to continue...")
 
 
+def _manage_llm_models_config_menu():
+    """Handles the LLM model configuration submenu."""
+    provider_name = _prompt_for_provider_name()
+    if not provider_name:
+        return  # User cancelled selecting provider
+
+    while True:
+        print(f"\nLLM Model Configuration Menu ({provider_name}):")
+        print("1. List Models")
+        print("2. Add New Model")
+        print("3. Edit Existing Model")
+        print("4. Remove Model")
+        print("5. Set Default Model")
+        print("0. Back to Main Menu")
+
+        try:
+            choice = typer.prompt("Enter choice", type=int)
+        except typer.Abort:
+            print("\nReturning to main menu.")
+            break
+
+        if choice == 1:
+            # List models
+            config_data = model_config_logic.get_provider_config(provider_name)
+            if not config_data:
+                print(f"Error: Could not load configuration for provider '{provider_name}'.")
+                typer.pause("Press Enter to continue...")
+                continue
+
+            models = config_data.get("llm_models", [])
+            if not models:
+                print(f"No models found for provider '{provider_name}'.")
+                typer.pause("Press Enter to continue...")
+                continue
+
+            print(f"\nModels for provider '{provider_name}':")
+            for model in models:
+                name = model.get("name", "N/A")
+                default = "Default" if model.get("default", False) else ""
+                preferred = "Preferred" if model.get("preferred", False) else ""
+                enabled = "Enabled" if model.get("enabled", True) else "Disabled"
+                
+                status = []
+                if default:
+                    status.append(default)
+                if preferred:
+                    status.append(preferred)
+                status.append(enabled)
+                
+                print(f"  - {name} ({', '.join(status)})")
+                print(f"    Cost: ${model.get('cost_input', 0.0)}/1M input tokens, ${model.get('cost_output', 0.0)}/1M output tokens ({model.get('cost_category', 'standard')})")
+                print(f"    Max tokens: {model.get('max_input_tokens', 'N/A')} input, {model.get('max_output_tokens', 'N/A')} output")
+            
+            typer.pause("Press Enter to continue...")
+
+        elif choice == 2:
+            # Add new model
+            print("\n--- Add New Model ---")
+            
+            # Get model name
+            model_name = typer.prompt("Enter model name")
+            if not model_name:
+                print("Model name cannot be empty.")
+                typer.pause("Press Enter to continue...")
+                continue
+            
+            # Check if model already exists
+            existing_model = model_config_logic.get_model_from_provider(provider_name, model_name)
+            if existing_model:
+                print(f"Model '{model_name}' already exists for provider '{provider_name}'.")
+                typer.pause("Press Enter to continue...")
+                continue
+            
+            # Get model configuration
+            _, model_config = _prompt_for_model_config(provider_name, None, model_name)
+            
+            # Add model to provider
+            success, message = model_config_logic.add_model_to_provider(provider_name, model_name, model_config)
+            
+            # If model is set as default, update other models
+            if success and model_config.get("default", False):
+                default_success, default_message = model_config_logic.set_default_model(provider_name, model_name)
+                if not default_success:
+                    print(f"Warning: {default_message}")
+            
+            print(message)
+            typer.pause("Press Enter to continue...")
+
+        elif choice == 3:
+            # Edit existing model
+            print("\n--- Edit Existing Model ---")
+            
+            # Get model name
+            model_name = _prompt_for_model_name(provider_name)
+            if not model_name:
+                continue
+            
+            # Get current model config
+            current_config = model_config_logic.get_model_from_provider(provider_name, model_name)
+            if not current_config:
+                print(f"Error: Model '{model_name}' not found in provider '{provider_name}'.")
+                typer.pause("Press Enter to continue...")
+                continue
+            
+            # Get updated model configuration
+            _, updated_config = _prompt_for_model_config(provider_name, current_config, model_name)
+            
+            # Edit model in provider
+            success, message = model_config_logic.edit_model_in_provider(provider_name, model_name, updated_config)
+            
+            # If model is set as default, update other models
+            if success and updated_config.get("default", False):
+                default_success, default_message = model_config_logic.set_default_model(provider_name, model_name)
+                if not default_success:
+                    print(f"Warning: {default_message}")
+            
+            print(message)
+            typer.pause("Press Enter to continue...")
+
+        elif choice == 4:
+            # Remove model
+            print("\n--- Remove Model ---")
+            
+            # Get model name
+            model_name = _prompt_for_model_name(provider_name)
+            if not model_name:
+                continue
+            
+            # Confirm removal
+            confirm = typer.confirm(f"Are you sure you want to remove model '{model_name}' from provider '{provider_name}'?")
+            if not confirm:
+                print("Operation cancelled.")
+                typer.pause("Press Enter to continue...")
+                continue
+            
+            # Remove model from provider
+            success, message = model_config_logic.remove_model_from_provider(provider_name, model_name)
+            print(message)
+            typer.pause("Press Enter to continue...")
+
+        elif choice == 5:
+            # Set default model
+            print("\n--- Set Default Model ---")
+            
+            # Get model name
+            model_name = _prompt_for_model_name(provider_name)
+            if not model_name:
+                continue
+            
+            # Set model as default
+            success, message = model_config_logic.set_default_model(provider_name, model_name)
+            print(message)
+            typer.pause("Press Enter to continue...")
+
+        elif choice == 0:
+            break
+        else:
+            print("Invalid choice.")
+
+
+def _prompt_for_model_config(provider_name: str, current_config: Optional[Dict[str, Any]], model_name: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+    """
+    Prompt the user for model configuration values.
+    
+    Args:
+        provider_name: The name of the provider.
+        current_config: The current model configuration, if editing an existing model.
+        model_name: Optional model name if already known.
+        
+    Returns:
+        Tuple of (model_name, model_config).
+    """
+    is_edit = current_config is not None
+    action = "Editing" if is_edit else "Adding"
+    
+    print(f"\n--- {action} Model for Provider: {provider_name} ---")
+    
+    # Start with template or current config
+    if is_edit:
+        model_config = current_config.copy()
+        default_name = model_config.get("name", "")
+    else:
+        model_config = model_config_logic.get_model_template()
+        default_name = model_name or ""
+    
+    # Prompt for values
+    if not model_name:
+        model_name = typer.prompt("Model name", default=default_name)
+    
+    # For editing, show current values as defaults
+    if is_edit:
+        model_config["default"] = typer.confirm(
+            "Set as default model?",
+            default=model_config.get("default", False)
+        )
+        model_config["preferred"] = typer.confirm(
+            "Mark as preferred model?",
+            default=model_config.get("preferred", False)
+        )
+        model_config["enabled"] = typer.confirm(
+            "Enable model?",
+            default=model_config.get("enabled", True)
+        )
+        model_config["cost_input"] = typer.prompt(
+            "Cost per 1M input tokens (USD)",
+            default=model_config.get("cost_input", 0.0),
+            type=float
+        )
+        model_config["cost_output"] = typer.prompt(
+            "Cost per 1M output tokens (USD)",
+            default=model_config.get("cost_output", 0.0),
+            type=float
+        )
+        
+        # For cost category, show options
+        print("\nCost categories:")
+        print("1. cheap")
+        print("2. standard")
+        print("3. expensive")
+        
+        current_category = model_config.get("cost_category", "standard")
+        category_map = {"1": "cheap", "2": "standard", "3": "expensive"}
+        category_default = next((k for k, v in category_map.items() if v == current_category), "2")
+        
+        category_choice = typer.prompt(
+            "Select cost category",
+            default=category_default
+        )
+        model_config["cost_category"] = category_map.get(category_choice, "standard")
+        
+        model_config["max_input_tokens"] = typer.prompt(
+            "Maximum input tokens",
+            default=model_config.get("max_input_tokens", 4096),
+            type=int
+        )
+        model_config["max_output_tokens"] = typer.prompt(
+            "Maximum output tokens",
+            default=model_config.get("max_output_tokens", 4096),
+            type=int
+        )
+    else:
+        # For new models, don't show defaults
+        model_config["default"] = typer.confirm("Set as default model?")
+        model_config["preferred"] = typer.confirm("Mark as preferred model?")
+        model_config["enabled"] = typer.confirm("Enable model?", default=True)
+        model_config["cost_input"] = typer.prompt("Cost per 1M input tokens (USD)", type=float)
+        model_config["cost_output"] = typer.prompt("Cost per 1M output tokens (USD)", type=float)
+        
+        # For cost category, show options
+        print("\nCost categories:")
+        print("1. cheap")
+        print("2. standard")
+        print("3. expensive")
+        
+        category_choice = typer.prompt("Select cost category", default="2")
+        category_map = {"1": "cheap", "2": "standard", "3": "expensive"}
+        model_config["cost_category"] = category_map.get(category_choice, "standard")
+        
+        model_config["max_input_tokens"] = typer.prompt("Maximum input tokens", default=4096, type=int)
+        model_config["max_output_tokens"] = typer.prompt("Maximum output tokens", default=4096, type=int)
+    
+    return model_name, model_config
+
+
 def _get_recommendation_interactive():
     """Handles getting model recommendations interactively."""
     print("\n--- Get Model Recommendation ---")
@@ -461,14 +726,15 @@ def start_interactive_session():
 
     while True:
         print("\nMain Menu:")
-        print("1. Manage Providers (& their LLM Models)")
+        print("1. Manage Providers")
         print("2. Manage Extraction Schemas")
         print("3. Configure API Keys")
         print("4. Run Tests")
         print("5. Get Model Recommendation")
         print("6. Scaffold New Provider")
         print("7. Scaffold New Model")
-        print("8. Manage Py Models") # New menu item
+        print("8. Manage Py Models")
+        print("9. Manage LLM Models") # New menu item for model configuration
         print("0. Exit")
 
         try:
@@ -491,8 +757,10 @@ def start_interactive_session():
             _scaffold_provider_interactive()
         elif choice == 7:
             _scaffold_model_interactive()
-        elif choice == 8: # Handle new menu item
+        elif choice == 8:
             _manage_py_models_menu()
+        elif choice == 9: # Handle new menu item for model configuration
+            _manage_llm_models_config_menu()
         elif choice == 0:
             print("Exiting interactive session.")
             break
