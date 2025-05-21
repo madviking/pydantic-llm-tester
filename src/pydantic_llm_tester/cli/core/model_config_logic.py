@@ -237,8 +237,17 @@ def set_default_model(provider_name: str, model_name: str) -> Tuple[bool, str]:
     Returns:
         Tuple of (success: bool, message: str).
     """
+    # Validate provider name
+    if not provider_name:
+        logger.error("Provider name cannot be empty")
+        return False, "Provider name cannot be empty."
+        
     # Get provider config
     config_path = get_provider_config_path(provider_name)
+    if not os.path.exists(config_path):
+        logger.error(f"Provider config file not found at {config_path}")
+        return False, f"Provider '{provider_name}' not found. Config file does not exist at {config_path}."
+        
     config_data = read_json_file(config_path)
     if not config_data:
         return False, f"Could not load configuration for provider '{provider_name}' from {config_path}."

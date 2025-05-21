@@ -124,6 +124,7 @@ def display_model_prices(
     valid_sort_fields = ["total_cost", "name", "provider", "context_length", "cost_input", "cost_output"]
     if sort_by not in valid_sort_fields:
         logger.warning(f"Invalid sort field: {sort_by}. Using 'total_cost' instead.")
+        console.print(f"[yellow]Warning: Invalid sort field '{sort_by}'. Using 'total_cost' instead.[/yellow]")
         sort_by = "total_cost"
     
     sorted_models = sorted(models, key=lambda x: x[sort_by], reverse=not ascending)
@@ -196,8 +197,13 @@ def refresh_openrouter_models() -> Tuple[bool, str]:
         # Clear cache and fetch fresh data
         models_data = _fetch_openrouter_models_with_cache()
         if not models_data:
-            return False, "Failed to fetch models from OpenRouter API"
+            logger.error("Failed to fetch models from OpenRouter API: Empty response received")
+            return False, "Failed to fetch models from OpenRouter API: Empty response received"
         
+        if isinstance(models_data, list) and len(models_data) == 0:
+            logger.warning("OpenRouter API returned an empty list of models")
+            return True, "OpenRouter API returned an empty list of models"
+            
         return True, f"Successfully refreshed {len(models_data)} models from OpenRouter API"
     except Exception as e:
         logger.error(f"Error refreshing OpenRouter models: {e}")

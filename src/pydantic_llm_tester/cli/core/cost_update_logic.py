@@ -234,6 +234,8 @@ def _update_provider_configs(api_models_data: List[Dict[str, Any]], providers: L
                         
                         # Ensure max_input_tokens is positive
                         if max_input_tokens <= 0:
+                            logger.warning(f"Calculated negative max_input_tokens for {provider_name}/{model_name}. "
+                                          f"Adjusting to use half of context length.")
                             max_input_tokens = max(1, int(context_length) // 2)
                             max_output_tokens = int(context_length) - max_input_tokens
                         
@@ -254,9 +256,11 @@ def _update_provider_configs(api_models_data: List[Dict[str, Any]], providers: L
         
         # Save provider config if changes were made
         if updated_count > 0:
-            # Save config file
-            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 
-                                      "llms", provider_name, "config.json")
+            # Save config file - use a more robust path construction
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+            config_path = os.path.join(base_dir, "llms", provider_name, "config.json")
+            
+            logger.debug(f"Saving provider config to: {config_path}")
             
             try:
                 with open(config_path, 'w') as f:

@@ -1,7 +1,7 @@
 import logging
 import typer
 import os # Added import
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 # Import core logic functions that the UI will call
 from pydantic_llm_tester.cli.core import config_logic, test_runner_logic, recommend_logic
@@ -568,7 +568,7 @@ def _manage_llm_models_config_menu():
             print("Invalid choice.")
 
 
-def _prompt_for_model_config(provider_name: str, current_config: Optional[Dict[str, Any]], model_name: Optional[str] = None) -> tuple[str, Dict[str, Any]]:
+def _prompt_for_model_config(provider_name: str, current_config: Optional[Dict[str, Any]], model_name: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
     """
     Prompt the user for model configuration values.
     

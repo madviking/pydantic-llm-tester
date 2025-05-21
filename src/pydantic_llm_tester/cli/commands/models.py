@@ -305,9 +305,11 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
         category_default = next((k for k, v in category_map.items() if v == current_category), "2")
         
         category_choice = typer.prompt(
-            "Select cost category", 
+            "Select cost category",
             default=category_default
         )
+        if category_choice not in category_map:
+            print(f"Warning: Invalid category choice '{category_choice}'. Using 'standard' instead.")
         model_config["cost_category"] = category_map.get(category_choice, "standard")
         
         model_config["max_input_tokens"] = typer.prompt(
@@ -336,6 +338,8 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
         
         category_choice = typer.prompt("Select cost category", default="2")
         category_map = {"1": "cheap", "2": "standard", "3": "expensive"}
+        if category_choice not in category_map:
+            print(f"Warning: Invalid category choice '{category_choice}'. Using 'standard' instead.")
         model_config["cost_category"] = category_map.get(category_choice, "standard")
         
         model_config["max_input_tokens"] = typer.prompt("Maximum input tokens", default=4096, type=int)

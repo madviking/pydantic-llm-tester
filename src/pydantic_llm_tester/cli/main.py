@@ -88,7 +88,7 @@ def main_options(
 # Let's add the command first, and handle the default launch later if needed.
 
 # --- Register Command Groups ---
-from .commands import providers, configure, schemas, scaffold, paths, prices, models, costs # Import the costs module
+from .commands import providers, configure, schemas, scaffold, paths, prices, models, costs # Import command modules including the new costs, prices, and models modules
 app.add_typer(providers.app, name="providers")
 # app.add_typer(llm_models.app, name="llm-py_models") # Removed registration
 app.add_typer(configure.app, name="configure")
