@@ -308,11 +308,9 @@ def test_validate_model_config():
         "max_output_tokens": 4096
     }
     
-    with patch("pydantic_llm_tester.cli.core.model_config_logic.ModelConfig") as mock_model_config:
-        mock_model_config.side_effect = Exception("Missing required field")
-        success, message = model_config_logic.validate_model_config(invalid_config)
-        assert success is False
-        assert "invalid" in message.lower()
+    success, message = model_config_logic.validate_model_config(invalid_config)
+    assert success is False
+    assert "invalid" in message.lower()
 
 def test_add_model_to_provider():
     """Test adding a model to a provider"""
@@ -474,32 +472,38 @@ def test_models_edit_model_not_found(mock_get_model, mock_get_providers):
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.get_model_template")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.add_model_to_provider")
-def test_models_add_interactive(mock_add_model, mock_get_template, mock_get_providers, mock_model_template):
+@patch("pydantic_llm_tester.cli.commands.models.typer.prompt")
+@patch("pydantic_llm_tester.cli.commands.models.typer.confirm")
+def test_models_add_interactive(mock_confirm, mock_prompt, mock_add_model, mock_get_template, mock_get_providers, mock_model_template):
     """Test 'models add' command in interactive mode"""
     mock_get_providers.return_value = ["test_provider"]
     mock_get_template.return_value = mock_model_template
     mock_add_model.return_value = (True, "Model 'interactive-model' added to provider 'test_provider' successfully.")
-    
-    # Simulate user input for interactive mode
-    input_values = [
+
+    # Configure mock prompts and confirms
+    prompt_side_effect = [
         "interactive-model",  # Model name
-        "n",                  # Set as default? (no)
-        "y",                  # Mark as preferred? (yes)
-        "y",                  # Enable model? (yes)
         "7.5",                # Cost per 1M input tokens
         "12.5",               # Cost per 1M output tokens
         "2",                  # Cost category (standard)
         "16384",              # Maximum input tokens
         "16384"               # Maximum output tokens
     ]
-    
-    result = runner.invoke(app, ["models", "add", "test_provider", "--interactive"], input="\n".join(input_values))
-    
+    confirm_side_effect = [
+        False,  # Set as default? (no)
+        True,   # Mark as preferred? (yes)
+        True    # Enable model? (yes)
+    ]
+    mock_prompt.side_effect = prompt_side_effect
+    mock_confirm.side_effect = confirm_side_effect
+
+    result = runner.invoke(app, ["models", "add", "test_provider", "--interactive"])
+
     assert result.exit_code == 0
     assert "Model 'interactive-model' added to provider 'test_provider' successfully" in result.stdout
     mock_get_providers.assert_called_once()
     mock_get_template.assert_called_once()
-    
+
     # Check that the model config was created correctly from interactive input
     expected_config = {
         "name": "interactive-model",

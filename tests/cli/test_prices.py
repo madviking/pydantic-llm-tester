@@ -160,39 +160,39 @@ def test_get_all_model_prices_filtering():
         # Mock provider configs
         openai_config = MagicMock()
         openai_config.llm_models = [
-            MagicMock(
-                name="gpt-4",
-                enabled=True,
-                cost_input=30.0,
-                cost_output=60.0,
-                max_input_tokens=4096,
-                max_output_tokens=4096,
-                cost_category="expensive"
-            ),
-            MagicMock(
-                name="gpt-3.5-turbo",
-                enabled=True,
-                cost_input=2.0,
-                cost_output=2.0,
-                max_input_tokens=4096,
-                max_output_tokens=4096,
-                cost_category="standard"
-            ),
-            MagicMock(
-                name="disabled-model",
-                enabled=False,
-                cost_input=1.0,
-                cost_output=1.0,
-                max_input_tokens=4096,
-                max_output_tokens=4096,
-                cost_category="standard"
-            )
-        ]
-        
+                MagicMock(
+                    enabled=True,
+                    cost_input=30.0,
+                    cost_output=60.0,
+                    max_input_tokens=4096,
+                    max_output_tokens=4096,
+                    cost_category="expensive"
+                ),
+                MagicMock(
+                    enabled=True,
+                    cost_input=2.0,
+                    cost_output=2.0,
+                    max_input_tokens=4096,
+                    max_output_tokens=4096,
+                    cost_category="standard"
+                ),
+                MagicMock(
+                    enabled=False,
+                    cost_input=1.0,
+                    cost_output=1.0,
+                    max_input_tokens=4096,
+                    max_output_tokens=4096,
+                    cost_category="standard"
+                )
+            ]
+        openai_config.llm_models[0].name = "gpt-4"
+        openai_config.llm_models[1].name = "gpt-3.5-turbo"
+        openai_config.llm_models[2].name = "disabled-model"
+
+
         anthropic_config = MagicMock()
         anthropic_config.llm_models = [
             MagicMock(
-                name="claude-3",
                 enabled=True,
                 cost_input=15.0,
                 cost_output=75.0,
@@ -201,6 +201,7 @@ def test_get_all_model_prices_filtering():
                 cost_category="expensive"
             )
         ]
+        anthropic_config.llm_models[0].name = "claude-3"
         
         def mock_load_config_side_effect(provider):
             if provider == "openai":
@@ -251,11 +252,9 @@ def test_get_all_model_prices_invalid_provider_filter(mock_get_providers):
     models = price_query_logic.get_all_model_prices(provider_filter=["nonexistent"])
     assert models == []
 
-@patch("pydantic_llm_tester.cli.core.price_query_logic.re.compile")
-def test_get_all_model_prices_invalid_regex(mock_compile):
+def test_get_all_model_prices_invalid_regex():
     """Test get_all_model_prices with invalid regex pattern"""
-    mock_compile.side_effect = Exception("Invalid regex")
-    
+
     models = price_query_logic.get_all_model_prices(model_pattern="[invalid")
     assert models == []
 
