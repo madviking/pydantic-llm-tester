@@ -20,7 +20,8 @@ class {{model_name_capitalized}}Model(BaseModel):
     REPORT_DIR: ClassVar[str] = os.path.join(os.path.dirname(__file__), "reports")
 
     # Define model fields - REPLACE WITH YOUR SCHEMA
-    example_field: str = Field(..., description="An example field")
+    # Note: its recommended to mark fields mostly as optional, otherwise we are throwing validation errors
+    example_field: Optional[str] = Field(..., description="An example field")
     another_field: int = Field(0, description="Another example field")
 
     @classmethod

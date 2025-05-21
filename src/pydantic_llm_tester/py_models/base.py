@@ -1,7 +1,9 @@
 import os
 import json
-from typing import List, Dict, Any, ClassVar, Type
-from pydantic import BaseModel
+from typing import List, Dict, Any, ClassVar, Type, Set, Tuple, Optional, TypeVar
+from pydantic import BaseModel, model_validator, ValidationError
+
+T = TypeVar('T', bound='BasePyModel')
 
 class BasePyModel(BaseModel):
     """
@@ -11,6 +13,104 @@ class BasePyModel(BaseModel):
 
     # Class variable for module name - must be defined by subclasses
     MODULE_NAME: ClassVar[str]
+
+    model_config = {
+        "extra": "ignore",
+        "validate_assignment": True,
+    }
+
+    @classmethod
+    def get_skip_fields(cls) -> Set[str]:
+        """
+        Get a set of field names that should be skipped during validation.
+        Can be overridden by subclasses.
+        """
+        return set()
+
+    @model_validator(mode='before')
+    @classmethod
+    def exclude_invalid_fields(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Pre-process the data before validation to exclude fields with type errors
+        or fields that are explicitly marked to be skipped.
+        """
+        if not isinstance(data, dict):
+            return data
+
+        # Create a clean copy with only valid fields
+        clean_data = {}
+
+        # Get fields to skip
+        skip_fields = cls.get_skip_fields()
+
+        for field_name, field_value in data.items():
+            # Skip fields that are explicitly defined to be skipped
+            if field_name in skip_fields:
+                continue
+
+            # Skip fields that don't exist in the model
+            if field_name not in cls.model_fields:
+                continue
+
+            # Add the field to clean data - it will be validated by Pydantic later
+            # If it fails validation, an error will be raised at that time
+            clean_data[field_name] = field_value
+
+        return clean_data
+
+    @classmethod
+    def model_validate_safe(cls: Type[T], obj: Any) -> Tuple[Optional[T], List[str]]:
+        """
+        Validates the data and creates a model instance, excluding invalid fields.
+        Returns a tuple of (model_instance, validation_errors).
+
+        Args:
+            obj: The data to validate
+
+        Returns:
+            Tuple of (model_instance, list_of_errors)
+        """
+        errors = []
+        result = None
+
+        # First attempt normal validation to get standard errors
+        try:
+            result = cls.model_validate(obj)
+            return result, errors
+        except ValidationError as e:
+            # Extract error messages
+            for error in e.errors():
+                errors.append(f"{'.'.join(str(loc) for loc in error['loc'])}: {error['msg']}")
+
+            # Try again with more lenient validation by processing fields one by one
+            try:
+                valid_data = {}
+
+                # Process each field individually
+                for field_name, field_info in cls.model_fields.items():
+                    if field_name in obj:
+                        try:
+                            # Try to validate just this field
+                            field_value = obj[field_name]
+                            # Create a temp model with just this field to validate it
+                            temp_data = {field_name: field_value}
+                            temp = cls.model_validate(temp_data, strict=False, from_attributes=True)
+                            # If successful, add to valid_data
+                            valid_data[field_name] = getattr(temp, field_name)
+                        except Exception:
+                            # Skip this field on any error
+                            pass
+
+                # Create the final model with only valid fields
+                if valid_data:
+                    try:
+                        result = cls.model_validate(valid_data, strict=False)
+                    except Exception as final_e:
+                        errors.append(f"Final validation failed: {str(final_e)}")
+            except Exception as e2:
+                errors.append(f"Field-by-field validation failed: {str(e2)}")
+
+        return result, errors
 
     @classmethod
     def get_test_cases(cls, module_dir: str) -> List[Dict[str, Any]]:
@@ -197,3 +297,4 @@ class BasePyModel(BaseModel):
             json.dump(module_cost_data, f, indent=2)
 
         return report_path
+

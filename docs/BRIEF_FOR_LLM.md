@@ -391,3 +391,5 @@ By understanding these components, an LLM can effectively analyze, modify, and e
 - ALWAYS write tests before implementing. TDD!
 - ALWAYS stop for approval after creating the tests. 
 - ALWAYS run tests after making changes.
+- ALWAYS rely on providers for getting and modifying the LLM's, Configs, and Pydantic models.
+- PATHS should always be coming from the utils, never hard coded.

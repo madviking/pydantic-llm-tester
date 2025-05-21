@@ -4,7 +4,7 @@ Job advertisement model
 
 import os
 import json
-from typing import List, Optional, Dict, Any, ClassVar, Type
+from typing import List, Optional, Dict, Any, ClassVar, Type, Set
 from pydantic import BaseModel, Field, HttpUrl # Import BaseModel
 from datetime import date
 from pydantic_llm_tester.py_models.base import BasePyModel
@@ -15,6 +15,8 @@ class Benefit(BaseModel):
     
     name: str = Field(..., description="Name of the benefit")
     description: Optional[str] = Field(None, description="Description of the benefit")
+    model_config = {"extra": "ignore"}
+
 
 
 class ContactInfo(BaseModel):
@@ -24,28 +26,41 @@ class ContactInfo(BaseModel):
     email: Optional[str] = Field(None, description="Email address for applications")
     phone: Optional[str] = Field(None, description="Phone number for inquiries")
     website: Optional[HttpUrl] = Field(None, description="Company or application website")
+    model_config = {"extra": "ignore"}
+
 
 class ExperienceRequirement(BaseModel):
     """Experience requirements for the job"""
     
-    years: int = Field(..., description="Number of years of experience required")
-    level: str = Field(..., description="Level of experience (e.g., junior, mid, senior)")
-    preferred: bool = Field(..., description="Whether this experience is preferred or required")
+    years: Optional[int] = Field(..., description="Number of years of experience required")
+    level: Optional[str] = Field(..., description="Level of experience (e.g., junior, mid, senior)")
+    preferred: bool = Field(False, description="Whether this experience is preferred or required")
+    model_config = {"extra": "ignore"}
+
 
 class EducationRequirement(BaseModel):
     """Education requirements for the job"""
     
-    degree: str = Field(..., description="Required degree")
-    field: str = Field(..., description="Field of study")
-    required: bool = Field(..., description="Whether this education is required or preferred")
+    degree: Optional[str] = Field(..., description="Required degree")
+    field: Optional[str] = Field(..., description="Field of study")
+    required: bool = Field(False, description="Whether this education is required or preferred")
+    model_config = {"extra": "ignore"}
+
 
 class Location(BaseModel):
     """Location of the job"""
     
-    city: str = Field(..., description="City where the job is located")
+    city: Optional[str] = Field(..., description="City where the job is located")
     state: Optional[str] = Field(None, description="State where the job is located")
-    country: str = Field(..., description="Country where the job is located")
-    remote: bool = Field(..., description="Whether the job is remote or not")
+    country: Optional[str] = Field(..., description="Country where the job is located")
+    remote: bool = Field(False, description="Whether the job is remote or not")
+    model_config = {"extra": "ignore"}
+
+class Salary(BaseModel):
+    range: Optional[str] = Field(..., description="Salary range")
+    currency: Optional[str] = Field(None, description="Currency")
+    period: Optional[str] = Field(..., description="Annual or monthly")
+
 
 
 class JobAd(BasePyModel):
@@ -61,24 +76,24 @@ class JobAd(BasePyModel):
     company: str = Field(..., description="Company name")
     department: Optional[str] = Field(None, description="Department within the company")
     location: Location = Field(..., description="Job location with city, state, country")
-    salary: str = Field(..., description="Salary information including range, currency, and period")
-    employment_type: str = Field(..., description="Type of employment (full-time, part-time, contract, etc.)")
-    experience: ExperienceRequirement = Field(..., description="Experience requirements including years and level")
-    required_skills: List[str] = Field(..., description="List of required skills")
-    preferred_skills: List[str] = Field(default_factory=list, description="List of preferred skills")
-    education: List[EducationRequirement] = Field(default_factory=list, description="List of education requirements")
-    responsibilities: List[str] = Field(..., description="List of job responsibilities")
-    benefits: List[Benefit] = Field(default_factory=list, description="List of benefits offered")
+    salary: Optional[Salary] = Field(..., description="Salary information in a string format")
+    employment_type: Optional[str] = Field(..., description="Type of employment (full-time, part-time, contract, etc.)")
+    experience: Optional[ExperienceRequirement] = Field(..., description="Experience requirements including years and level")
+    required_skills: Optional[List[str]] = Field(..., description="List of required skills")
+    preferred_skills: Optional[List[str]] = Field(default_factory=list, description="List of preferred skills")
+    education: Optional[List[EducationRequirement]] = Field(default_factory=list, description="List of education requirements")
+    responsibilities: Optional[List[str]] = Field(..., description="List of job responsibilities")
+    benefits: Optional[List[Benefit]] = Field(default_factory=list, description="List of benefits offered")
     description: str = Field(..., description="Detailed job description")
     application_deadline: Optional[date] = Field(None, description="Application deadline date")
-    contact_info: ContactInfo = Field(..., description="Contact information for applications")
-    remote: bool = Field(..., description="Whether the job is remote or not")
+    contact_info: Optional[ContactInfo] = Field(..., description="Contact information for applications")
+    remote: bool = Field(default=False, description="Whether the job is remote or not")
     travel_required: Optional[str] = Field(None, description="Travel requirements if any")
     posting_date: Optional[date] = Field(..., description="Date when the job was posted")
     image_analysis: Optional[str] = Field(None, description="Analysis of the image content, if applicable")
 
     @classmethod
-    def get_skip_fields(cls):
+    def get_skip_fields(cls) -> Set[str]:
         return {"image_analysis", "some_other_field"}
 
     @classmethod
