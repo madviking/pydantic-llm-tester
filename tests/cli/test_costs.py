@@ -377,14 +377,13 @@ def test_update_provider_configs():
              patch("pydantic_llm_tester.cli.core.cost_update_logic.os.path.dirname") as mock_dirname:
             
             # Create a mock provider config object
+            mock_model = MagicMock()
+            mock_model.name = "gpt-4"
+            mock_model.max_input_tokens = 4096
+            mock_model.max_output_tokens = 4096
+            
             mock_config = MagicMock()
-            mock_config.llm_models = [
-                MagicMock(
-                    name="gpt-4",
-                    max_input_tokens=4096,
-                    max_output_tokens=4096
-                )
-            ]
+            mock_config.llm_models = [mock_model]
             mock_load_config.return_value = mock_config
             
             # Mock dirname to return the temporary directory

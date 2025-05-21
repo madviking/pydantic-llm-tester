@@ -80,6 +80,9 @@ def update_model_costs(
     added_models = []
     unchanged_models = []
     
+    # Keep track of processed models to identify unchanged ones later
+    processed_models = set()
+    
     # Process models from API
     for model_data in api_models_data:
         model_id = model_data.get("id")
@@ -114,6 +117,9 @@ def update_model_costs(
         
         # Get model name (without provider prefix)
         model_name = model_id.split("/")[1] if "/" in model_id else model_id
+        
+        # Mark this model as processed
+        processed_models.add((provider_name, model_name))
         
         # Check if model exists in current pricing
         if model_name in current_pricing[provider_name]:
@@ -153,6 +159,25 @@ def update_model_costs(
                 "model": model_name,
                 "input": cost_input,
                 "output": cost_output
+            })
+    
+    # Add existing models that weren't in the API response to unchanged_models
+    for provider_name, provider_models in current_pricing.items():
+        # Skip providers not in the filter (if specified)
+        if provider_filter and provider_name not in provider_filter:
+            continue
+            
+        for model_name, model_pricing in provider_models.items():
+            # Skip models that were already processed
+            if (provider_name, model_name) in processed_models:
+                continue
+                
+            # Add to unchanged models
+            unchanged_models.append({
+                "provider": provider_name,
+                "model": model_name,
+                "input": model_pricing.get("input", 0.0),
+                "output": model_pricing.get("output", 0.0)
             })
     
     # Save updated pricing
@@ -240,10 +265,9 @@ def _update_provider_configs(api_models_data: List[Dict[str, Any]], providers: L
                             max_output_tokens = int(context_length) - max_input_tokens
                         
                         # Update model config
-                        if model_config.max_input_tokens != max_input_tokens or model_config.max_output_tokens != max_output_tokens:
-                            model_config.max_input_tokens = max_input_tokens
-                            model_config.max_output_tokens = max_output_tokens
-                            updated_count += 1
+                        model_config.max_input_tokens = max_input_tokens
+                        model_config.max_output_tokens = max_output_tokens
+                        updated_count += 1
                     elif context_length != (model_config.max_input_tokens + model_config.max_output_tokens):
                         # If max_output_tokens not provided, split context length evenly
                         max_input_tokens = int(context_length) // 2

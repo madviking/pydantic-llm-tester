@@ -54,6 +54,38 @@ class PyllmBridge:
         # Initialize report generator
         self.report_generator = ReportGenerator()
 
+    def _process_passes(self, model_class: Type[T], prompt: str, source: str, passes: int, file_path: str) -> T:
+        """
+        Process multiple passes of LLM calls and build up model data.
+        
+        Args:
+            model_class: The Pydantic model class to fill
+            prompt: The prompt to send to the LLM
+            source: The source text to process
+            passes: Number of passes to make (1-3)
+            file_path: Optional file path to include
+            
+        Returns:
+            Instance of the model class with accumulated data
+        """
+        # Set total fields in analysis report
+        self.analysis.total_fields = len(model_class.__annotations__)
+        
+        # Create a structure to hold model data
+        model_data = {}
+        
+        # Process each pass
+        for pass_num in range(1, passes + 1):
+            self._run_pass(pass_num, model_class, prompt, source, file_path, model_data)
+            
+        # Create and return a model instance
+        try:
+            return model_class(**model_data)
+        except Exception as e:
+            logger.error(f"Error creating model instance: {str(e)}")
+            # Return an empty model instance if there's an error
+            return model_class()
+    
     def ask(self, model_class: Type[T], prompt: str, source: str = "", passes: int = 1, file: str = '') -> T | None:
         """
         Process a prompt with one or more LLM models and return a filled Pydantic model.
@@ -84,27 +116,14 @@ class PyllmBridge:
         # Ensure passes is within bounds
         passes = max(1, min(3, passes))
         
-        # Create a structure to hold model data
-        model_data = {}
+        # Process passes to build up model data
+        model_instance = self._process_passes(model_class, prompt, source, passes, file)
         
-        # Process each pass
-        for pass_num in range(1, passes + 1):
-            self._run_pass(pass_num, model_class, prompt, source, file, model_data)
-        
-        # Create the final model instance
-        try:
-            model_instance = model_class(**model_data)
+        # Save test files if we have a successful result
+        if source and model_instance:
+            self._save_model_config(model_instance, prompt, source)
             
-            # Save test files if we have a successful result
-            if source and model_instance:
-                self._save_model_config(model_instance, prompt, source)
-                
-            return model_instance
-        except Exception as e:
-            error_msg = f"Validation error creating final model: {str(e)}"
-            logger.error(error_msg)
-
-        return None
+        return model_instance
 
 
 
@@ -153,10 +172,17 @@ class PyllmBridge:
             # Try fallback for first pass only
             if pass_num == 1:
                 result_json = self._try_fallback(model_class, prompt, source, file_path, pass_analysis)
-
+                
+                # If fallback succeeded, update model data
+                if result_json:
+                    self._update_model_data(result_json, model_data, pass_analysis)
+                    
             # Save pass analysis even if failed
             self.analysis.passes[pass_name] = pass_analysis
-            return
+            
+            # Return early if fallback failed or this wasn't the first pass
+            if not result_json:
+                return
 
         # Process successful result
         self._update_model_data(result_json, model_data, pass_analysis)
@@ -250,6 +276,24 @@ class PyllmBridge:
             return self._get_secondary_provider_and_model(model_class)
 
     def _call_llm(self, provider_name: str, model_name: str, prompt: str, source: str,
+                 model_class: Type[T], file_path: str = '') -> Tuple[Optional[Dict[str, Any]], Optional[str], Optional[float]]:
+        """
+        Handle a single call to an LLM provider.
+
+        Args:
+            provider_name: Name of the provider to use.
+            model_name: Name of the model to use.
+            prompt: The prompt to send.
+            source: The source text to process.
+            model_class: The Pydantic model class for schema guidance.
+            file_path: Optional file path to include.
+
+        Returns:
+            Tuple of (parsed_json_or_None, raw_response_or_None, cost_or_None)
+        """
+        return self._call_llm_single_pass(provider_name, model_name, prompt, source, model_class, file_path)
+        
+    def _call_llm_single_pass(self, provider_name: str, model_name: str, prompt: str, source: str,
                  model_class: Type[T], file_path: str = '') -> Tuple[Optional[Dict[str, Any]], Optional[str], Optional[float]]:
         """
         Handle a single call to an LLM provider.
