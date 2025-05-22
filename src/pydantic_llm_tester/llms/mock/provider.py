@@ -7,7 +7,7 @@ import random
 import json # Added json for schema dump, though mock won't use it
 
 from ..base import BaseLLM, ModelConfig, ProviderConfig, BaseModel # Added BaseModel
-from pydantic_llm_tester.utils.cost_manager import UsageData
+from pydantic_llm_tester.utils.data_structures import UsageData
 
 class MockProvider(BaseLLM):
     """Provider implementation for mocked responses"""
