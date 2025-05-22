@@ -8,10 +8,16 @@ import logging
 from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
+# Use absolute imports
+from .common import get_project_root, get_package_dir
+from ..llms.llm_registry import LLMRegistry # Import LLMRegistry
+from ..llms.base import ModelConfig # Import ModelConfig
+from .data_structures import UsageData # Import UsageData from the new file
+
 # Set up logging
 logger = logging.getLogger(__name__)
 
-# Default model pricing ($ per 1M tokens)
+# Default model pricing ($ per 1M tokens) - Keep as fallback
 DEFAULT_MODEL_PRICING = {
     "openai": {
         "gpt-4o": {"input": 5.0, "output": 15.0},
@@ -36,189 +42,76 @@ DEFAULT_MODEL_PRICING = {
     }
 }
 
-
-def get_pricing_config_path() -> str:
-    """Get the path to the py_models pricing configuration file"""
-    from .common import get_project_root, get_package_dir
-    
-    # Check first in project root
-    project_root_path = os.path.join(get_project_root(), 'models_pricing.json')
-    if os.path.exists(project_root_path):
-        return project_root_path
-        
-    # Then check in package directory
-    package_path = os.path.join(get_package_dir(), 'models_pricing.json')
-    if os.path.exists(package_path):
-        return package_path
-    
-    # Finally check in parent directories of package dir
-    src_dir = os.path.dirname(get_package_dir())
-    src_parent_path = os.path.join(src_dir, 'models_pricing.json')
-    if os.path.exists(src_parent_path):
-        return src_parent_path
-        
-    # Fallback to project root if it doesn't exist yet
-    return project_root_path
-
-
-def load_model_pricing() -> Dict[str, Dict[str, Dict[str, float]]]:
-    """
-    Load model pricing from models_pricing.json or use defaults
-    
-    Returns:
-        Dict containing model pricing information
-    """
-    pricing_path = get_pricing_config_path()
-    
-    if os.path.exists(pricing_path):
-        try:
-            with open(pricing_path, 'r') as f:
-                pricing = json.load(f)
-            logger.info(f"Loaded model pricing from {pricing_path}")
-            return pricing
-        except (json.JSONDecodeError, IOError) as e:
-            logger.warning(f"Error loading model pricing: {e}")
-            return DEFAULT_MODEL_PRICING
-    else:
-        # Create default pricing file
-        save_model_pricing(DEFAULT_MODEL_PRICING)
-        return DEFAULT_MODEL_PRICING
-
-
-def save_model_pricing(pricing: Dict[str, Dict[str, Dict[str, float]]]) -> None:
-    """
-    Save model pricing configuration to models_pricing.json
-    
-    Args:
-        pricing: Model pricing dictionary to save
-    """
-    pricing_path = get_pricing_config_path()
-    
-    try:
-        with open(pricing_path, 'w') as f:
-            json.dump(pricing, f, indent=2)
-        logger.info(f"Saved model pricing to {pricing_path}")
-    except IOError as e:
-        logger.error(f"Error saving model pricing: {e}")
-
+# Removed get_pricing_config_path, load_model_pricing, save_model_pricing
+# as pricing is now sourced from LLMRegistry
 
 def calculate_cost(
-    provider: str, 
-    model: str, 
-    prompt_tokens: int, 
+    provider: str,
+    model: str,
+    prompt_tokens: int,
     completion_tokens: int
 ) -> Tuple[float, float, float]:
     """
-    Calculate the cost for a specific model and token usage
-    
+    Calculate the cost for a specific model and token usage using pricing from LLMRegistry.
+
     Args:
-        provider: Provider name (e.g., "openai", "anthropic")
-        model: Model name (e.g., "gpt-4", "claude-3-opus")
+        provider: Provider name (e.g., "openai", "openrouter")
+        model: Model name (e.g., "gpt-4o", "openrouter/google/gemini-pro")
         prompt_tokens: Number of prompt tokens
         completion_tokens: Number of completion tokens
-        
+
     Returns:
         Tuple containing (prompt_cost, completion_cost, total_cost)
     """
-    # Load pricing information
-    pricing = load_model_pricing()
-    
-    # Check if provider and model exist in pricing data
-    provider_pricing = pricing.get(provider, {})
-    model_pricing = provider_pricing.get(model, {})
-    
-    if not model_pricing:
-        # Try to find a default model or similar model
-        for model_name, model_price in provider_pricing.items():
-            if model.lower() in model_name.lower() or model_name.lower() in model.lower():
-                model_pricing = model_price
-                logger.info(f"Using pricing for similar model {model_name} for {model}")
-                break
-        
-        # If still no pricing found, use a default
-        if not model_pricing:
-            default_models = {
-                "openai": "gpt-4", 
-                "anthropic": "claude-3-opus-20240229",
-                "mistral": "mistral-large-latest",
-                "google": "gemini-1.5-pro"
-            }
-            default_model = default_models.get(provider)
-            if default_model and default_model in provider_pricing:
-                model_pricing = provider_pricing[default_model]
-                logger.info(f"Using default model pricing for {provider}: {default_model}")
-            else:
-                # Create a generic pricing as last resort
-                model_pricing = {"input": 0.5, "output": 1.5}
-                logger.warning(f"No pricing found for {provider}/{model}. Using generic pricing.")
-    
-    # Calculate costs (convert from per 1M tokens to actual tokens)
-    input_cost_per_token = model_pricing.get("input", 0.0) / 1_000_000
-    output_cost_per_token = model_pricing.get("output", 0.0) / 1_000_000
-    
+    # Get model details from the central registry
+    registry = LLMRegistry.get_instance()
+    model_config = registry.get_model_details(provider, model)
+
+    input_cost_per_token = 0.0
+    output_cost_per_token = 0.0
+
+    if model_config and model_config.cost_input is not None and model_config.cost_output is not None:
+        # Use pricing from the registry if available
+        input_cost_per_token = model_config.cost_input / 1_000_000
+        output_cost_per_token = model_config.cost_output / 1_000_000
+        logger.debug(f"Using registry pricing for {provider}/{model}: input={model_config.cost_input}, output={model_config.cost_output}")
+    else:
+        # Fallback to default pricing if registry info is missing
+        provider_pricing = DEFAULT_MODEL_PRICING.get(provider, {})
+        model_pricing = provider_pricing.get(model, {})
+
+        if model_pricing:
+            input_cost_per_token = model_pricing.get("input", 0.0) / 1_000_000
+            output_cost_per_token = model_pricing.get("output", 0.0) / 1_000_000
+            logger.warning(f"Registry pricing not found for {provider}/{model}. Using default pricing.")
+        else:
+            # Last resort: generic pricing
+            input_cost_per_token = 0.5 / 1_000_000
+            output_cost_per_token = 1.5 / 1_000_000
+            logger.warning(f"No pricing found in registry or defaults for {provider}/{model}. Using generic pricing.")
+
     prompt_cost = prompt_tokens * input_cost_per_token
     completion_cost = completion_tokens * output_cost_per_token
     total_cost = prompt_cost + completion_cost
-    
+
     return (prompt_cost, completion_cost, total_cost)
 
 
-class UsageData:
-    """Class representing token usage data from a model call"""
-    
-    def __init__(
-        self, 
-        provider: str,
-        model: str,
-        prompt_tokens: int,
-        completion_tokens: int,
-        total_tokens: Optional[int] = None,
-        cost_input_rate: Optional[float] = None, # Cost per 1M tokens
-        cost_output_rate: Optional[float] = None # Cost per 1M tokens
-    ):
-        self.provider = provider
-        self.model = model
-        self.prompt_tokens = prompt_tokens
-        self.completion_tokens = completion_tokens
-        self.total_tokens = total_tokens or (prompt_tokens + completion_tokens)
-        
-        if cost_input_rate is not None and cost_output_rate is not None:
-            # Calculate costs directly using provided rates
-            self.prompt_cost = (prompt_tokens / 1_000_000) * cost_input_rate
-            self.completion_cost = (completion_tokens / 1_000_000) * cost_output_rate
-            self.total_cost = self.prompt_cost + self.completion_cost
-        else:
-            # Fallback to calculate_cost if rates are not provided
-            self.prompt_cost, self.completion_cost, self.total_cost = calculate_cost(
-                provider, model, prompt_tokens, completion_tokens
-            )
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert usage data to dictionary"""
-        return {
-            "provider": self.provider,
-            "model": self.model,
-            "prompt_tokens": self.prompt_tokens,
-            "completion_tokens": self.completion_tokens,
-            "total_tokens": self.total_tokens,
-            "prompt_cost": self.prompt_cost,
-            "completion_cost": self.completion_cost,
-            "total_cost": self.total_cost
-        }
+# Removed UsageData class definition as it's moved to data_structures.py
 
 
 class CostTracker:
     """Tracks and analyzes costs across test runs"""
-    
+
     def __init__(self):
         self.test_runs = {}
         self.current_run_id = datetime.now().strftime("%Y%m%d%H%M%S")
         self.logger = logging.getLogger(__name__)
-    
+
     def start_new_run(self) -> str:
         """
         Start a new test run
-        
+
         Returns:
             run_id: Identifier for the new run
         """
@@ -231,127 +124,125 @@ class CostTracker:
                 "total_tokens": 0,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
-                "py_models": {}
+                "model_costs": {} # Changed from py_models to model_costs for clarity
             }
         }
         return self.current_run_id
-    
+
     def add_test_result(
-        self, 
-        test_id: str, 
-        provider: str, 
-        model: str, 
-        usage_data: UsageData, 
-        run_id: Optional[str] = None
+        self,
+        run_id: str,
+        test_id: str,
+        provider: str,
+        model: str,
+        usage_data: UsageData,
     ) -> None:
         """
         Add a test result to the tracker
-        
+
         Args:
+            run_id: Run identifier
             test_id: Identifier for the test
             provider: Provider name
             model: Model name
             usage_data: Token usage data
-            run_id: Optional run identifier (defaults to current run)
         """
-        run_id = run_id or self.current_run_id
-        
         if run_id not in self.test_runs:
-            self.logger.warning(f"Run ID {run_id} not found. Creating new run.")
-            self.start_new_run()
-            run_id = self.current_run_id
-        
+            self.logger.warning(f"Run ID {run_id} not found. Cannot add test result.")
+            return
+
         run_data = self.test_runs[run_id]
-        
+
         # Add test result
         if test_id not in run_data["tests"]:
             run_data["tests"][test_id] = {}
-        
-        provider_model = f"{provider}/{model}"
-        run_data["tests"][test_id][provider_model] = usage_data.to_dict()
-        
+
+        # Use provider:model format for test results and summary keys
+        provider_model_key = f"{provider}:{model}"
+        run_data["tests"][test_id][provider_model_key] = usage_data.to_dict()
+
         # Update summary
         summary = run_data["summary"]
         summary["total_cost"] += usage_data.total_cost
         summary["total_tokens"] += usage_data.total_tokens
         summary["prompt_tokens"] += usage_data.prompt_tokens
         summary["completion_tokens"] += usage_data.completion_tokens
-        
+
         # Update model-specific summary
-        if provider_model not in summary["py_models"]:
-            summary["py_models"][provider_model] = {
+        if provider_model_key not in summary["model_costs"]:
+            summary["model_costs"][provider_model_key] = {
                 "total_cost": 0.0,
                 "total_tokens": 0,
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
                 "test_count": 0
             }
-        
-        model_summary = summary["py_models"][provider_model]
+
+        model_summary = summary["model_costs"][provider_model_key]
         model_summary["total_cost"] += usage_data.total_cost
         model_summary["total_tokens"] += usage_data.total_tokens
         model_summary["prompt_tokens"] += usage_data.prompt_tokens
         model_summary["completion_tokens"] += usage_data.completion_tokens
         model_summary["test_count"] += 1
-    
+
     def get_run_summary(self, run_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get summary for a specific run
-        
+
         Args:
             run_id: Optional run identifier (defaults to current run)
-            
+
         Returns:
             Dictionary containing run summary data
         """
         run_id = run_id or self.current_run_id
-        
+
         if run_id not in self.test_runs:
             self.logger.error(f"Run ID {run_id} not found")
             return {}
-        
+
         return self.test_runs[run_id]["summary"]
-    
+
     def get_run_data(self, run_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get all data for a specific run
-        
+
         Args:
             run_id: Optional run identifier (defaults to current run)
-            
+
         Returns:
             Dictionary containing all run data
         """
         run_id = run_id or self.current_run_id
-        
+
         if run_id not in self.test_runs:
             self.logger.error(f"Run ID {run_id} not found")
             return {}
-            
+
         return self.test_runs[run_id]
-    
+
     def get_cost_report(self, run_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a detailed cost report for a run
-        
+
         Args:
             run_id: Optional run identifier (defaults to current run)
-            
+
         Returns:
             Dictionary containing detailed cost report
         """
         run_id = run_id or self.current_run_id
-        
+
         if run_id not in self.test_runs:
             self.logger.error(f"Run ID {run_id} not found")
             return {}
-        
+
         run_data = self.test_runs[run_id]
         summary = run_data["summary"]
-        
+
         # Calculate average costs
         model_averages = {}
-        for model_name, model_data in summary["py_models"].items():
+        for model_name, model_data in summary["model_costs"].items(): # Changed from py_models
             test_count = model_data["test_count"]
             if test_count > 0:
                 model_averages[model_name] = {
@@ -359,16 +250,16 @@ class CostTracker:
                     "avg_tokens_per_test": model_data["total_tokens"] / test_count,
                     "cost_per_token": model_data["total_cost"] / model_data["total_tokens"] if model_data["total_tokens"] > 0 else 0
                 }
-        
+
         # Create cost breakdown
         most_expensive_model = max(
-            summary["py_models"].items(),
+            summary["model_costs"].items(), # Changed from py_models
             key=lambda x: x[1]["total_cost"]
-        )[0] if summary["py_models"] else None
-        
+        )[0] if summary["model_costs"] else None # Changed from py_models
+
         most_expensive_test = None
         highest_cost = 0
-        
+
         for test_id, test_data in run_data["tests"].items():
             for provider_model, usage in test_data.items():
                 if usage["total_cost"] > highest_cost:
@@ -378,7 +269,7 @@ class CostTracker:
                         "provider_model": provider_model,
                         "cost": usage["total_cost"]
                     }
-        
+
         # Generate report
         report = {
             "run_id": run_id,
@@ -389,39 +280,39 @@ class CostTracker:
             "prompt_tokens": summary["prompt_tokens"],
             "completion_tokens": summary["completion_tokens"],
             "cost_per_token": summary["total_cost"] / summary["total_tokens"] if summary["total_tokens"] > 0 else 0,
-            "py_models": summary["py_models"],
+            "model_costs": summary["model_costs"], # Changed from py_models
             "model_averages": model_averages,
             "most_expensive_model": most_expensive_model,
             "most_expensive_test": most_expensive_test
         }
-        
+
         return report
-    
+
     def save_cost_report(self, output_dir: str, run_id: Optional[str] = None) -> str:
         """
         Save the cost report to a file
-        
+
         Args:
             output_dir: Directory to save the report
             run_id: Optional run identifier (defaults to current run)
-            
+
         Returns:
             Path to the saved report file
         """
         run_id = run_id or self.current_run_id
         report = self.get_cost_report(run_id)
-        
+
         if not report:
             self.logger.error(f"No data available for run {run_id}")
             return ""
-        
+
         # Create output directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # Save report
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         report_path = os.path.join(output_dir, f"cost_report_{run_id}_{timestamp}.json")
-        
+
         try:
             with open(report_path, 'w') as f:
                 json.dump(report, f, indent=2)

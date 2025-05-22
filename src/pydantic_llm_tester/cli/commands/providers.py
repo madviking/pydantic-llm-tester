@@ -70,96 +70,11 @@ def disable_provider(
         # Raise exit code only on actual write errors
         raise typer.Exit(code=1)
 
-# --- 'manage' Subcommand Group for LLM Models ---
-
-manage_app = typer.Typer(
-    name="manage",
-    help="Manage LLM py_models for a specific provider (list, enable, disable, update)."
-)
-app.add_typer(manage_app, name="manage") # Add 'manage' as a subcommand of 'providers'
-
-@manage_app.command("list")
-def list_llm_models(
-    provider: str = typer.Argument(..., help="Name of the provider whose LLM py_models to list.")
-):
-    """
-    List LLM py_models for a specific provider and their enabled/disabled status.
-
-    Reads the 'enabled' flag from the provider's config.json.
-    Defaults to enabled=True if the flag is missing.
-    """
-    logger.info(f"Executing 'providers manage list' for provider: {provider}")
-    models: List[Dict[str, Any]] = model_logic.get_models_from_provider(provider)
-
-    if not models:
-        # Error message already logged by get_models_from_provider if config was missing/invalid
-        print(f"No LLM py_models found or configuration error for provider '{provider}'.")
-        return
-
-    print(f"LLM Models for provider '{provider}':")
-    for model in models:
-        name = model.get('name', 'N/A')
-        # Default to True if 'enabled' key is missing
-        enabled = model.get('enabled', True)
-        status = "Enabled" if enabled else "Disabled"
-        print(f"  - {name} ({status})")
-
-@manage_app.command("enable")
-def enable_llm_model(
-    provider: str = typer.Argument(..., help="Name of the provider."),
-    model_name: str = typer.Argument(..., help="Name of the LLM model to enable.")
-):
-    """
-    Enable a specific LLM model within its provider's config file.
-
-    Sets the 'enabled' flag to true in the provider's config.json.
-    """
-    logger.info(f"Executing 'providers manage enable' for: {provider}/{model_name}")
-    # No need to parse ID here, provider and model are separate args
-    success, message = model_logic.set_model_enabled_status(provider, model_name, enabled=True)
-    print(message)
-    if not success:
-        raise typer.Exit(code=1)
-
-@manage_app.command("disable")
-def disable_llm_model(
-    provider: str = typer.Argument(..., help="Name of the provider."),
-    model_name: str = typer.Argument(..., help="Name of the LLM model to disable.")
-):
-    """
-    Disable a specific LLM model within its provider's config file.
-
-    Sets the 'enabled' flag to false in the provider's config.json.
-    """
-    logger.info(f"Executing 'providers manage disable' for: {provider}/{model_name}")
-    success, message = model_logic.set_model_enabled_status(provider, model_name, enabled=False)
-    print(message)
-    if not success:
-        raise typer.Exit(code=1)
-
-@manage_app.command("update")
-def update_llm_models(
-    provider: str = typer.Argument(..., help="Provider whose LLM py_models to update from API (currently only 'openrouter').")
-):
-    """
-    Update LLM model details (cost, limits) from the provider's API.
-
-    Currently only supports 'openrouter'. Fetches latest data and merges it
-    with the existing config.json, preserving flags like 'enabled'.
-    """
-    logger.info(f"Executing 'providers manage update' for provider: {provider}")
-
-    # Confirmation prompt before proceeding
-    confirm = typer.confirm(f"This will fetch data from '{provider}' API and potentially overwrite parts of its config.json. Proceed?", abort=True)
-
-    success, message = model_logic.update_provider_models_from_api(provider)
-    print(message)
-    if not success:
-        raise typer.Exit(code=1)
+# Removed 'manage' subcommand and its associated commands (list, enable, disable, update)
+# as per the refactoring plan to remove LLM model management from the CLI.
 
 
 if __name__ == "__main__":
     # Allows running the subcommand module directly for testing (optional)
     # e.g., python -m src.cli.commands.providers list
-    # e.g., python -m src.cli.commands.providers manage list openrouter
     app()

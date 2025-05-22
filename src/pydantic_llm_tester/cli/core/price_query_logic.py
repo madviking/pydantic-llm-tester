@@ -9,11 +9,10 @@ from rich.text import Text
 from rich import box
 
 from pydantic_llm_tester.llms.provider_factory import (
-    _fetch_openrouter_models_with_cache,
-    load_provider_config,
     get_available_providers
 )
-from pydantic_llm_tester.llms.base import ModelConfig, ProviderConfig
+from pydantic_llm_tester.llms.llm_registry import LLMRegistry # Import LLMRegistry
+from pydantic_llm_tester.llms.base import ModelConfig # Import ModelConfig
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -25,29 +24,32 @@ def get_all_model_prices(
     min_context_length: Optional[int] = None
 ) -> List[Dict[str, Any]]:
     """
-    Get pricing information for all models, with optional filtering.
-    
+    Get pricing information for all models from the LLMRegistry, with optional filtering.
+
     Args:
         provider_filter: Optional list of provider names to filter by
         model_pattern: Optional regex pattern to filter model names
         max_cost: Optional maximum cost per 1M tokens (input + output combined)
         min_context_length: Optional minimum context length
-        
+
     Returns:
         List of dictionaries containing model pricing information
     """
-    # Get all available providers
-    all_providers = get_available_providers()
-    
+    registry = LLMRegistry.get_instance()
+    all_models_from_registry = registry.get_all_model_details() # Get all models from the registry
+
     # Apply provider filter if specified
     if provider_filter:
-        providers = [p for p in all_providers if p in provider_filter]
-        if not providers:
+        filtered_models = [
+            model for model in all_models_from_registry
+            if model.provider in provider_filter
+        ]
+        if not filtered_models:
             logger.warning(f"No matching providers found for filter: {provider_filter}")
             return []
     else:
-        providers = all_providers
-    
+        filtered_models = all_models_from_registry
+
     # Compile regex pattern if specified
     pattern = None
     if model_pattern:
@@ -56,52 +58,51 @@ def get_all_model_prices(
         except re.error as e:
             logger.error(f"Invalid regex pattern: {model_pattern}. Error: {e}")
             return []
-    
-    # Collect model information from all providers
-    all_models = []
-    
-    for provider_name in providers:
-        # Load provider config
-        provider_config = load_provider_config(provider_name)
-        if not provider_config:
-            logger.warning(f"Could not load config for provider: {provider_name}")
+
+    # Apply remaining filters and format data
+    final_models = []
+    for model in filtered_models:
+        # Skip disabled models
+        if not model.enabled:
             continue
-        
-        # Process each model in the provider
-        for model in provider_config.llm_models:
-            # Skip disabled models
-            if not model.enabled:
-                continue
-                
-            # Apply model name pattern filter if specified
-            if pattern and not pattern.search(model.name):
-                continue
-                
-            # Apply max cost filter if specified
-            total_cost = model.cost_input + model.cost_output
-            if max_cost is not None and total_cost > max_cost:
-                continue
-                
-            # Apply min context length filter if specified
-            context_length = model.max_input_tokens + model.max_output_tokens
-            if min_context_length is not None and context_length < min_context_length:
-                continue
-                
-            # Add model to results
-            model_info = {
-                "provider": provider_name,
-                "name": model.name,
-                "cost_input": model.cost_input,
-                "cost_output": model.cost_output,
-                "total_cost": total_cost,
-                "context_length": context_length,
-                "input_tokens": model.max_input_tokens,
-                "output_tokens": model.max_output_tokens,
-                "cost_category": model.cost_category
-            }
-            all_models.append(model_info)
-    
-    return all_models
+
+        # Apply model name pattern filter if specified
+        if pattern and not pattern.search(model.name):
+            continue
+
+        # Calculate total cost (handle None values)
+        cost_input = model.cost_input if model.cost_input is not None else 0.0
+        cost_output = model.cost_output if model.cost_output is not None else 0.0
+        total_cost = cost_input + cost_output
+
+        # Apply max cost filter if specified
+        if max_cost is not None and total_cost > max_cost:
+            continue
+
+        # Calculate context length (handle None values)
+        input_tokens = model.max_input_tokens if model.max_input_tokens is not None else 0
+        output_tokens = model.max_output_tokens if model.max_output_tokens is not None else 0
+        context_length = input_tokens + output_tokens
+
+        # Apply min context length filter if specified
+        if min_context_length is not None and context_length < min_context_length:
+            continue
+
+        # Add model to results
+        model_info = {
+            "provider": model.provider,
+            "name": model.name,
+            "cost_input": cost_input,
+            "cost_output": cost_output,
+            "total_cost": total_cost,
+            "context_length": context_length,
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "cost_category": model.cost_category # Assuming cost_category is available in ModelConfig
+        }
+        final_models.append(model_info)
+
+    return final_models
 
 def display_model_prices(
     models: List[Dict[str, Any]],

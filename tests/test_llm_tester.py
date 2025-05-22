@@ -291,3 +291,107 @@ def test_generate_report(mock_tester):
         assert isinstance(reports, dict)
         assert 'main' in reports
         assert "Test report" in reports['main']
+
+@patch('src.pydantic_llm_tester.llm_tester.ProviderManager')
+@patch('src.pydantic_llm_tester.llm_tester.cost_tracker')
+@patch('src.pydantic_llm_tester.llm_tester.ReportGenerator')
+def test_llm_tester_uses_cost_manager(
+    mock_report_generator_class,
+    mock_cost_tracker,
+    mock_provider_manager_class
+):
+    """
+    Test that LLMTester correctly interacts with the CostManager.
+    """
+    # Mock instances
+    mock_provider_manager_instance = MagicMock()
+    mock_provider_manager_class.return_value = mock_provider_manager_instance
+
+    mock_report_generator_instance = MagicMock()
+    mock_report_generator_class.return_value = mock_report_generator_instance
+
+    # Configure mock ProviderManager to return mock results with UsageData
+    mock_usage_data_openai = MagicMock()
+    mock_usage_data_openai.to_dict.return_value = {
+        "provider": "openai", "model": "gpt-4o",
+        "prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30,
+        "prompt_cost": 0.00005, "completion_cost": 0.0003, "total_cost": 0.00035
+    }
+    mock_usage_data_anthropic = MagicMock()
+    mock_usage_data_anthropic.to_dict.return_value = {
+        "provider": "anthropic", "model": "claude-3-haiku-20240307",
+        "prompt_tokens": 15, "completion_tokens": 25, "total_tokens": 40,
+        "prompt_cost": 0.00000375, "completion_cost": 0.00003125, "total_cost": 0.000035
+    }
+
+    mock_provider_manager_instance.get_response.side_effect = [
+        ("mock response 1", mock_usage_data_openai), # Result for test_case 1, provider 1
+        ("mock response 2", mock_usage_data_anthropic), # Result for test_case 1, provider 2
+        ("mock response 3", mock_usage_data_openai), # Result for test_case 2, provider 1
+        ("mock response 4", mock_usage_data_anthropic), # Result for test_case 2, provider 2
+    ]
+
+    # Mock CostTracker methods
+    mock_cost_tracker.start_new_run.return_value = "mock_run_id"
+    mock_cost_tracker.get_run_summary.return_value = {"total_cost": 0.00077, "model_costs": {}} # Mock summary
+
+    # Mock LLMTester's internal methods that interact with CostManager
+    with patch.object(LLMTester, '_validate_response', return_value={'success': True, 'accuracy': 100.0}):
+        # Initialize LLMTester with mock dependencies
+        tester = LLMTester(
+            providers=["openai", "anthropic"],
+            test_dir="mock/test/dir" # Provide a dummy test_dir
+        )
+
+        # Mock discover_test_cases to return a predictable list of test cases
+        mock_test_cases = [
+            {'module': 'module1', 'name': 'test1', 'model_class': MagicMock(), 'source_path': 's1', 'prompt_path': 'p1', 'expected_path': 'e1'},
+            {'module': 'module2', 'name': 'test2', 'model_class': MagicMock(), 'source_path': 's2', 'prompt_path': 'p2', 'expected_path': 'e2'},
+        ]
+        with patch.object(tester, 'discover_test_cases', return_value=mock_test_cases):
+            # Run tests
+            results = tester.run_tests()
+
+            # Verify CostTracker methods were called
+            mock_cost_tracker.start_new_run.assert_called_once()
+            # Expect add_test_result to be called for each test case and provider combination
+            assert mock_cost_tracker.add_test_result.call_count == len(mock_test_cases) * len(["openai", "anthropic"])
+
+            # Verify add_test_result was called with correct arguments (check a few calls)
+            mock_cost_tracker.add_test_result.assert_any_call(
+                "mock_run_id", "module1/test1", "openai", "gpt-4o", mock_usage_data_openai
+            )
+            mock_cost_tracker.add_test_result.assert_any_call(
+                "mock_run_id", "module1/test1", "anthropic", "claude-3-haiku-20240307", mock_usage_data_anthropic
+            )
+            mock_cost_tracker.add_test_result.assert_any_call(
+                "mock_run_id", "module2/test2", "openai", "gpt-4o", mock_usage_data_openai
+            )
+            mock_cost_tracker.add_test_result.assert_any_call(
+                "mock_run_id", "module2/test2", "anthropic", "claude-3-haiku-20240307", mock_usage_data_anthropic
+            )
+
+            # Verify get_run_summary was called
+            mock_cost_tracker.get_run_summary.assert_called_once_with("mock_run_id")
+
+            # Verify ReportGenerator was initialized and its generate_report method was called
+            mock_report_generator_class.assert_called_once()
+            mock_report_generator_instance.generate_report.assert_called_once()
+
+            # Verify save_cost_report was called
+            mock_cost_tracker.save_cost_report.assert_called_once()
+
+            # Check that the results dictionary returned by run_tests includes cost data
+            for test_id, test_data in results.items():
+                for provider_model, result_data in test_data.items():
+                    assert 'usage' in result_data
+                    assert 'total_cost' in result_data['usage']
+                    # Check if the usage data in results matches the mocked data (after to_dict)
+                    if provider_model == "openai:gpt-4o":
+                         assert result_data['usage'] == mock_usage_data_openai.to_dict.return_value
+                    elif provider_model == "anthropic:claude-3-haiku-20240307":
+                         assert result_data['usage'] == mock_usage_data_anthropic.to_dict.return_value
+
+# Note: The existing tests for _validate_response and _calculate_accuracy
+# are testing the logic within those methods, not their interaction with CostManager.
+# The new test_llm_tester_uses_cost_manager focuses on the integration.

@@ -8,7 +8,7 @@ import time
 
 from pydantic import BaseModel, Field
 
-from pydantic_llm_tester.utils.cost_manager import UsageData
+from pydantic_llm_tester.utils.data_structures import UsageData # Import UsageData from the new file
 
 logger = logging.getLogger(__name__)
 
@@ -82,9 +82,6 @@ class BaseLLM(ABC):
         # Get system prompt from config
         system_prompt = self.config.system_prompt if self.config else ""
         
-        # Prepare full prompt
-        full_prompt = f"{prompt}\n\nSource Text:\n{source}"
-        
         # Record start time for elapsed time calculation
         start_time = time.time()
         
@@ -109,8 +106,7 @@ class BaseLLM(ABC):
                     prompt_tokens=usage.get("prompt_tokens", 0),
                     completion_tokens=usage.get("completion_tokens", 0),
                     total_tokens=usage.get("total_tokens", 0),
-                    cost_input_rate=model_config.cost_input,
-                    cost_output_rate=model_config.cost_output
+                    # Removed cost_input_rate and cost_output_rate as they are calculated in UsageData __init__
                 )
                 
                 # Add elapsed time as an attribute
