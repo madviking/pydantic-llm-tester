@@ -122,6 +122,11 @@ class TestMockProvider(unittest.TestCase):
     def test_mock_provider_in_registry(self):
         """Test that the MockProvider can be loaded from the registry"""
         from pydantic_llm_tester.llms import get_llm_provider, reset_provider_cache
+        from pydantic_llm_tester.utils.config_manager import ConfigManager
+        
+        # Update pyllm_config.json to enable the mock provider
+        config_manager = ConfigManager()
+        config_manager.update_provider_config("mock", {"enabled": True})
         
         reset_provider_cache()
         provider_from_registry = get_llm_provider("mock") 

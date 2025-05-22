@@ -157,21 +157,53 @@ class BaseLLM(ABC):
         
     def get_default_model(self) -> Optional[str]:
         """Get the default model name for this provider"""
-        if not self.config or not self.config.llm_models:
-            return None
-            
-        # Find the *enabled* model marked as default
-        enabled_default = next((model.name for model in self.config.llm_models if model.default and model.enabled), None)
-        if enabled_default:
-            return enabled_default
+        # Try to get default model from ConfigManager first
+        try:
+            from pydantic_llm_tester.utils.config_manager import ConfigManager
+            config_manager = ConfigManager()
+            provider_config = config_manager.get_provider_config(self.name)
+            if provider_config and "default_model" in provider_config:
+                default_model = provider_config["default_model"]
+                self.logger.debug(f"Using default model '{default_model}' from ConfigManager for provider {self.name}")
+                return default_model
+        except Exception as e:
+            self.logger.debug(f"Error getting default model from ConfigManager: {e}")
+        
+        # Try to get default model from registry
+        try:
+            from pydantic_llm_tester.llms.llm_registry import LLMRegistry
+            registry = LLMRegistry()
+            registry_models = registry.get_provider_models(self.name)
+            if registry_models:
+                # Find the *enabled* model marked as default
+                enabled_default = next((model.name for model in registry_models.values() 
+                                       if hasattr(model, 'default') and model.default 
+                                       and (not hasattr(model, 'enabled') or model.enabled)), None)
+                if enabled_default:
+                    return enabled_default
+                
+                # If no enabled default, find the first *enabled* model
+                first_enabled = next((model.name for model in registry_models.values() 
+                                     if not hasattr(model, 'enabled') or model.enabled), None)
+                if first_enabled:
+                    return first_enabled
+        except Exception as e:
+            self.logger.debug(f"Error getting default model from registry: {e}")
+        
+        # Fallback to config.llm_models if necessary
+        if self.config and self.config.llm_models:
+            # Find the *enabled* model marked as default
+            enabled_default = next((model.name for model in self.config.llm_models if model.default and model.enabled), None)
+            if enabled_default:
+                return enabled_default
 
-        # If no enabled default, find the first *enabled* model
-        first_enabled = next((model.name for model in self.config.llm_models if model.enabled), None)
-        if first_enabled:
-            return first_enabled
+            # If no enabled default, find the first *enabled* model
+            first_enabled = next((model.name for model in self.config.llm_models if model.enabled), None)
+            if first_enabled:
+                return first_enabled
 
-        # If no py_models are enabled at all
-        self.logger.warning(f"No enabled py_models found for provider {self.name}.")
+        # If no models are enabled at all
+        self.logger.warning(f"No enabled models found for provider {self.name}.")
         return None
 
     # --- Correctly indented methods start here ---
@@ -203,67 +235,115 @@ class BaseLLM(ABC):
         Returns:
             ModelConfig object or None if not found
         """
-        """Get configuration for a specific model
-        
-        Args:
-            model_name: Name of the model to get config for, or None for default
-            
-        Returns:
-            ModelConfig object or None if not found
-        """
-        if not self.config or not self.config.llm_models:
-            return None
-            
         # If no model specified, use default
         if not model_name:
-            model_name = self.get_default_model()
-            
+            # Try to get default model from config manager first if available
+            try:
+                from pydantic_llm_tester.utils.config_manager import ConfigManager
+                config_manager = ConfigManager()
+                provider_config = config_manager.get_provider_config(self.name)
+                if provider_config and "default_model" in provider_config:
+                    model_name = provider_config["default_model"]
+                    self.logger.debug(f"Using default model '{model_name}' from ConfigManager for provider {self.name}")
+            except Exception as e:
+                self.logger.debug(f"Error getting default model from ConfigManager: {e}")
+                
+            # Fallback to get_default_model if necessary
+            if not model_name:
+                model_name = self.get_default_model()
+        
         found_model: Optional[ModelConfig] = None
         
-        # Filter models based on self.llm_models_filter if it exists
-        available_models = self.config.llm_models
-        if self.llm_models_filter is not None:
-            # Filter models whose names are in the llm_models_filter list
-            available_models = [
-                model for model in self.config.llm_models
-                if model.name in self.llm_models_filter
-            ]
-            self.logger.debug(f"Filtered models for provider {self.name} based on filter {self.llm_models_filter}: {[m.name for m in available_models]}")
+        # Try to get model from registry first
+        try:
+            from pydantic_llm_tester.llms.llm_registry import LLMRegistry
+            registry = LLMRegistry()
             
-            # If the requested model_name is not in the filter, and a specific model was requested,
-            # we should not find it. If no specific model was requested (using default),
-            # we should only consider models in the filter.
-            if model_name and model_name not in self.llm_models_filter:
-                 self.logger.warning(f"Requested model '{model_name}' is not in the specified LLM models filter {self.llm_models_filter}.")
-                 return None # Requested model is not allowed by the filter
+            # Handle provider:model format
+            if ":" in model_name:
+                model_provider, model_id = model_name.split(":", 1)
+                if model_provider != self.name:
+                    self.logger.warning(f"Model '{model_name}' is for a different provider ({model_provider}), not {self.name}")
+                    return None
+                # Look up just the model part in the registry
+                model_details = registry.get_model_details(self.name, model_id)
+                if model_details:
+                    found_model = model_details
+            else:
+                # Look up model in registry
+                model_details = registry.get_model_details(self.name, model_name)
+                if model_details:
+                    found_model = model_details
+                else:
+                    # Try with provider prefix
+                    prefixed_name = f"{self.name}:{model_name}"
+                    model_details = registry.get_model_details(self.name, model_name)
+                    if model_details:
+                        found_model = model_details
+        except Exception as e:
+            self.logger.debug(f"Error getting model from registry: {e}")
+        
+        # Fallback to config.llm_models if necessary
+        if not found_model and self.config and self.config.llm_models:
+            # Filter models based on self.llm_models_filter if it exists
+            available_models = self.config.llm_models
+            if self.llm_models_filter is not None:
+                # Filter models whose names are in the llm_models_filter list
+                available_models = [
+                    model for model in self.config.llm_models
+                    if model.name in self.llm_models_filter
+                ]
+                self.logger.debug(f"Filtered models for provider {self.name} based on filter {self.llm_models_filter}: {[m.name for m in available_models]}")
+                
+                # If the requested model_name is not in the filter, and a specific model was requested,
+                # we should not find it. If no specific model was requested (using default),
+                # we should only consider models in the filter.
+                if model_name and model_name not in self.llm_models_filter:
+                    self.logger.warning(f"Requested model '{model_name}' is not in the specified LLM models filter {self.llm_models_filter}.")
+                    return None # Requested model is not allowed by the filter
 
-        # Find model by name in the potentially filtered list
-        for model in available_models:
-            if model.name == model_name:
-                found_model = model
-                break
-
-        # If model name has no provider prefix, try with provider prefix in the filtered list
-        if not found_model and model_name and ':' not in model_name:
-            prefixed_name = f"{self.name}:{model_name}" # Assuming self.name is the provider name
-            # Search the available_models (which are already filtered by the user's list)
+            # Find model by name in the potentially filtered list
             for model in available_models:
-                if model.name == prefixed_name:
+                if model.name == model_name:
                     found_model = model
                     break
 
+            # If model name has no provider prefix, try with provider prefix in the filtered list
+            if not found_model and model_name and ':' not in model_name:
+                prefixed_name = f"{self.name}:{model_name}" # Assuming self.name is the provider name
+                # Search the available_models (which are already filtered by the user's list)
+                for model in available_models:
+                    if model.name == prefixed_name:
+                        found_model = model
+                        break
+
+        # If still not found, try to create a default model config
+        if not found_model and model_name:
+            try:
+                from pydantic_llm_tester.utils.config_manager import ConfigManager
+                config_manager = ConfigManager()
+                if ":" in model_name:
+                    model_details = config_manager.get_model_details_from_registry(model_name)
+                else:
+                    model_details = config_manager.get_model_details_from_registry(f"{self.name}:{model_name}")
+                
+                if model_details:
+                    found_model = model_details
+            except Exception as e:
+                self.logger.debug(f"Error creating default model config: {e}")
+
         # Return the model only if it's found AND enabled
-        if found_model and found_model.enabled:
+        if found_model and (not hasattr(found_model, 'enabled') or found_model.enabled):
             return found_model
-        elif found_model and not found_model.enabled:
+        elif found_model and hasattr(found_model, 'enabled') and not found_model.enabled:
             self.logger.warning(f"Model '{model_name}' found but is disabled in config.")
             return None
         else:
-             # This warning might be redundant if the model was filtered out earlier,
-             # but it covers cases where the model isn't in the original config at all.
-             if model_name:
-                 self.logger.warning(f"Model '{model_name}' not found or not enabled for provider {self.name}.")
-             return None
+            # This warning might be redundant if the model was filtered out earlier,
+            # but it covers cases where the model isn't in the original config at all.
+            if model_name:
+                self.logger.warning(f"Model '{model_name}' not found or not enabled for provider {self.name}.")
+            return None
 
     def get_available_models(self) -> List[ModelConfig]:
         """
@@ -273,11 +353,24 @@ class BaseLLM(ABC):
         Returns:
             List of available ModelConfig objects.
         """
-        if not self.config or not self.config.llm_models:
-            return []
-
-        available_models = [model for model in self.config.llm_models if model.enabled]
-
+        available_models = []
+        
+        # Try to get models from registry first
+        try:
+            from pydantic_llm_tester.llms.llm_registry import LLMRegistry
+            registry = LLMRegistry()
+            registry_models = registry.get_provider_models(self.name)
+            if registry_models:
+                available_models = list(registry_models.values())
+                self.logger.debug(f"Using {len(available_models)} models from central registry for provider {self.name}")
+        except Exception as e:
+            self.logger.debug(f"Error getting models from registry: {e}")
+        
+        # Fallback to config.llm_models if registry is empty
+        if not available_models and self.config and self.config.llm_models:
+            available_models = [model for model in self.config.llm_models if model.enabled]
+        
+        # Filter based on llm_models_filter if provided
         if self.llm_models_filter is not None:
             # Filter models whose names are in the llm_models_filter list
             available_models = [

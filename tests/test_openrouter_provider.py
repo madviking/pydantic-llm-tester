@@ -107,10 +107,10 @@ def mock_model_config():
 # --- Test Cases ---
 
 @patch.dict(os.environ, {"OPENROUTER_API_KEY": "fake-key"}, clear=True)
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger for this test too
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.importlib.util.find_spec') # Patch find_spec
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OPENAI_CLASSES_AVAILABLE', True) # Patch the flag
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger for this test too
+@patch('pydantic_llm_tester.llms.openrouter.provider.importlib.util.find_spec') # Patch find_spec
+@patch('pydantic_llm_tester.llms.openrouter.provider.OPENAI_CLASSES_AVAILABLE', True) # Patch the flag
 def test_openrouter_provider_init_success(mock_find_spec, mock_get_logger, mock_openai_class, mock_provider_config):
     """Test successful initialization of OpenRouterProvider."""
     # Mock find_spec to return a spec indicating the library is found
@@ -137,10 +137,10 @@ def test_openrouter_provider_init_success(mock_find_spec, mock_get_logger, mock_
 
 
 @patch.dict(os.environ, {}, clear=True) # No API key
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.importlib.util.find_spec') # Patch find_spec
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OPENAI_CLASSES_AVAILABLE', True) # Patch the flag
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenAI') # Patch OpenAI within the provider module
+@patch('pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger
+@patch('pydantic_llm_tester.llms.openrouter.provider.importlib.util.find_spec') # Patch find_spec
+@patch('pydantic_llm_tester.llms.openrouter.provider.OPENAI_CLASSES_AVAILABLE', True) # Patch the flag
 def test_openrouter_provider_init_no_api_key(mock_find_spec, mock_get_logger, mock_openai_class, mock_provider_config):
     """Test initialization failure when API key is missing."""
     # Mock find_spec to return a spec indicating the library is found
@@ -162,7 +162,7 @@ def test_openrouter_provider_init_no_api_key(mock_find_spec, mock_get_logger, mo
     )
 
 
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
 def test_openrouter_provider_call_llm_api_success(mock_openrouter_provider_class, mock_provider_config, mock_model_config):
     """Test successful _call_llm_api call by mocking the provider instance."""
     # Create a mock provider instance
@@ -230,8 +230,8 @@ def test_openrouter_provider_call_llm_api_success(mock_openrouter_provider_class
     mock_provider_instance.client.chat.completions.create.assert_not_called()
 
 
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
+@patch('pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
 def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openrouter_provider_class, mock_provider_config, mock_model_config):
     """Test error handling during _call_llm_api call by mocking the provider instance."""
     mock_logger = MagicMock()
@@ -282,7 +282,7 @@ def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openrouter
     mock_provider_instance.client.chat.completions.create.assert_called_once()
 
 
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
 def test_openrouter_provider_call_llm_api_no_client(mock_openrouter_provider_class, mock_provider_config, mock_model_config):
     """Test calling _call_llm_api when client is not initialized by mocking the provider instance."""
     # Create a mock provider instance with client set to None
@@ -314,8 +314,8 @@ def test_openrouter_provider_call_llm_api_no_client(mock_openrouter_provider_cla
     mock_provider_instance.logger.error.assert_called_once_with("OpenRouter client is not initialized.")
 
 
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
+@patch('pydantic_llm_tester.llms.openrouter.provider.logging.getLogger') # Patch getLogger here too
 def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openrouter_provider_class, mock_provider_config, mock_model_config):
     """Test error handling during _call_llm_api call by mocking the provider instance."""
     mock_logger = MagicMock()
@@ -359,7 +359,7 @@ def test_openrouter_provider_call_llm_api_error(mock_get_logger, mock_openrouter
     mock_logger.error.assert_called_with("OpenRouter API error: Status=401, Message=API Error Message")
 
 
-@patch('src.pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
+@patch('pydantic_llm_tester.llms.openrouter.provider.OpenRouterProvider') # Patch the provider itself
 def test_openrouter_provider_call_llm_api_no_client(mock_openrouter_provider_class, mock_provider_config, mock_model_config):
     """Test calling _call_llm_api when client is not initialized by mocking the provider instance."""
     # Create a mock provider instance with client set to None

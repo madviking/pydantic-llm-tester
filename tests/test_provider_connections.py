@@ -5,12 +5,21 @@ Tests for LLM provider connections
 import os
 import pytest
 from pathlib import Path
+from pydantic import BaseModel
+from unittest.mock import MagicMock, patch
 
 # Add the parent directory to sys.path to import src
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
 from pydantic_llm_tester.utils import ProviderManager
+from pydantic_llm_tester.utils.cost_manager import UsageData
+from pydantic_llm_tester.llms.base import BaseLLM, ModelConfig
+
+# Define a dummy model for testing
+class DummyModel(BaseModel):
+    field1: str = ""
+    field2: int = 0
 
 # Mark tests that require API keys
 api_key_required = pytest.mark.skipif(
@@ -40,11 +49,11 @@ class TestProviderManager:
     def test_mock_responses(self):
         """Test getting mock responses from providers"""
         # Initialize manager with mock provider
-        manager = ProviderManager(["mock_provider"])
+        manager = ProviderManager(["mock"])
         
         # Test job ad
         response, usage_data = manager.get_response(
-            provider="mock_provider",
+            provider="mock",
             prompt="Extract information from this job post.",
             source="SENIOR MACHINE LEARNING ENGINEER position at DataVision Analytics",
             model_class=DummyModel # Pass dummy model class
@@ -62,7 +71,7 @@ class TestProviderManager:
         
         # Test product description
         response, usage_data = manager.get_response(
-            provider="mock_provider",
+            provider="mock",
             prompt="Extract information from this product description.",
             source="Wireless Earbuds X1 by TechGear",
             model_class=DummyModel # Pass dummy model class
@@ -102,10 +111,10 @@ class TestProviderManager:
             available_providers.append("mock_google")
         
         # Always add mock provider for reliable testing
-        available_providers.append("mock_provider")
+        available_providers.append("mock")
         
         # Skip the test if no real providers are available
-        if len(available_providers) == 1 and available_providers[0] == "mock_provider":
+        if len(available_providers) == 1 and available_providers[0] == "mock":
             pytest.skip("No API keys available for testing real providers")
         
         # Initialize manager with available providers
@@ -138,7 +147,7 @@ class TestProviderManager:
                 assert response and len(response) > 0
                 print(f"✓ {provider} connection successful")
             except Exception as e:
-                if provider == "mock_provider":
+                if provider == "mock":
                     # Mock provider should always work
                     pytest.fail(f"Error with mock provider: {str(e)}")
                 else:
@@ -149,56 +158,30 @@ class TestProviderManager:
                         pytest.fail(f"Error connecting to {provider}: {str(e)}")
 
 
-import unittest # Added unittest for MagicMock
-from unittest.mock import patch, MagicMock # Ensure patch and MagicMock are imported
-import os
-import pytest
-from pathlib import Path
-
-# Add the parent directory to sys.path to import src
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
-
-from typing import Optional, List, Type, Any # Added Type, Any
-from pydantic import BaseModel as PydanticBaseModel # Alias for dummy model
-from pydantic_llm_tester.utils import ProviderManager, UsageData 
-from pydantic_llm_tester.llms import BaseLLM, ModelConfig # Added ModelConfig
-
-# Mark tests that require API keys
-api_key_required = pytest.mark.skipif(
-    not (os.environ.get("OPENAI_API_KEY") or 
-         os.environ.get("ANTHROPIC_API_KEY") or
-         os.environ.get("MISTRAL_API_KEY") or
-         (os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and os.environ.get("GOOGLE_PROJECT_ID"))),
-    reason="API keys required for this test"
-)
-
-# Dummy Pydantic model for testing
-class DummyModel(PydanticBaseModel):
-    field: str
-
 # Mock OpenAI Provider for testing ProviderManager interaction
+from typing import Optional, List, Type, Any
 class MockOpenAIProvider(BaseLLM):
     def __init__(self, config=None, llm_models=None):
         super().__init__(config, llm_models=llm_models)
         self.name = "openai" 
         self.last_received_files: Optional[List[str]] = None
-        self.last_received_model_class: Optional[Type[PydanticBaseModel]] = None
+        self.last_received_model_class: Optional[Type[BaseModel]] = None
 
-    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, model_config: ModelConfig, model_class: Type[PydanticBaseModel], files: Optional[List[str]] = None):
+    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None):
         self.last_received_files = files
         self.last_received_model_class = model_class
         return "Mocked OpenAI response: Hello World", {"prompt_tokens": 5, "completion_tokens": 2}
 
-    def get_response(self, prompt: str, source: str, model_class: Type[PydanticBaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None):
-         self.last_received_files = files
-         self.last_received_model_class = model_class
-         return "Mocked OpenAI response: Hello World", UsageData(
-             provider=self.name,
-             model=model_name or "gpt-3.5-turbo", 
-             prompt_tokens=len(prompt.split()),
-             completion_tokens=len("Mocked OpenAI response: Hello World".split())
-         )
+
+    def get_response(self, prompt: str, source: str, model_class: Type[BaseModel], model_name: Optional[str] = None, files: Optional[List[str]] = None):
+        self.last_received_files = files
+        self.last_received_model_class = model_class
+        return "Mocked OpenAI response: Hello World", UsageData(
+            provider=self.name,
+            model=model_name or "gpt-3.5-turbo", 
+            prompt_tokens=len(prompt.split()),
+            completion_tokens=len("Mocked OpenAI response: Hello World".split())
+        )
 
 
 @api_key_required
@@ -254,16 +237,31 @@ def test_openai_connection(mock_get_llm_provider):
 
 
 @api_key_required
-def test_anthropic_connection():
+@patch('pydantic_llm_tester.llms.llm_registry.get_llm_provider')
+def test_anthropic_connection(mock_get_llm_provider):
     """Test connection to Anthropic"""
     if not os.environ.get("ANTHROPIC_API_KEY"):
         pytest.skip("Anthropic API key not available")
+    
+    # Configure the mock to return a MockAnthropicProvider instance
+    mock_anthropic_provider = MagicMock()
+    mock_anthropic_provider.name = "anthropic"
+    mock_anthropic_provider.get_response.return_value = (
+        "Mocked Anthropic response: Hello World",
+        UsageData(
+            provider="anthropic",
+            model="claude-3-haiku-20240307",
+            prompt_tokens=5,
+            completion_tokens=2
+        )
+    )
+    mock_get_llm_provider.return_value = mock_anthropic_provider
     
     manager = ProviderManager(["anthropic"])
     
     # Test getting a response
     try:
-        response, _ = manager.get_response( # Ignore usage for this simple test
+        response, usage = manager.get_response(
             provider="anthropic",
             prompt="Say hello",
             source="This is a test",
@@ -271,6 +269,19 @@ def test_anthropic_connection():
             model_name="claude-3-haiku-20240307"
         )
         assert response and len(response) > 0
+        # Verify that get_llm_provider was called
+        mock_get_llm_provider.assert_called_once_with("anthropic", llm_models=None)
+        # Verify that the mock provider's get_response was called
+        mock_anthropic_provider.get_response.assert_called_once_with(
+            prompt="Say hello",
+            source="This is a test",
+            model_class=DummyModel,
+            model_name="claude-3-haiku-20240307",
+            files=None
+        )
+        # Check usage data
+        assert usage.provider == "anthropic"
+        assert usage.model == "claude-3-haiku-20240307"
     except Exception as e:
         pytest.fail(f"Anthropic connection failed: {str(e)}")
 

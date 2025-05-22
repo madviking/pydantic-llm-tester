@@ -75,27 +75,42 @@ def load_provider_config(provider_name: str) -> Optional[ProviderConfig]:
     try:
         with open(config_path, 'r') as f:
             config_data = json.load(f)
+        
+        # Add empty llm_models list if it doesn't exist in the config
+        if 'llm_models' not in config_data:
+            config_data['llm_models'] = []
+            
         static_config = ProviderConfig(**config_data)
     except Exception as e:
         logger.error(f"Error loading static config for provider {provider_name}: {str(e)}")
         return None
 
-    # --- Dynamic Loading for OpenRouter ---
-    if provider_name == "openrouter":
-        logger.info("Attempting to dynamically load OpenRouter py_models...")
+    # --- Get models from registry if available ---
+    from pydantic_llm_tester.llms.llm_registry import LLMRegistry
+    registry = LLMRegistry()
+    registry_models = registry.get_provider_models(provider_name)
+    
+    if registry_models:
+        logger.info(f"Using {len(registry_models)} models from central registry for provider {provider_name}")
+        static_config.llm_models = list(registry_models.values())
+    elif provider_name == "openrouter":
+        # --- Dynamic Loading for OpenRouter if not in registry ---
+        logger.info("Attempting to dynamically load OpenRouter models...")
         api_models_data = _fetch_openrouter_models_with_cache()
 
         if api_models_data:
             try:
-                updated_models = _merge_static_and_api_models(static_config.llm_models, api_models_data)
-                static_config.llm_models = updated_models # Replace py_models in the config object
-                logger.info(f"Successfully updated OpenRouter config with {len(updated_models)} py_models from API.")
+                # Create an empty list since static_config.llm_models is now empty
+                empty_model_list = []
+                updated_models = _merge_static_and_api_models(empty_model_list, api_models_data)
+                static_config.llm_models = updated_models # Replace models in the config object
+                logger.info(f"Successfully updated OpenRouter config with {len(updated_models)} models from API.")
             except Exception as e:
                 logger.error(f"Error processing OpenRouter API data: {e}. Falling back to static config.")
-                # Fallback handled by returning static_config below
         else:
-            logger.warning("Failed to fetch OpenRouter py_models from API. Using static config only.")
-            # Fallback handled by returning static_config below
+            logger.warning("Failed to fetch OpenRouter models from API. Using empty model list.")
+    else:
+        logger.warning(f"No models found in registry for provider {provider_name} and not OpenRouter. Using empty model list.")
 
     # Store the final config (static or updated) in the cache and return
     _provider_configs[provider_name] = static_config

@@ -77,12 +77,12 @@ IMPORTANT: Always stop after each step and before stopping, update this document
     3.12. Implemented the check and exception raising for disabled providers in `ConfigManager`.
 
 4.  **Refactor Provider `config.json` Files (`src/pydantic_llm_tester/llms/*/config.json`)**
-    Status: In progress
-    Notes: This step requires checking all provider config.json files and removing the llm_models array. The current implementation should already support this change based on our work in step 3.
-
-    Next steps:
-    4.1. Create test(s) to verify that provider `config.json` files do NOT contain the `llm_models` array.
-    4.2. Manually remove the `llm_models` array from all provider `config.json` files.
+    Status: Completed
+    Notes: 
+    - Created a test in `tests/test_provider_config_files.py` to verify that provider `config.json` files do not contain the `llm_models` array.
+    - Removed the `llm_models` array from all provider `config.json` files.
+    - Updated BaseLLM.get_model_config, BaseLLM.get_default_model, and BaseLLM.get_available_models methods to retrieve model details from the central model registry.
+    - Modified the provider_factory.load_provider_config to add an empty llm_models list if none exists and fetch models from the registry.
 
 5.  **Update `pyllm_config.json` Structure**
     Status: Partially completed

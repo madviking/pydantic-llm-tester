@@ -2,18 +2,5 @@
   "name": "mock",
   "provider_type": "mock",
   "env_key": "",
-  "system_prompt": "You are a mock LLM. Respond with mock data.",
-  "llm_models": [
-    {
-      "name": "mock-model",
-      "default": true,
-      "preferred": true,
-      "enabled": true,
-      "cost_input": 0.0,
-      "cost_output": 0.0,
-      "max_input_tokens": 4000,
-      "max_output_tokens": 1000,
-      "supports_response_format_json": true
-    }
-  ]
+  "system_prompt": "You are a mock LLM. Respond with mock data."
 }

@@ -79,11 +79,11 @@ def test_retrieve_specific_model(model_registry):
 def test_retrieve_nonexistent_provider(model_registry):
     """Tests retrieving models for a provider that hasn't been stored."""
     provider_name = "nonexistent_provider"
-    """Tests retrieving models for a provider that hasn't been stored."""
-    provider_name = "nonexistent_provider"
-    # Expecting a ValueError when trying to get models for a non-existent provider
-    with pytest.raises(ValueError, match=f"Provider '{provider_name}' not found in the registry."):
-        model_registry.get_provider_models(provider_name)
+    # According to the new implementation, get_provider_models should return an empty dict
+    # rather than raising an exception for nonexistent providers
+    result = model_registry.get_provider_models(provider_name)
+    assert isinstance(result, dict)
+    assert len(result) == 0
 
 def test_retrieve_nonexistent_model(model_registry):
     """Tests retrieving a model that doesn't exist for a stored provider."""
