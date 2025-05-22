@@ -15,6 +15,8 @@ class MockProvider(BaseLLM):
     def __init__(self, config=None, llm_models=None): # Added llm_models
         """Initialize the Mock provider"""
         super().__init__(config, llm_models=llm_models) # Pass llm_models to super
+        # Explicitly set llm_models, prioritizing the parameter, then config, then empty list
+        self.llm_models = llm_models if llm_models is not None else (config.llm_models if config and config.llm_models is not None else [])
         self.logger.info("Mock provider initialized")
         self.last_received_files: Optional[List[str]] = None # For test inspection
         self.last_received_model_class: Optional[Type[BaseModel]] = None # For test inspection
@@ -32,10 +34,58 @@ class MockProvider(BaseLLM):
         """
         self.response_registry[key] = response
         self.logger.debug(f"Registered mock response for key: {key}")
-        
-    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str, 
-                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, Union[Dict[str, Any], UsageData]]:
+
+    def get_response(self, prompt: str, source: str, model_class: Type[BaseModel],
+                     model_name: Optional[str] = None, files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
+        """
+        Overrides BaseLLM.get_response for simplified mock behavior.
+        """
+        # Find the model config for the given model_name
+        # If model_name is None, use the default model from config
+        if model_name is None:
+             if self.config and self.config.default_model:
+                 model_name = self.config.default_model
+             elif self.llm_models:
+                 # Find the first default model in the list
+                 default_model = next((m for m in self.llm_models if m.default), None)
+                 if default_model:
+                     model_name = default_model.name
+                 else:
+                      # If no default, just take the first one
+                      model_name = self.llm_models[0].name if self.llm_models else None
+
+
+        if model_name is None:
+             raise ValueError("No model name provided and no default model configured.")
+
+        print(f"llm_models in get_response: {self.llm_models}")
+        print(f"Determined model_name: {model_name}")
+        model_config = next((m for m in self.llm_models if m.name == model_name), None)
+
+        if model_config is None:
+            raise ValueError(f"No model configuration found for model: {model_name}")
+
+        # Check file upload support
+        if files and not self.supports_file_upload:
+             raise NotImplementedError(f"Provider {self.name} does not support file uploads.")
+
+        # Call the internal mock API method
+        response_text, usage_data = self._call_llm_api(
+            prompt=prompt,
+            system_prompt=self.config.system_prompt if self.config else "",
+            model_name=model_name,
+            model_config=model_config,
+            model_class=model_class,
+            files=files
+        )
+
+        return response_text, usage_data
+
+
+    def _call_llm_api(self, prompt: str, system_prompt: str, model_name: str,
+                     model_config: ModelConfig, model_class: Type[BaseModel], files: Optional[List[str]] = None) -> Tuple[str, UsageData]:
         """Implementation-specific API call for mocked responses
+
         
         Args:
             prompt: The full prompt text to send

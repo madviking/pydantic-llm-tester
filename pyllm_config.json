@@ -4,6 +4,10 @@
       "enabled": true,
       "default_model": "gpt-4"
     },
+    "openrouter": {
+      "enabled": true,
+      "default_model": "openai:gpt-4"
+    },
     "anthropic": {
       "enabled": true,
       "default_model": "claude-3-opus"
@@ -49,7 +53,7 @@
       "enabled": true
     },
     "test_model": {
-      "path": "/var/folders/t2/l90v_k516tsgp2jk7h3pwd740000gn/T/tmpvsdhwjtv",
+      "path": "/var/folders/t2/l90v_k516tsgp2jk7h3pwd740000gn/T/tmptc8wgiq4",
       "enabled": true
     }
   }

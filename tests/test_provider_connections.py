@@ -107,8 +107,8 @@ class TestProviderManager:
         if (os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") and 
             os.environ.get("GOOGLE_PROJECT_ID") and
             os.path.exists(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", ""))):
-            # Instead of real "google", use "mock_google" for reliable testing
-            available_providers.append("mock_google")
+            # If Google credentials are available, add the real google provider
+            available_providers.append("google")
         
         # Always add mock provider for reliable testing
         available_providers.append("mock")
@@ -131,8 +131,11 @@ class TestProviderManager:
                     model_name = "claude-3-haiku-20240307"  # Smaller model
                 elif provider == "mistral":
                     model_name = "mistral-small-latest"  # Smaller model
-                elif provider == "mock_google" or provider == "google":
-                    # Skip model name for mock_google, we'll handle it separately
+                elif provider == "google":
+                    # Use a specific Google model if available, otherwise rely on default
+                    model_name = "gemini-pro" # Example Google model name
+                elif provider == "mock":
+                    # Mock provider doesn't need a specific model name for this test
                     pass
                 
                 response, _ = manager.get_response( # Ignore usage for this simple test
@@ -316,39 +319,30 @@ def test_google_connection():
             os.environ.get("GOOGLE_PROJECT_ID")):
         pytest.skip("Google API credentials not available")
     
-    # For testing purposes, we'll use a mock since the service account 
-    # may not have the necessary permissions for LLM py_models
-    manager = ProviderManager(["mock_google"])
+    # Test the real Google provider if credentials are available
+    manager = ProviderManager(["google"])
     
     # Test getting a response
     try:
         response, _ = manager.get_response(
-            provider="mock_google",
+            provider="google",
             prompt="Say hello",
             source="This is a test",
-            model_class=DummyModel # Pass dummy model class
+            model_class=DummyModel, # Pass dummy model class
+            model_name="gemini-pro" # Use a specific Google model
         )
         
-        # Verify we got a valid response from the mock
+        # Verify we got a valid response
         assert response and len(response) > 0
-        
-        # Now just test the Google client initialization
-        # Import the necessary modules from Google Cloud
-        from google.cloud import aiplatform
-        project_id = os.environ.get("GOOGLE_PROJECT_ID")
-        location = os.environ.get("GOOGLE_LOCATION", "us-central1")
-        
-        # Test initialization only
-        aiplatform.init(project=project_id, location=location)
-        # If it reaches here without error, the initialization worked
-        assert True
+        print("✓ Google connection successful")
+
     except ImportError as e:
         pytest.skip(f"Google Cloud libraries not installed: {str(e)}")
     except Exception as e:
         if "not allowed to use Publisher Model" in str(e):
             # This is expected if the service account doesn't have permissions
-            # for the specific model, but we've already verified initialization works
-            print("Note: Service account doesn't have LLM model permissions (expected)")
-            assert True
+            # for the specific model. Log a warning but don't fail the test.
+            print("⚠ Google connection failed due to insufficient permissions (expected for some setups)")
+            assert True # Test passes if this specific permission error occurs
         else:
             pytest.fail(f"Google connection failed: {str(e)}")

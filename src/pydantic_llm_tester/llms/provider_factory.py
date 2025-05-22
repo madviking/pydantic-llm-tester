@@ -478,8 +478,8 @@ def create_provider(provider_name: str, config: Optional[ProviderConfig] = None,
     
     # Create instance
     try:
-        # Pass the llm_models list to the provider class constructor
-        provider = provider_class(config, llm_models=llm_models)
+        # Pass the loaded llm_models from the config to the provider class constructor
+        provider = provider_class(config, llm_models=config.llm_models)
         logger.info(f"Created provider instance for {provider_name}")
         return provider
     except Exception as e:

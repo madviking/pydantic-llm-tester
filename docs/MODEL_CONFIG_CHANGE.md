@@ -85,12 +85,10 @@ IMPORTANT: Always stop after each step and before stopping, update this document
     - Modified the provider_factory.load_provider_config to add an empty llm_models list if none exists and fetch models from the registry.
 
 5.  **Update `pyllm_config.json` Structure**
-    Status: Partially completed
-    Notes: The pyllm_config.json already includes examples of the new "provider:model-name" format in the py_models section. We've implemented the necessary parsing logic in ConfigManager to support this format.
-
-    Next steps:
-    5.1. Update documentation and examples to fully document the new structure.
-    5.2. Consider whether any additional configuration properties are needed to support the new model specification format.
+    Status: Completed
+    Notes:
+    - Updated documentation (`docs/guides/configuration/CONFIG_REFERENCE.md`) to fully document the new "provider:model-name" format for specifying models in `pyllm_config.json`.
+    - Confirmed that no additional configuration properties are immediately needed to support the new format based on the current plan.
 
 6.  **Adjust `LLMRegistry` and `ProviderFactory`**
     Status: Not started

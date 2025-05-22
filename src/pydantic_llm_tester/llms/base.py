@@ -31,6 +31,7 @@ class ProviderConfig(BaseModel):
     env_key: str = Field(..., description="Environment variable name for API key")
     env_key_secret: Optional[str] = Field(None, description="Environment variable name for secondary key/secret")
     system_prompt: str = Field("", description="Default system prompt to use")
+    default_model: Optional[str] = Field(None, description="Default model name for this provider") # Added default_model
     llm_models: List[ModelConfig] = Field(..., description="Available models for this provider")
     supports_file_upload: bool = Field(False, description="Whether this provider supports file uploads")
 
@@ -38,10 +39,10 @@ class BaseLLM(ABC):
     """Base class for all LLM providers"""
     supports_file_upload: bool = False
     
-    def __init__(self, config: Optional[ProviderConfig] = None, llm_models: Optional[List[str]] = None):
+    def __init__(self, config: Optional[ProviderConfig] = None, llm_models: Optional[List[ModelConfig]] = None):
         """Initialize provider with optional config and model filter"""
         self.config = config
-        self.llm_models_filter = llm_models # Store the list of desired LLM models
+        self._llm_models: Dict[str, ModelConfig] = {model.name: model for model in llm_models} if llm_models else {} # Store ModelConfig objects
         self.name = config.name if config else self.__class__.__name__.lower().replace('provider', '')
         self.logger = logging.getLogger(f"{__name__}.{self.name}")
         if config:

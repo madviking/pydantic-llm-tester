@@ -90,35 +90,6 @@ class ProviderManager:
         Returns:
             Tuple of (response_text, usage_data)
         """
-        # Check if this is a mock provider but not properly initialized
-        if provider.startswith("mock_") and provider not in self.provider_instances:
-            # Import here to avoid circular imports
-            from .mock_responses import get_mock_response
-            
-            self.logger.info(f"Falling back to legacy mock provider for {provider}")
-            
-            # Create mock usage data
-            mock_model = "mock-model"
-            # Estimate token count for the mock response
-            prompt_tokens = len(prompt.split()) + len(source.split())
-            completion_tokens = 500  # Rough estimate for mock responses
-            
-            # Determine which mock to use based on source content
-            if "MACHINE LEARNING ENGINEER" in source or "job" in source.lower() or "software engineer" in source.lower() or "developer" in source.lower():
-                mock_response = get_mock_response("job_ads", source)
-            else:
-                mock_response = get_mock_response("product_descriptions", source)
-            
-            # Create usage data for mock
-            usage_data = UsageData(
-                provider=provider,
-                model=mock_model,
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens
-            )
-            
-            return mock_response, usage_data
-        
         # Check if the provider is initialized
         if provider not in self.provider_instances:
             # Check if we have a specific initialization error for this provider

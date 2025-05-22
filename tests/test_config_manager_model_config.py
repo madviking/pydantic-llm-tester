@@ -172,11 +172,8 @@ class TestConfigManagerModelConfig:
         try:
             # Initialize ConfigManager with the temp config
             config_manager = ConfigManager(config_path=temp_path, temp_mode=True)
-            
-            # Call the method that would process and store the models
-            config_manager.process_openrouter_models()
-            
-            # Verify that store_provider_models was called with expected data
+
+            # Verify that store_provider_models was called with expected data during init
             mock_store_models.assert_called_once()
             # Check that the call has 'openrouter' as the first argument
             assert mock_store_models.call_args[0][0] == 'openrouter'
