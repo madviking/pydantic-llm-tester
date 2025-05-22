@@ -674,87 +674,98 @@ class PyllmBridge:
         logger.info(f"Saved auto-generated test files for {model_name} with base name {filename_base}")
         self.notices.append(f"Auto-generated test files saved: {filename_base}")
 
+    def analyze_model_configuration(self, model_class: Type[T]) -> Dict[str, Any]:
+        """
+        Analyze the model configuration to determine how it maps to LLM providers and models.
+        
+        This function analyzes the Pydantic model class name, checks different name variations 
+        (original, snake_case, plural), determines which provider and model will be used,
+        and fetches pricing information.
+        
+        Args:
+            model_class: The Pydantic model class to analyze
+            
+        Returns:
+            A dictionary containing the configuration analysis information:
+            - class_name: Original class name
+            - snake_case_name: Snake case version of the name
+            - plural_name: Plural form of the snake case name
+            - config_entry: Name found in configuration
+            - provider_model: Tuple of (provider_name, model_name) that will be used
+            - model_pricing: Dictionary with pricing information for the model
+        """
+        import re
+        from ..utils.cost_manager import load_model_pricing
+        
+        # Get model name and variations
+        model_name = model_class.__name__
+        snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', model_name).lower()
+        plural_name = f"{snake_case}s"
+        
+        # Check which config entry is found
+        config_entry = None
+        if model_name in self.config_manager.get_py_models():
+            config_entry = model_name
+        elif snake_case in self.config_manager.get_py_models():
+            config_entry = snake_case
+        elif plural_name in self.config_manager.get_py_models():
+            config_entry = plural_name
+        
+        # Get the provider model
+        provider_model = self._get_primary_provider_and_model(model_class)
+        
+        # Get pricing information if provider model is available
+        pricing_info = {}
+        if provider_model:
+            provider_name, model_name = provider_model
+            pricing = load_model_pricing()
+            provider_pricing = pricing.get(provider_name, {})
+            model_pricing = provider_pricing.get(model_name, {})
+            pricing_info = {
+                'input': model_pricing.get('input', 0.0),
+                'output': model_pricing.get('output', 0.0)
+            }
+        
+        return {
+            'class_name': model_class.__name__,
+            'snake_case_name': snake_case,
+            'plural_name': plural_name,
+            'config_entry': config_entry,
+            'provider_model': provider_model,
+            'model_pricing': pricing_info
+        }
+    
+    def get_actual_model_used(self) -> str:
+        """
+        Get the actual model used in the last request from the analysis report.
+        
+        Returns:
+            The provider:model string for the model that was actually used,
+            or "Not available" if not found.
+        """
+        for pass_name, pass_data in self.analysis.passes.items():
+            if pass_data.provider_model:
+                return pass_data.provider_model
+        return "Not available"
 
 if __name__ == "__main__":
     """
     Basic use of bridge
     """
+    # Set up logging for the main script
+    logging.basicConfig(level=logging.INFO)
+    
+    # Load source and prompt from test files
     source_path = get_py_models_dir() + '/job_ads/tests/sources/complex.txt'
     prompt_path = get_py_models_dir() + '/job_ads/tests/prompts/complex.txt'
+
     with open(source_path, 'r') as f:
         source = f.read()
     with open(prompt_path, 'r') as f:
         prompt = f.read()
-
-    # Set up logging for the main script
-    logging.basicConfig(level=logging.INFO)
     
-    # Print configuration information
+    # Initialize the bridge
     bridge = PyllmBridge()
-    
-    # Test both the original class name and snake_case variations
-    model_class = JobAd
-    model_name = model_class.__name__
-    import re
-    snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', model_name).lower()
-    plural_name = f"{snake_case}s"
-    
-    print(f"\nConfiguration:")
-    print(f"Class name: {model_name}")
-    print(f"Snake case name: {snake_case}")
-    print(f"Plural name: {plural_name}")
-    
-    # Check which config entry is found
-    config_entry = None
-    if model_name in bridge.config_manager.get_py_models():
-        config_entry = model_name
-    elif snake_case in bridge.config_manager.get_py_models():
-        config_entry = snake_case
-    elif plural_name in bridge.config_manager.get_py_models():
-        config_entry = plural_name
-    
-    print(f"Config entry found: {config_entry}")
-    
-    # Get the provider model
-    provider_model = bridge._get_primary_provider_and_model(JobAd)
-    print(f"JobAd model configured to use: {provider_model[0]}:{provider_model[1]}")
-    
-    # Display pricing information
-    from pydantic_llm_tester.utils.cost_manager import load_model_pricing
-    pricing = load_model_pricing()
-    provider_pricing = pricing.get(provider_model[0], {})
-    model_pricing = provider_pricing.get(provider_model[1], {})
-    print(f"Model pricing: Input=${model_pricing.get('input', 0.0):.2f}/1M tokens, Output=${model_pricing.get('output', 0.0):.2f}/1M tokens")
-    
-    # Simple test
     print("\nRunning test with JobAd...")
     example = bridge.ask(JobAd, prompt + source)
-    
-    # Check if the bridge's analysis contains pass information
-    used_model = None
-    for pass_name, pass_data in bridge.analysis.passes.items():
-        if hasattr(pass_data, 'provider_model') and pass_data.provider_model:
-            used_model = pass_data.provider_model
-            break
-    
-    print(f"\nResults:")
-    
-    # Get the actual model used from the analysis report
-    actual_model_used = "Not available"
-    for pass_name, pass_data in bridge.analysis.passes.items():
-        if pass_data.provider_model:
-            actual_model_used = pass_data.provider_model
-            break
-    
-    print(f"Configured model: {provider_model[0]}:{provider_model[1]}")
-    print(f"Actual model used: {actual_model_used}")
-    print(f"Result: {example}")
-    print(f"Analysis: {bridge.analysis}")
-    print(f"Errors: {bridge.errors}")
-    print(f"Notices: {bridge.notices}")
-    print(f"Total cost: ${bridge.cost:.6f}")
-
-
-    """
-    Providing response which is the optimum model + prompt
-    """
+    print(example.model_dump_json(indent=2))

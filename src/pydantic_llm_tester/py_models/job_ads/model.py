@@ -62,6 +62,14 @@ class Salary(BaseModel):
     period: Optional[str] = Field(..., description="Annual or monthly")
 
 
+class TechnologyExpertise(BaseModel):
+    """Technology expertise required for the job"""
+    name: str = Field(..., description="Only the name of the technology. For example JavaScript")
+    category: Optional[str] = Field(..., description="Category of the technology. For example: programming language, framework, library")
+    ecosystem: Optional[str] = Field(..., description="Ecosystem of the technology. For example: SAP, Salesforce, AWS")
+    level: Optional[str] = Field(..., description="Level of expertise required: beginner, intermediate, expert")
+    required: Optional[str] = Field(..., description="Required, preferred or bonus")
+
 
 class JobAd(BasePyModel):
     """
@@ -91,6 +99,7 @@ class JobAd(BasePyModel):
     travel_required: Optional[str] = Field(None, description="Travel requirements if any")
     posting_date: Optional[date] = Field(..., description="Date when the job was posted")
     image_analysis: Optional[str] = Field(None, description="Analysis of the image content, if applicable")
+    technology_expertise: Optional[List[TechnologyExpertise]] = Field(default_factory=list, description="List of technologies required")
 
     @classmethod
     def get_skip_fields(cls) -> Set[str]:
