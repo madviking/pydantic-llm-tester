@@ -5,10 +5,12 @@ class PassAnalysis(BaseModel):
     """Represents the analysis for a single pass of LLM interaction."""
     new_fields: int = 0
     overwritten_fields: int = 0
+    provider_model: str = ""  # Format: "provider:model"
     
     def __str__(self) -> str:
         """Readable string representation of the pass analysis."""
-        return f"New fields: {self.new_fields}, Overwritten: {self.overwritten_fields}"
+        model_info = f" using {self.provider_model}" if self.provider_model else ""
+        return f"New fields: {self.new_fields}, Overwritten: {self.overwritten_fields}{model_info}"
 
 class PyllmAnalysisReport(BaseModel):
     """

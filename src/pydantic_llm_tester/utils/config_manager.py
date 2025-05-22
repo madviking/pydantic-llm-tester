@@ -223,7 +223,17 @@ class ConfigManager:
         Returns an empty list if no models are configured.
         """
         py_models = self.config.get("py_models", {})
-        return py_models.get(model_name, {}).get("llm_models", [])
+        models = py_models.get(model_name, {}).get("llm_models", [])
+        
+        # Add debug logging
+        import logging
+        logger = logging.getLogger(__name__)
+        if models:
+            logger.info(f"Found LLM models for {model_name} in config: {models}")
+        else:
+            logger.info(f"No LLM models configured for {model_name} in pyllm_config.json")
+            
+        return models
 
     def set_py_model_llm_models(self, model_name: str, llm_models: List[str]) -> None:
         """

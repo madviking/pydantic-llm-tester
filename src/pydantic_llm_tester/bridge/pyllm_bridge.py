@@ -157,6 +157,9 @@ class PyllmBridge:
             return
 
         provider_name, model_name = provider_model
+        
+        # Store the provider and model information in the pass analysis
+        pass_analysis.provider_model = f"{provider_name}:{model_name}"
 
         # Call the LLM
         result_json, _, cost = self._call_llm(
@@ -171,11 +174,13 @@ class PyllmBridge:
 
             # Try fallback for first pass only
             if pass_num == 1:
-                result_json = self._try_fallback(model_class, prompt, source, file_path, pass_analysis)
+                result_json, fallback_provider_model = self._try_fallback(model_class, prompt, source, file_path, pass_analysis)
                 
-                # If fallback succeeded, update model data
+                # If fallback succeeded, update model data and provider info
                 if result_json:
                     self._update_model_data(result_json, model_data, pass_analysis)
+                    if fallback_provider_model:
+                        pass_analysis.provider_model = fallback_provider_model
                     
             # Save pass analysis even if failed
             self.analysis.passes[pass_name] = pass_analysis
@@ -195,7 +200,7 @@ class PyllmBridge:
         self.analysis.passes[pass_name] = pass_analysis
 
     def _try_fallback(self, model_class: Type[T], prompt: str, source: str, file_path: str,
-                     pass_analysis: PassAnalysis) -> Optional[Dict[str, Any]]:
+                     pass_analysis: PassAnalysis) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
         """
         Try to use the secondary provider as a fallback when primary fails.
 
@@ -207,15 +212,16 @@ class PyllmBridge:
             pass_analysis: Pass analysis object to update
 
         Returns:
-            JSON result dictionary or None if fallback also failed
+            Tuple of (JSON result dictionary or None if fallback failed, provider_model string)
         """
         # Get secondary provider
         secondary = self._get_provider_and_model(model_class, ProviderType.SECONDARY)
         if not secondary:
-            return None
+            return None, None
 
         sec_provider, sec_model = secondary
-        logger.info(f"Trying secondary provider {sec_provider}:{sec_model} due to primary failure")
+        provider_model_str = f"{sec_provider}:{sec_model}"
+        logger.info(f"Trying secondary provider {provider_model_str} due to primary failure")
 
         result_json, _, fallback_cost = self._call_llm(
             sec_provider, sec_model, prompt, source, model_class, file_path
@@ -229,7 +235,7 @@ class PyllmBridge:
             if fallback_cost:
                 self.analysis.cost += fallback_cost
 
-        return result_json
+        return result_json, provider_model_str
 
     def _update_model_data(self, result_json: Dict[str, Any], model_data: Dict[str, Any],
                           pass_analysis: PassAnalysis) -> None:
@@ -319,6 +325,9 @@ class PyllmBridge:
                     self.errors.append(f"File not found: {file_path}")
                     return None, None, None
 
+            # Log which provider and model we're using
+            logger.info(f"Calling LLM API: {provider_name}:{model_name}")
+
             # Call the provider
             response_text, usage_data = self.provider_manager.get_response(
                 provider=provider_name,
@@ -329,9 +338,28 @@ class PyllmBridge:
                 files=files
             )
 
-            # Track cost
-            #self.cost_manager.add_usage(usage_data)
-            self.cost += usage_data.total_cost
+            # Log the actual model used (might be different from requested)
+            actual_model = usage_data.model
+            if actual_model != model_name:
+                logger.info(f"Note: Requested model '{model_name}' but provider used '{actual_model}'")
+            
+            # Ensure we're using the correct pricing for the actual model used
+            # This is important if the provider substituted a different model
+            from pydantic_llm_tester.utils.cost_manager import calculate_cost
+            prompt_cost, completion_cost, total_cost = calculate_cost(
+                provider_name, actual_model, usage_data.prompt_tokens, usage_data.completion_tokens
+            )
+            
+            # If the costs differ significantly, use our recalculated cost instead
+            if abs(usage_data.total_cost - total_cost) > 0.001:
+                logger.warning(f"Cost mismatch: Provider reported ${usage_data.total_cost:.6f} but calculated ${total_cost:.6f}")
+                logger.info(f"Using recalculated cost based on actual model '{actual_model}'")
+                self.cost += total_cost
+            else:
+                self.cost += usage_data.total_cost
+                
+            logger.info(f"Cost for {provider_name}:{actual_model}: ${total_cost:.6f}")
+            logger.info(f"Tokens: {usage_data.prompt_tokens} prompt, {usage_data.completion_tokens} completion")
 
             # Parse JSON from the response
             parsed_json = self._extract_json_from_response(response_text, provider_name, model_name)
@@ -394,20 +422,41 @@ class PyllmBridge:
         """
         model_name = model_class.__name__
         
-        # 1. Check Pydantic model specific config
+        # First try to find a config by exact model name match
         py_model_llm_models = self.config_manager.get_py_model_llm_models(model_name)
+        
+        # If no exact match, try lowercase version (e.g. JobAd -> job_ads)
+        if not py_model_llm_models:
+            lowercase_name = model_name.lower()
+            if "_" not in lowercase_name:
+                # Try with "_" between words for snake_case conversion (e.g. JobAd -> job_ad)
+                import re
+                snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', model_name).lower()
+                logger.info(f"Trying snake_case version of model name: {snake_case}")
+                py_model_llm_models = self.config_manager.get_py_model_llm_models(snake_case)
+                
+                # Try with plural form for common patterns (e.g. job_ad -> job_ads)
+                if not py_model_llm_models and not snake_case.endswith('s'):
+                    plural_name = f"{snake_case}s"
+                    logger.info(f"Trying plural version of model name: {plural_name}")
+                    py_model_llm_models = self.config_manager.get_py_model_llm_models(plural_name)
+        
         if py_model_llm_models:
             # Use the first model in the list as primary
             primary_model_string = py_model_llm_models[0]
             try:
                 provider, model = self.config_manager._parse_model_string(primary_model_string)
+                
+                # Log what we found in the config
+                logger.info(f"Found model configuration in pyllm_config.json for {model_name}: {provider}:{model}")
+                
                 # Validate if provider exists and is enabled
                 enabled_providers = self.config_manager.get_enabled_providers()
-                # For tests, don't check enabled status if there's a model specified
-                if provider in enabled_providers:
-                    return provider, model
-                else:
-                    logger.warning(f"Provider {provider} specified for {model_name} is not enabled")
+                
+                # Always use the specified model from py_model config, regardless of enabled status
+                # This ensures we respect the config even if the provider isn't explicitly enabled
+                logger.info(f"Using provider {provider} with model {model} for {model_name} (from py_model config)")
+                return provider, model
             except ValueError:
                 logger.warning(f"Invalid model string format in pyllm_config.json for {model_name}: {primary_model_string}")
         
@@ -419,6 +468,7 @@ class PyllmBridge:
             # Validate if provider exists and is enabled
             enabled_providers = self.config_manager.get_enabled_providers()
             if bridge_default_provider in enabled_providers:
+                logger.info(f"Using provider {bridge_default_provider} with model {bridge_default_model} for {model_name} (from bridge default)")
                 return bridge_default_provider, bridge_default_model
             else:
                 logger.warning(f"Bridge default provider {bridge_default_provider} is not enabled")
@@ -430,6 +480,7 @@ class PyllmBridge:
             for provider_name, provider_config in enabled_providers.items():
                 default_model = provider_config.get("default_model")
                 if default_model:
+                    logger.info(f"Using provider {provider_name} with model {default_model} for {model_name} (from provider config)")
                     return provider_name, default_model
         
         # 4. No primary model found
@@ -448,8 +499,25 @@ class PyllmBridge:
         """
         model_name = model_class.__name__
         
-        # 1. Check Pydantic model specific config
+        # First try to find a config by exact model name match
         py_model_llm_models = self.config_manager.get_py_model_llm_models(model_name)
+        
+        # If no exact match, try lowercase version (e.g. JobAd -> job_ads)
+        if not py_model_llm_models:
+            lowercase_name = model_name.lower()
+            if "_" not in lowercase_name:
+                # Try with "_" between words for snake_case conversion (e.g. JobAd -> job_ad)
+                import re
+                snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', model_name).lower()
+                logger.info(f"Trying snake_case version of model name for secondary: {snake_case}")
+                py_model_llm_models = self.config_manager.get_py_model_llm_models(snake_case)
+                
+                # Try with plural form for common patterns (e.g. job_ad -> job_ads)
+                if not py_model_llm_models and not snake_case.endswith('s'):
+                    plural_name = f"{snake_case}s"
+                    logger.info(f"Trying plural version of model name for secondary: {plural_name}")
+                    py_model_llm_models = self.config_manager.get_py_model_llm_models(plural_name)
+        
         if py_model_llm_models and len(py_model_llm_models) > 1:
             # Use the second model in the list as secondary
             secondary_model_string = py_model_llm_models[1]
@@ -618,14 +686,73 @@ if __name__ == "__main__":
     with open(prompt_path, 'r') as f:
         prompt = f.read()
 
+    # Set up logging for the main script
+    logging.basicConfig(level=logging.INFO)
+    
+    # Print configuration information
+    bridge = PyllmBridge()
+    
+    # Test both the original class name and snake_case variations
+    model_class = JobAd
+    model_name = model_class.__name__
+    import re
+    snake_case = re.sub(r'(?<!^)(?=[A-Z])', '_', model_name).lower()
+    plural_name = f"{snake_case}s"
+    
+    print(f"\nConfiguration:")
+    print(f"Class name: {model_name}")
+    print(f"Snake case name: {snake_case}")
+    print(f"Plural name: {plural_name}")
+    
+    # Check which config entry is found
+    config_entry = None
+    if model_name in bridge.config_manager.get_py_models():
+        config_entry = model_name
+    elif snake_case in bridge.config_manager.get_py_models():
+        config_entry = snake_case
+    elif plural_name in bridge.config_manager.get_py_models():
+        config_entry = plural_name
+    
+    print(f"Config entry found: {config_entry}")
+    
+    # Get the provider model
+    provider_model = bridge._get_primary_provider_and_model(JobAd)
+    print(f"JobAd model configured to use: {provider_model[0]}:{provider_model[1]}")
+    
+    # Display pricing information
+    from pydantic_llm_tester.utils.cost_manager import load_model_pricing
+    pricing = load_model_pricing()
+    provider_pricing = pricing.get(provider_model[0], {})
+    model_pricing = provider_pricing.get(provider_model[1], {})
+    print(f"Model pricing: Input=${model_pricing.get('input', 0.0):.2f}/1M tokens, Output=${model_pricing.get('output', 0.0):.2f}/1M tokens")
+    
     # Simple test
-    obj = PyllmBridge()
-    example = obj.ask(JobAd, prompt + source)
+    print("\nRunning test with JobAd...")
+    example = bridge.ask(JobAd, prompt + source)
+    
+    # Check if the bridge's analysis contains pass information
+    used_model = None
+    for pass_name, pass_data in bridge.analysis.passes.items():
+        if hasattr(pass_data, 'provider_model') and pass_data.provider_model:
+            used_model = pass_data.provider_model
+            break
+    
+    print(f"\nResults:")
+    
+    # Get the actual model used from the analysis report
+    actual_model_used = "Not available"
+    for pass_name, pass_data in bridge.analysis.passes.items():
+        if pass_data.provider_model:
+            actual_model_used = pass_data.provider_model
+            break
+    
+    print(f"Configured model: {provider_model[0]}:{provider_model[1]}")
+    print(f"Actual model used: {actual_model_used}")
     print(f"Result: {example}")
-    print(f"Analysis: {obj.analysis}")
-    print(f"Errors: {obj.errors}")
-    print(f"Notices: {obj.notices}")
-    print(f"Total cost: ${obj.cost:.6f}")
+    print(f"Analysis: {bridge.analysis}")
+    print(f"Errors: {bridge.errors}")
+    print(f"Notices: {bridge.notices}")
+    print(f"Total cost: ${bridge.cost:.6f}")
 
 
     """
