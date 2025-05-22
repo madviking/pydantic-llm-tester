@@ -267,27 +267,33 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
         default_name = ""
     
     # Prompt for values
+    print("Prompting for Model name")
     name = typer.prompt("Model name", default=default_name)
     
     # For editing, show current values as defaults
     if is_edit:
+        print("Confirming Set as default model?")
         model_config["default"] = typer.confirm(
             "Set as default model?", 
             default=model_config.get("default", False)
         )
+        print("Confirming Mark as preferred model?")
         model_config["preferred"] = typer.confirm(
             "Mark as preferred model?", 
             default=model_config.get("preferred", False)
         )
+        print("Confirming Enable model?")
         model_config["enabled"] = typer.confirm(
             "Enable model?", 
             default=model_config.get("enabled", True)
         )
+        print("Prompting for Cost per 1M input tokens (USD)")
         model_config["cost_input"] = typer.prompt(
             "Cost per 1M input tokens (USD)", 
             default=model_config.get("cost_input", 0.0), 
             type=float
         )
+        print("Prompting for Cost per 1M output tokens (USD)")
         model_config["cost_output"] = typer.prompt(
             "Cost per 1M output tokens (USD)", 
             default=model_config.get("cost_output", 0.0), 
@@ -304,6 +310,7 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
         category_map = {"1": "cheap", "2": "standard", "3": "expensive"}
         category_default = next((k for k, v in category_map.items() if v == current_category), "2")
         
+        print("Prompting for Select cost category")
         category_choice = typer.prompt(
             "Select cost category",
             default=category_default
@@ -312,11 +319,13 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
             print(f"Warning: Invalid category choice '{category_choice}'. Using 'standard' instead.")
         model_config["cost_category"] = category_map.get(category_choice, "standard")
         
+        print("Prompting for Maximum input tokens")
         model_config["max_input_tokens"] = typer.prompt(
             "Maximum input tokens", 
             default=model_config.get("max_input_tokens", 4096), 
             type=int
         )
+        print("Prompting for Maximum output tokens")
         model_config["max_output_tokens"] = typer.prompt(
             "Maximum output tokens", 
             default=model_config.get("max_output_tokens", 4096), 
@@ -324,10 +333,15 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
         )
     else:
         # For new models, don't show defaults
+        print("Confirming Set as default model?")
         model_config["default"] = typer.confirm("Set as default model?")
+        print("Confirming Mark as preferred model?")
         model_config["preferred"] = typer.confirm("Mark as preferred model?")
+        print("Confirming Enable model?")
         model_config["enabled"] = typer.confirm("Enable model?", default=True)
+        print("Prompting for Cost per 1M input tokens (USD)")
         model_config["cost_input"] = typer.prompt("Cost per 1M input tokens (USD)", type=float)
+        print("Prompting for Cost per 1M output tokens (USD)")
         model_config["cost_output"] = typer.prompt("Cost per 1M output tokens (USD)", type=float)
         
         # For cost category, show options
@@ -336,13 +350,16 @@ def _prompt_for_model_config(provider: str, current_config: Optional[Dict[str, A
         print("2. standard")
         print("3. expensive")
         
+        print("Prompting for Select cost category")
         category_choice = typer.prompt("Select cost category", default="2")
         category_map = {"1": "cheap", "2": "standard", "3": "expensive"}
         if category_choice not in category_map:
             print(f"Warning: Invalid category choice '{category_choice}'. Using 'standard' instead.")
         model_config["cost_category"] = category_map.get(category_choice, "standard")
         
+        print("Prompting for Maximum input tokens")
         model_config["max_input_tokens"] = typer.prompt("Maximum input tokens", default=4096, type=int)
+        print("Prompting for Maximum output tokens")
         model_config["max_output_tokens"] = typer.prompt("Maximum output tokens", default=4096, type=int)
     
     return name, model_config

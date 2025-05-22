@@ -10,6 +10,7 @@ Commit, and tag. GitHub Actions will automatically build and publish the package
 
 ### Run locally (replace the correct version, duh)
 ```bash
+pip install build
 python -m build
 pip install dist/pydantic_llm_tester-0.1.15-py3-none-any.whl
 ```

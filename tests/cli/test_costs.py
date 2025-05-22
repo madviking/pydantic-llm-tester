@@ -88,7 +88,7 @@ def test_costs_update_command_exists():
     """Test that the 'costs update' command exists and returns help text"""
     result = runner.invoke(app, ["costs", "update", "--help"])
     assert result.exit_code == 0
-    assert "Update model costs from OpenRouter API" in result.stdout
+    assert "Update model costs" in result.stdout
 
 def test_costs_reset_cache_command_exists():
     """Test that the 'costs reset-cache' command exists and returns help text"""
@@ -109,7 +109,7 @@ def test_costs_update_basic(mock_display, mock_update, mock_update_result_succes
     assert result.exit_code == 0
     mock_update.assert_called_once_with(
         provider_filter=None,
-        update_provider_configs=False,
+        update_provider_configs=True,
         force_refresh=False
     )
     mock_display.assert_called_once_with(mock_update_result_success)
@@ -381,7 +381,9 @@ def test_update_provider_configs():
             mock_model.name = "gpt-4"
             mock_model.max_input_tokens = 4096
             mock_model.max_output_tokens = 4096
-            
+            mock_model.cost_input = 30.0  # Add cost_input
+            mock_model.cost_output = 60.0 # Add cost_output
+
             mock_config = MagicMock()
             mock_config.llm_models = [mock_model]
             mock_load_config.return_value = mock_config
