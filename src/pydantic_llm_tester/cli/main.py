@@ -2,10 +2,10 @@ import typer
 import logging
 import os
 from dotenv import load_dotenv
-from typing import Optional, List # Added List
+from typing import Optional, List
 
 from pydantic_llm_tester.utils.common import get_default_dotenv_path
-from pydantic_llm_tester.utils.config_manager import ConfigManager
+from pydantic_llm_tester.utils.config_manager import ConfigManager, fetch_and_save_openrouter_models # Import fetch_and_save_openrouter_models
 
 # --- Logging Setup ---
 # Configure basic logging early

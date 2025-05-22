@@ -24,15 +24,15 @@ Refactor the Pydantic LLM Tester framework to dynamically fetch the latest model
 
 ## Refactoring Steps
 
-1.  **Update OpenRouter Provider (`src/pydantic_llm_tester/llms/openrouter/provider.py`)**
-    Status: Not started
-    Notes for next steps:
-    Additional dependencies to check for next step: `requests` or a similar HTTP library for making API calls.
+IMPORTANT: Always stop after each step and before stopping, update this document with status and notes.
 
-    1.1. Create test(s) for making an API call to the OpenRouter models endpoint and receiving a response.
-    1.2. Implement the method in `src/pydantic_llm_tester/llms/openrouter/provider.py` to make the API call and return the raw response.
-    1.3. Create test(s) for parsing the raw API response into a structured format (e.g., a list of dictionaries or Pydantic models) containing model details, pricing, and context length.
-    1.4. Implement the parsing logic in the OpenRouter provider method.
+1.  **Get model info from OpenRouter**
+    Status: Completed
+    Notes:
+    - Implemented logic to fetch OpenRouter models from the API and save to `openrouter_models.json` if the file is missing.
+    - Moved fetching logic to `src/pydantic_llm_tester/utils/config_manager.py` for broader accessibility.
+    - Added path helpers for `openrouter_models.json` and the OpenRouter API URL to `src/pydantic_llm_tester/utils/common.py`.
+    - Updated the test in `tests/test_openrouter_model_fetch.py` to use the path helper and make a real API call to verify file creation and content structure. The test suite for this functionality is passing.
 
 2.  **Create a Central Model Registry/Cache**
     Status: Not started

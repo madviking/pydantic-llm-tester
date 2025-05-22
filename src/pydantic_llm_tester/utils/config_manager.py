@@ -4,8 +4,16 @@ Configuration manager for LLM Tester
 
 import os
 import json
-from typing import Dict, Any, Optional, List, Tuple
+import time
 
+import requests # Import requests
+import logging # Import logging
+from typing import Dict, Any, Optional, List, Tuple
+from pathlib import Path # Import Path
+
+from .common import get_openrouter_models_path, OPENROUTER_MODELS_URL # Import paths from common
+
+logger = logging.getLogger(__name__) # Get logger
 
 class ConfigManager:
     """Centralized configuration management for LLM providers and models"""
@@ -59,6 +67,9 @@ class ConfigManager:
                  import logging
                  logging.getLogger(__name__).warning(f"Error registering built-in py models: {e}")
                  # Continue even if registration fails to allow tests to work
+
+        fetch_and_save_openrouter_models() # Fetch and save models on boot
+
 
     def _discover_builtin_py_models(self) -> List[str]:
         """Discovers the names of built-in py models."""
@@ -286,3 +297,53 @@ class ConfigManager:
         if len(parts) != 2 or not all(parts):
             raise ValueError(f"Invalid model string format: {model_string}. Expected 'provider:model'.")
         return parts[0], parts[1]
+
+def fetch_and_save_openrouter_models():
+    """
+    Fetches OpenRouter models and saves them to openrouter_models.json with 1-hour caching.
+    The cache will be refreshed if the file doesn't exist or is older than 1 hour.
+    """
+    openrouter_models_path = get_openrouter_models_path()
+    logger.debug(f"Checking for OpenRouter models file at: {openrouter_models_path}")
+    
+    # Check if cache is valid (exists and is less than 1 hour old)
+    cache_valid = False
+    if os.path.exists(openrouter_models_path):
+        try:
+            # Get file modification time
+            file_mtime = os.path.getmtime(openrouter_models_path)
+            file_age = time.time() - file_mtime
+            cache_duration = 3600  # 1 hour in seconds
+            
+            if file_age < cache_duration:
+                cache_valid = True
+                logger.debug(f"Cache is valid. File age: {file_age:.0f}s (< {cache_duration}s)")
+            else:
+                logger.info(f"Cache expired. File age: {file_age:.0f}s (>= {cache_duration}s)")
+        except OSError as e:
+            logger.warning(f"Error checking file modification time: {e}")
+            cache_valid = False
+    else:
+        logger.info(f"{openrouter_models_path} not found.")
+    
+    # Fetch and save if cache is invalid
+    if not cache_valid:
+        logger.info("Fetching models from OpenRouter API.")
+        logger.debug("Attempting to fetch models from OpenRouter API.")
+        try:
+            response = requests.get(OPENROUTER_MODELS_URL)
+            response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+            models_data = response.json()
+
+            with open(openrouter_models_path, "w") as f:
+                json.dump(models_data, f, indent=2)
+            logger.info(f"Successfully fetched and saved OpenRouter models to {openrouter_models_path}")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching OpenRouter models from {OPENROUTER_MODELS_URL}: {e}")
+        except IOError as e:
+            logger.error(f"Error writing OpenRouter models to {openrouter_models_path}: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON response from OpenRouter API: {e}")
+    else:
+        logger.debug("Using cached OpenRouter models (file is fresh).")

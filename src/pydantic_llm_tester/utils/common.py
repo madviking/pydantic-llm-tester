@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 # --- Constants ---
 DEFAULT_CONFIG_FILENAME = "pyllm_config.json"
+OPENROUTER_MODELS_FILENAME = "openrouter_models.json"
+OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models"
 
 # --- Path Helpers ---
 
@@ -79,6 +81,10 @@ def get_templates_dir() -> str:
 def get_default_config_path() -> str:
     """Gets the absolute path to the pyllm_config.json file in the project root."""
     return os.path.join(get_project_root(), DEFAULT_CONFIG_FILENAME)
+
+def get_openrouter_models_path() -> str:
+    """Gets the absolute path to the openrouter_models.json file in the project root."""
+    return os.path.join(get_project_root(), OPENROUTER_MODELS_FILENAME)
 
 def get_default_dotenv_path() -> str:
     """Gets the absolute path to the default .env file within src."""
