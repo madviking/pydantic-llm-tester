@@ -149,31 +149,54 @@ class TestLLMRegistry(unittest.TestCase):
             ]
         )
         
-        # Set the config on the test provider
+        # Set the config on the test provider (this is still needed for get_llm_provider fallback logic in get_provider_info)
         self.test_provider.config = config
-        
+
+        # Get the LLMRegistry instance
+        from pydantic_llm_tester.llms.llm_registry import LLMRegistry
+        model_registry = LLMRegistry()
+
+        # Store the model data in the registry
+        models_dict = {model.name: model for model in config.llm_models}
+        model_registry.store_provider_models("test_provider", models_dict)
+
         # Get the provider info
         info = get_provider_info("test_provider")
-        
+
         # Check that the correct info was returned
         self.assertEqual(info["name"], "test_provider")
         self.assertEqual(info["available"], True)
         self.assertEqual(info["config"]["provider_type"], "test")
         self.assertEqual(info["config"]["env_key"], "TEST_API_KEY")
-        self.assertEqual(len(info["py_models"]), 1)
-        self.assertEqual(info["py_models"][0]["name"], "test:model1")
-        self.assertEqual(info["py_models"][0]["default"], True)
-    
+        self.assertEqual(len(info["llm_models"]), 1) # Changed from py_models to llm_models
+        self.assertEqual(info["llm_models"][0]["name"], "test:model1")
+        self.assertEqual(info["llm_models"][0]["default"], True)
+        # Add checks for other fields included from ModelConfig
+        self.assertEqual(info["llm_models"][0]["cost_input"], 0.0)
+        self.assertEqual(info["llm_models"][0]["cost_output"], 0.0)
+        self.assertEqual(info["llm_models"][0]["enabled"], True)
+        self.assertEqual(info["llm_models"][0]["provider"], "test_provider")
+
+
     def test_get_provider_info_unavailable(self):
         """Test getting info for an unavailable provider"""
         from pydantic_llm_tester.llms import get_provider_info
-        
-        # Get info for an unavailable provider
+        from pydantic_llm_tester.llms.llm_registry import LLMRegistry
+
+        # Get the LLMRegistry instance
+        model_registry = LLMRegistry()
+
+        # Ensure the provider is NOT in the discovered providers list for this test
+        self.mock_get_available_providers.return_value = ["another_provider"]
+
+        # Get info for an unavailable provider (one not in discovered list and not stored)
         info = get_provider_info("unavailable_provider")
-        
+
         # Check that the correct info was returned
         self.assertEqual(info["name"], "unavailable_provider")
         self.assertEqual(info["available"], False)
+        self.assertIsNone(info.get("config")) # Config should not be available
+        self.assertIsNone(info.get("llm_models")) # Check that llm_models key is not present
 
 
 if __name__ == '__main__':

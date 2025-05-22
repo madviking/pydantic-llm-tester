@@ -101,7 +101,7 @@
       "hugging_face_id": "",
       "name": "Google: Gemma 3n 4B (free)",
       "created": 1747776824,
-      "description": "Gemma 3n E4B-it is optimized for efficient execution on mobile and low-resource devices, such as phones, laptops, and tablets. It supports multimodal inputs—including text, visual data, and audio—enabling diverse tasks such as text generation, speech recognition, translation, and image analysis. Leveraging innovations like Per-Layer Embedding (PLE) caching and the MatFormer architecture, Gemma 3n dynamically manages memory usage and computational load by selectively activating model parameters, significantly reducing runtime resource requirements.\n\nThis model supports a wide linguistic range (trained in over 140 languages) and features a flexible 32K token context window. Gemma 3n can selectively load parameters, optimizing memory and computational efficiency based on the task or device capabilities, making it well-suited for privacy-focused, offline-capable applications and on-device AI solutions. [Read more in the blog post](https://developers.googleblog.com/en/introducing-gemma-3n/)",
+      "description": "Gemma 3n E4B-it is optimized for efficient execution on mobile and low-resource devices, such as phones, laptops, and tablets. It supports multimodal inputs\u2014including text, visual data, and audio\u2014enabling diverse tasks such as text generation, speech recognition, translation, and image analysis. Leveraging innovations like Per-Layer Embedding (PLE) caching and the MatFormer architecture, Gemma 3n dynamically manages memory usage and computational load by selectively activating model parameters, significantly reducing runtime resource requirements.\n\nThis model supports a wide linguistic range (trained in over 140 languages) and features a flexible 32K token context window. Gemma 3n can selectively load parameters, optimizing memory and computational efficiency based on the task or device capabilities, making it well-suited for privacy-focused, offline-capable applications and on-device AI solutions. [Read more in the blog post](https://developers.googleblog.com/en/introducing-gemma-3n/)",
       "context_length": 8192,
       "architecture": {
         "modality": "text->text",
@@ -343,7 +343,7 @@
       "hugging_face_id": "NousResearch/DeepHermes-3-Mistral-24B-Preview",
       "name": "Nous: DeepHermes 3 Mistral 24B Preview (free)",
       "created": 1746830904,
-      "description": "DeepHermes 3 (Mistral 24B Preview) is an instruction-tuned language model by Nous Research based on Mistral-Small-24B, designed for chat, function calling, and advanced multi-turn reasoning. It introduces a dual-mode system that toggles between intuitive chat responses and structured “deep reasoning” mode using special system prompts. Fine-tuned via distillation from R1, it supports structured output (JSON mode) and function call syntax for agent-based applications.\n\nDeepHermes 3 supports a **reasoning toggle via system prompt**, allowing users to switch between fast, intuitive responses and deliberate, multi-step reasoning. When activated with the following specific system instruction, the model enters a *\"deep thinking\"* mode—generating extended chains of thought wrapped in `<think></think>` tags before delivering a final answer. \n\nSystem Prompt: You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.\n",
+      "description": "DeepHermes 3 (Mistral 24B Preview) is an instruction-tuned language model by Nous Research based on Mistral-Small-24B, designed for chat, function calling, and advanced multi-turn reasoning. It introduces a dual-mode system that toggles between intuitive chat responses and structured \u201cdeep reasoning\u201d mode using special system prompts. Fine-tuned via distillation from R1, it supports structured output (JSON mode) and function call syntax for agent-based applications.\n\nDeepHermes 3 supports a **reasoning toggle via system prompt**, allowing users to switch between fast, intuitive responses and deliberate, multi-step reasoning. When activated with the following specific system instruction, the model enters a *\"deep thinking\"* mode\u2014generating extended chains of thought wrapped in `<think></think>` tags before delivering a final answer. \n\nSystem Prompt: You are a deep thinking AI, you may use extremely long chains of thought to deeply consider the problem and deliberate with yourself via systematic reasoning processes to help come to a correct solution prior to answering. You should enclose your thoughts and internal monologue inside <think> </think> tags, and then provide your solution or response to the problem.\n",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -393,7 +393,7 @@
       "hugging_face_id": "",
       "name": "Mistral: Mistral Medium 3",
       "created": 1746627341,
-      "description": "Mistral Medium 3 is a high-performance enterprise-grade language model designed to deliver frontier-level capabilities at significantly reduced operational cost. It balances state-of-the-art reasoning and multimodal performance with 8× lower cost compared to traditional large models, making it suitable for scalable deployments across professional and industrial use cases.\n\nThe model excels in domains such as coding, STEM reasoning, and enterprise adaptation. It supports hybrid, on-prem, and in-VPC deployments and is optimized for integration into custom workflows. Mistral Medium 3 offers competitive accuracy relative to larger models like Claude Sonnet 3.5/3.7, Llama 4 Maverick, and Command R+, while maintaining broad compatibility across cloud environments.",
+      "description": "Mistral Medium 3 is a high-performance enterprise-grade language model designed to deliver frontier-level capabilities at significantly reduced operational cost. It balances state-of-the-art reasoning and multimodal performance with 8\u00d7 lower cost compared to traditional large models, making it suitable for scalable deployments across professional and industrial use cases.\n\nThe model excels in domains such as coding, STEM reasoning, and enterprise adaptation. It supports hybrid, on-prem, and in-VPC deployments and is optimized for integration into custom workflows. Mistral Medium 3 offers competitive accuracy relative to larger models like Claude Sonnet 3.5/3.7, Llama 4 Maverick, and Command R+, while maintaining broad compatibility across cloud environments.",
       "context_length": 131072,
       "architecture": {
         "modality": "text+image->text",
@@ -440,7 +440,7 @@
       "hugging_face_id": "",
       "name": "Google: Gemini 2.5 Pro Preview",
       "created": 1746578513,
-      "description": "Gemini 2.5 Pro is Google’s state-of-the-art AI model designed for advanced reasoning, coding, mathematics, and scientific tasks. It employs “thinking” capabilities, enabling it to reason through responses with enhanced accuracy and nuanced context handling. Gemini 2.5 Pro achieves top-tier performance on multiple benchmarks, including first-place positioning on the LMArena leaderboard, reflecting superior human-preference alignment and complex problem-solving abilities.",
+      "description": "Gemini 2.5 Pro is Google\u2019s state-of-the-art AI model designed for advanced reasoning, coding, mathematics, and scientific tasks. It employs \u201cthinking\u201d capabilities, enabling it to reason through responses with enhanced accuracy and nuanced context handling. Gemini 2.5 Pro achieves top-tier performance on multiple benchmarks, including first-place positioning on the LMArena leaderboard, reflecting superior human-preference alignment and complex problem-solving abilities.",
       "context_length": 1048576,
       "architecture": {
         "modality": "text+image->text",
@@ -488,7 +488,7 @@
       "hugging_face_id": "",
       "name": "Arcee AI: Caller Large",
       "created": 1746487869,
-      "description": "Caller Large is Arcee's specialist \"function‑calling\" SLM built to orchestrate external tools and APIs. Instead of maximizing next‑token accuracy, training focuses on structured JSON outputs, parameter extraction and multi‑step tool chains, making Caller a natural choice for retrieval‑augmented generation, robotic process automation or data‑pull chatbots. It incorporates a routing head that decides when (and how) to invoke a tool versus answering directly, reducing hallucinated calls. The model is already the backbone of Arcee Conductor's auto‑tool mode, where it parses user intent, emits clean function signatures and hands control back once the tool response is ready. Developers thus gain an OpenAI‑style function‑calling UX without handing requests to a frontier‑scale model. ",
+      "description": "Caller Large is Arcee's specialist \"function\u2011calling\" SLM built to orchestrate external tools and APIs. Instead of maximizing next\u2011token accuracy, training focuses on structured JSON outputs, parameter extraction and multi\u2011step tool chains, making Caller a natural choice for retrieval\u2011augmented generation, robotic process automation or data\u2011pull chatbots. It incorporates a routing head that decides when (and how) to invoke a tool versus answering directly, reducing hallucinated calls. The model is already the backbone of Arcee Conductor's auto\u2011tool mode, where it parses user intent, emits clean function signatures and hands control back once the tool response is ready. Developers thus gain an OpenAI\u2011style function\u2011calling UX without handing requests to a frontier\u2011scale model. ",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -536,7 +536,7 @@
       "hugging_face_id": "",
       "name": "Arcee AI: Spotlight",
       "created": 1746481552,
-      "description": "Spotlight is a 7‑billion‑parameter vision‑language model derived from Qwen 2.5‑VL and fine‑tuned by Arcee AI for tight image‑text grounding tasks. It offers a 32 k‑token context window, enabling rich multimodal conversations that combine lengthy documents with one or more images. Training emphasized fast inference on consumer GPUs while retaining strong captioning, visual‐question‑answering, and diagram‑analysis accuracy. As a result, Spotlight slots neatly into agent workflows where screenshots, charts or UI mock‑ups need to be interpreted on the fly. Early benchmarks show it matching or out‑scoring larger VLMs such as LLaVA‑1.6 13 B on popular VQA and POPE alignment tests. ",
+      "description": "Spotlight is a 7\u2011billion\u2011parameter vision\u2011language model derived from Qwen\u202f2.5\u2011VL and fine\u2011tuned by Arcee AI for tight image\u2011text grounding tasks. It offers a 32\u202fk\u2011token context window, enabling rich multimodal conversations that combine lengthy documents with one or more images. Training emphasized fast inference on consumer GPUs while retaining strong captioning, visual\u2010question\u2011answering, and diagram\u2011analysis accuracy. As a result, Spotlight slots neatly into agent workflows where screenshots, charts or UI mock\u2011ups need to be interpreted on the fly. Early benchmarks show it matching or out\u2011scoring larger VLMs such as LLaVA\u20111.6 13\u202fB on popular VQA and POPE alignment tests. ",
       "context_length": 131072,
       "architecture": {
         "modality": "text+image->text",
@@ -583,7 +583,7 @@
       "hugging_face_id": "",
       "name": "Arcee AI: Maestro Reasoning",
       "created": 1746481269,
-      "description": "Maestro Reasoning is Arcee's flagship analysis model: a 32 B‑parameter derivative of Qwen 2.5‑32 B tuned with DPO and chain‑of‑thought RL for step‑by‑step logic. Compared to the earlier 7 B preview, the production 32 B release widens the context window to 128 k tokens and doubles pass‑rate on MATH and GSM‑8K, while also lifting code completion accuracy. Its instruction style encourages structured \"thought → answer\" traces that can be parsed or hidden according to user preference. That transparency pairs well with audit‑focused industries like finance or healthcare where seeing the reasoning path matters. In Arcee Conductor, Maestro is automatically selected for complex, multi‑constraint queries that smaller SLMs bounce. ",
+      "description": "Maestro Reasoning is Arcee's flagship analysis model: a 32\u202fB\u2011parameter derivative of Qwen\u202f2.5\u201132\u202fB tuned with DPO and chain\u2011of\u2011thought RL for step\u2011by\u2011step logic. Compared to the earlier 7\u202fB preview, the production 32\u202fB release widens the context window to 128\u202fk tokens and doubles pass\u2011rate on MATH and GSM\u20118K, while also lifting code completion accuracy. Its instruction style encourages structured \"thought \u2192 answer\" traces that can be parsed or hidden according to user preference. That transparency pairs well with audit\u2011focused industries like finance or healthcare where seeing the reasoning path matters. In Arcee Conductor, Maestro is automatically selected for complex, multi\u2011constraint queries that smaller SLMs bounce. ",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -629,7 +629,7 @@
       "hugging_face_id": "",
       "name": "Arcee AI: Virtuoso Large",
       "created": 1746478885,
-      "description": "Virtuoso‑Large is Arcee's top‑tier general‑purpose LLM at 72 B parameters, tuned to tackle cross‑domain reasoning, creative writing and enterprise QA. Unlike many 70 B peers, it retains the 128 k context inherited from Qwen 2.5, letting it ingest books, codebases or financial filings wholesale. Training blended DeepSeek R1 distillation, multi‑epoch supervised fine‑tuning and a final DPO/RLHF alignment stage, yielding strong performance on BIG‑Bench‑Hard, GSM‑8K and long‑context Needle‑In‑Haystack tests. Enterprises use Virtuoso‑Large as the \"fallback\" brain in Conductor pipelines when other SLMs flag low confidence. Despite its size, aggressive KV‑cache optimizations keep first‑token latency in the low‑second range on 8× H100 nodes, making it a practical production‑grade powerhouse.",
+      "description": "Virtuoso\u2011Large is Arcee's top\u2011tier general\u2011purpose LLM at 72\u202fB parameters, tuned to tackle cross\u2011domain reasoning, creative writing and enterprise QA. Unlike many 70\u202fB peers, it retains the 128\u202fk context inherited from Qwen\u202f2.5, letting it ingest books, codebases or financial filings wholesale. Training blended DeepSeek\u202fR1 distillation, multi\u2011epoch supervised fine\u2011tuning and a final DPO/RLHF alignment stage, yielding strong performance on BIG\u2011Bench\u2011Hard, GSM\u20118K and long\u2011context Needle\u2011In\u2011Haystack tests. Enterprises use Virtuoso\u2011Large as the \"fallback\" brain in Conductor pipelines when other SLMs flag low confidence. Despite its size, aggressive KV\u2011cache optimizations keep first\u2011token latency in the low\u2011second range on 8\u00d7\u202fH100 nodes, making it a practical production\u2011grade powerhouse.",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -675,7 +675,7 @@
       "hugging_face_id": "",
       "name": "Arcee AI: Coder Large",
       "created": 1746478663,
-      "description": "Coder‑Large is a 32 B‑parameter offspring of Qwen 2.5‑Instruct that has been further trained on permissively‑licensed GitHub, CodeSearchNet and synthetic bug‑fix corpora. It supports a 32k context window, enabling multi‑file refactoring or long diff review in a single call, and understands 30‑plus programming languages with special attention to TypeScript, Go and Terraform. Internal benchmarks show 5–8 pt gains over CodeLlama‑34 B‑Python on HumanEval and competitive BugFix scores thanks to a reinforcement pass that rewards compilable output. The model emits structured explanations alongside code blocks by default, making it suitable for educational tooling as well as production copilot scenarios. Cost‑wise, Together AI prices it well below proprietary incumbents, so teams can scale interactive coding without runaway spend. ",
+      "description": "Coder\u2011Large is a 32\u202fB\u2011parameter offspring of Qwen\u202f2.5\u2011Instruct that has been further trained on permissively\u2011licensed GitHub, CodeSearchNet and synthetic bug\u2011fix corpora. It supports a 32k context window, enabling multi\u2011file refactoring or long diff review in a single call, and understands 30\u2011plus programming languages with special attention to TypeScript, Go and Terraform. Internal benchmarks show 5\u20138\u202fpt gains over CodeLlama\u201134\u202fB\u2011Python on HumanEval and competitive BugFix scores thanks to a reinforcement pass that rewards compilable output. The model emits structured explanations alongside code blocks by default, making it suitable for educational tooling as well as production copilot scenarios. Cost\u2011wise, Together AI prices it well below proprietary incumbents, so teams can scale interactive coding without runaway spend. ",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -721,7 +721,7 @@
       "hugging_face_id": "arcee-ai/Virtuoso-Medium-v2",
       "name": "Arcee AI: Virtuoso Medium V2",
       "created": 1746478434,
-      "description": "Virtuoso‑Medium‑v2 is a 32 B model distilled from DeepSeek‑v3 logits and merged back onto a Qwen 2.5 backbone, yielding a sharper, more factual successor to the original Virtuoso Medium. The team harvested ~1.1 B logit tokens and applied \"fusion‑merging\" plus DPO alignment, which pushed scores past Arcee‑Nova 2024 and many 40 B‑plus peers on MMLU‑Pro, MATH and HumanEval. With a 128 k context and aggressive quantization options (from BF16 down to 4‑bit GGUF), it balances capability with deployability on single‑GPU nodes. Typical use cases include enterprise chat assistants, technical writing aids and medium‑complexity code drafting where Virtuoso‑Large would be overkill. ",
+      "description": "Virtuoso\u2011Medium\u2011v2 is a 32\u202fB model distilled from DeepSeek\u2011v3 logits and merged back onto a Qwen\u202f2.5 backbone, yielding a sharper, more factual successor to the original Virtuoso Medium. The team harvested ~1.1\u202fB logit tokens and applied \"fusion\u2011merging\" plus DPO alignment, which pushed scores past Arcee\u2011Nova\u202f2024 and many 40\u202fB\u2011plus peers on MMLU\u2011Pro, MATH and HumanEval. With a 128\u202fk context and aggressive quantization options (from BF16 down to 4\u2011bit GGUF), it balances capability with deployability on single\u2011GPU nodes. Typical use cases include enterprise chat assistants, technical writing aids and medium\u2011complexity code drafting where Virtuoso\u2011Large would be overkill. ",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -767,7 +767,7 @@
       "hugging_face_id": "arcee-ai/arcee-blitz",
       "name": "Arcee AI: Arcee Blitz",
       "created": 1746470100,
-      "description": "Arcee Blitz is a 24 B‑parameter dense model distilled from DeepSeek and built on Mistral architecture for \"everyday\" chat. The distillation‑plus‑refinement pipeline trims compute while keeping DeepSeek‑style reasoning, so Blitz punches above its weight on MMLU, GSM‑8K and BBH compared with other mid‑size open models. With a default 128 k context window and competitive throughput, it serves as a cost‑efficient workhorse for summarization, brainstorming and light code help. Internally, Arcee uses Blitz as the default writer in Conductor pipelines when the heavier Virtuoso line is not required. Users therefore get near‑70 B quality at ~⅓ the latency and price. ",
+      "description": "Arcee Blitz is a 24\u202fB\u2011parameter dense model distilled from DeepSeek and built on Mistral architecture for \"everyday\" chat. The distillation\u2011plus\u2011refinement pipeline trims compute while keeping DeepSeek\u2011style reasoning, so Blitz punches above its weight on MMLU, GSM\u20118K and BBH compared with other mid\u2011size open models. With a default 128\u202fk context window and competitive throughput, it serves as a cost\u2011efficient workhorse for summarization, brainstorming and light code help. Internally, Arcee uses Blitz as the default writer in Conductor pipelines when the heavier Virtuoso line is not required. Users therefore get near\u201170\u202fB quality at ~\u2153 the latency and price. ",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -1000,7 +1000,7 @@
       "hugging_face_id": "Qwen/Qwen3-4B",
       "name": "Qwen: Qwen3 4B (free)",
       "created": 1746031104,
-      "description": "Qwen3-4B is a 4 billion parameter dense language model from the Qwen3 series, designed to support both general-purpose and reasoning-intensive tasks. It introduces a dual-mode architecture—thinking and non-thinking—allowing dynamic switching between high-precision logical reasoning and efficient dialogue generation. This makes it well-suited for multi-turn chat, instruction following, and complex agent workflows.",
+      "description": "Qwen3-4B is a 4 billion parameter dense language model from the Qwen3 series, designed to support both general-purpose and reasoning-intensive tasks. It introduces a dual-mode architecture\u2014thinking and non-thinking\u2014allowing dynamic switching between high-precision logical reasoning and efficient dialogue generation. This makes it well-suited for multi-turn chat, instruction following, and complex agent workflows.",
       "context_length": 128000,
       "architecture": {
         "modality": "text->text",
@@ -1221,7 +1221,7 @@
       "hugging_face_id": "meta-llama/Llama-Guard-4-12B",
       "name": "Meta: Llama Guard 4 12B",
       "created": 1745975193,
-      "description": "Llama Guard 4 is a Llama 4 Scout-derived multimodal pretrained model, fine-tuned for content safety classification. Similar to previous versions, it can be used to classify content in both LLM inputs (prompt classification) and in LLM responses (response classification). It acts as an LLM—generating text in its output that indicates whether a given prompt or response is safe or unsafe, and if unsafe, it also lists the content categories violated.\n\nLlama Guard 4 was aligned to safeguard against the standardized MLCommons hazards taxonomy and designed to support multimodal Llama 4 capabilities. Specifically, it combines features from previous Llama Guard models, providing content moderation for English and multiple supported languages, along with enhanced capabilities to handle mixed text-and-image prompts, including multiple images. Additionally, Llama Guard 4 is integrated into the Llama Moderations API, extending robust safety classification to text and images.",
+      "description": "Llama Guard 4 is a Llama 4 Scout-derived multimodal pretrained model, fine-tuned for content safety classification. Similar to previous versions, it can be used to classify content in both LLM inputs (prompt classification) and in LLM responses (response classification). It acts as an LLM\u2014generating text in its output that indicates whether a given prompt or response is safe or unsafe, and if unsafe, it also lists the content categories violated.\n\nLlama Guard 4 was aligned to safeguard against the standardized MLCommons hazards taxonomy and designed to support multimodal Llama 4 capabilities. Specifically, it combines features from previous Llama Guard models, providing content moderation for English and multiple supported languages, along with enhanced capabilities to handle mixed text-and-image prompts, including multiple images. Additionally, Llama Guard 4 is integrated into the Llama Moderations API, extending robust safety classification to text and images.",
       "context_length": 163840,
       "architecture": {
         "modality": "text+image->text",
@@ -1829,7 +1829,7 @@
       "hugging_face_id": "THUDM/GLM-Z1-Rumination-32B-0414",
       "name": "THUDM: GLM Z1 Rumination 32B ",
       "created": 1745601495,
-      "description": "THUDM: GLM Z1 Rumination 32B is a 32B-parameter deep reasoning model from the GLM-4-Z1 series, optimized for complex, open-ended tasks requiring prolonged deliberation. It builds upon glm-4-32b-0414 with additional reinforcement learning phases and multi-stage alignment strategies, introducing “rumination” capabilities designed to emulate extended cognitive processing. This includes iterative reasoning, multi-hop analysis, and tool-augmented workflows such as search, retrieval, and citation-aware synthesis.\n\nThe model excels in research-style writing, comparative analysis, and intricate question answering. It supports function calling for search and navigation primitives (`search`, `click`, `open`, `finish`), enabling use in agent-style pipelines. Rumination behavior is governed by multi-turn loops with rule-based reward shaping and delayed decision mechanisms, benchmarked against Deep Research frameworks such as OpenAI’s internal alignment stacks. This variant is suitable for scenarios requiring depth over speed.",
+      "description": "THUDM: GLM Z1 Rumination 32B is a 32B-parameter deep reasoning model from the GLM-4-Z1 series, optimized for complex, open-ended tasks requiring prolonged deliberation. It builds upon glm-4-32b-0414 with additional reinforcement learning phases and multi-stage alignment strategies, introducing \u201crumination\u201d capabilities designed to emulate extended cognitive processing. This includes iterative reasoning, multi-hop analysis, and tool-augmented workflows such as search, retrieval, and citation-aware synthesis.\n\nThe model excels in research-style writing, comparative analysis, and intricate question answering. It supports function calling for search and navigation primitives (`search`, `click`, `open`, `finish`), enabling use in agent-style pipelines. Rumination behavior is governed by multi-turn loops with rule-based reward shaping and delayed decision mechanisms, benchmarked against Deep Research frameworks such as OpenAI\u2019s internal alignment stacks. This variant is suitable for scenarios requiring depth over speed.",
       "context_length": 32000,
       "architecture": {
         "modality": "text->text",
@@ -1971,7 +1971,7 @@
       "hugging_face_id": "microsoft/MAI-DS-R1",
       "name": "Microsoft: MAI DS R1 (free)",
       "created": 1745194100,
-      "description": "MAI-DS-R1 is a post-trained variant of DeepSeek-R1 developed by the Microsoft AI team to improve the model’s responsiveness on previously blocked topics while enhancing its safety profile. Built on top of DeepSeek-R1’s reasoning foundation, it integrates 110k examples from the Tulu-3 SFT dataset and 350k internally curated multilingual safety-alignment samples. The model retains strong reasoning, coding, and problem-solving capabilities, while unblocking a wide range of prompts previously restricted in R1.\n\nMAI-DS-R1 demonstrates improved performance on harm mitigation benchmarks and maintains competitive results across general reasoning tasks. It surpasses R1-1776 in satisfaction metrics for blocked queries and reduces leakage in harmful content categories. The model is based on a transformer MoE architecture and is suitable for general-purpose use cases, excluding high-stakes domains such as legal, medical, or autonomous systems.",
+      "description": "MAI-DS-R1 is a post-trained variant of DeepSeek-R1 developed by the Microsoft AI team to improve the model\u2019s responsiveness on previously blocked topics while enhancing its safety profile. Built on top of DeepSeek-R1\u2019s reasoning foundation, it integrates 110k examples from the Tulu-3 SFT dataset and 350k internally curated multilingual safety-alignment samples. The model retains strong reasoning, coding, and problem-solving capabilities, while unblocking a wide range of prompts previously restricted in R1.\n\nMAI-DS-R1 demonstrates improved performance on harm mitigation benchmarks and maintains competitive results across general reasoning tasks. It surpasses R1-1776 in satisfaction metrics for blocked queries and reduces leakage in harmful content categories. The model is based on a transformer MoE architecture and is suitable for general-purpose use cases, excluding high-stakes domains such as legal, medical, or autonomous systems.",
       "context_length": 163840,
       "architecture": {
         "modality": "text->text",
@@ -2021,7 +2021,7 @@
       "hugging_face_id": "THUDM/GLM-Z1-32B-0414",
       "name": "THUDM: GLM Z1 32B (free)",
       "created": 1744924148,
-      "description": "GLM-Z1-32B-0414 is an enhanced reasoning variant of GLM-4-32B, built for deep mathematical, logical, and code-oriented problem solving. It applies extended reinforcement learning—both task-specific and general pairwise preference-based—to improve performance on complex multi-step tasks. Compared to the base GLM-4-32B model, Z1 significantly boosts capabilities in structured reasoning and formal domains.\n\nThe model supports enforced “thinking” steps via prompt engineering and offers improved coherence for long-form outputs. It’s optimized for use in agentic workflows, and includes support for long context (via YaRN), JSON tool calling, and fine-grained sampling configuration for stable inference. Ideal for use cases requiring deliberate, multi-step reasoning or formal derivations.",
+      "description": "GLM-Z1-32B-0414 is an enhanced reasoning variant of GLM-4-32B, built for deep mathematical, logical, and code-oriented problem solving. It applies extended reinforcement learning\u2014both task-specific and general pairwise preference-based\u2014to improve performance on complex multi-step tasks. Compared to the base GLM-4-32B model, Z1 significantly boosts capabilities in structured reasoning and formal domains.\n\nThe model supports enforced \u201cthinking\u201d steps via prompt engineering and offers improved coherence for long-form outputs. It\u2019s optimized for use in agentic workflows, and includes support for long context (via YaRN), JSON tool calling, and fine-grained sampling configuration for stable inference. Ideal for use cases requiring deliberate, multi-step reasoning or formal derivations.",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -2071,7 +2071,7 @@
       "hugging_face_id": "THUDM/GLM-Z1-32B-0414",
       "name": "THUDM: GLM Z1 32B",
       "created": 1744924148,
-      "description": "GLM-Z1-32B-0414 is an enhanced reasoning variant of GLM-4-32B, built for deep mathematical, logical, and code-oriented problem solving. It applies extended reinforcement learning—both task-specific and general pairwise preference-based—to improve performance on complex multi-step tasks. Compared to the base GLM-4-32B model, Z1 significantly boosts capabilities in structured reasoning and formal domains.\n\nThe model supports enforced “thinking” steps via prompt engineering and offers improved coherence for long-form outputs. It’s optimized for use in agentic workflows, and includes support for long context (via YaRN), JSON tool calling, and fine-grained sampling configuration for stable inference. Ideal for use cases requiring deliberate, multi-step reasoning or formal derivations.",
+      "description": "GLM-Z1-32B-0414 is an enhanced reasoning variant of GLM-4-32B, built for deep mathematical, logical, and code-oriented problem solving. It applies extended reinforcement learning\u2014both task-specific and general pairwise preference-based\u2014to improve performance on complex multi-step tasks. Compared to the base GLM-4-32B model, Z1 significantly boosts capabilities in structured reasoning and formal domains.\n\nThe model supports enforced \u201cthinking\u201d steps via prompt engineering and offers improved coherence for long-form outputs. It\u2019s optimized for use in agentic workflows, and includes support for long context (via YaRN), JSON tool calling, and fine-grained sampling configuration for stable inference. Ideal for use cases requiring deliberate, multi-step reasoning or formal derivations.",
       "context_length": 32000,
       "architecture": {
         "modality": "text->text",
@@ -2307,7 +2307,7 @@
       "hugging_face_id": "",
       "name": "OpenAI: o4 Mini High",
       "created": 1744824212,
-      "description": "OpenAI o4-mini-high is the same model as [o4-mini](/openai/o4-mini) with reasoning_effort set to high. \n\nOpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining strong multimodal and agentic capabilities. It supports tool use and demonstrates competitive reasoning and coding performance across benchmarks like AIME (99.5% with Python) and SWE-bench, outperforming its predecessor o3-mini and even approaching o3 in some domains.\n\nDespite its smaller size, o4-mini exhibits high accuracy in STEM tasks, visual problem solving (e.g., MathVista, MMMU), and code editing. It is especially well-suited for high-throughput scenarios where latency or cost is critical. Thanks to its efficient architecture and refined reinforcement learning training, o4-mini can chain tools, generate structured outputs, and solve multi-step tasks with minimal delay—often in under a minute.",
+      "description": "OpenAI o4-mini-high is the same model as [o4-mini](/openai/o4-mini) with reasoning_effort set to high. \n\nOpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining strong multimodal and agentic capabilities. It supports tool use and demonstrates competitive reasoning and coding performance across benchmarks like AIME (99.5% with Python) and SWE-bench, outperforming its predecessor o3-mini and even approaching o3 in some domains.\n\nDespite its smaller size, o4-mini exhibits high accuracy in STEM tasks, visual problem solving (e.g., MathVista, MMMU), and code editing. It is especially well-suited for high-throughput scenarios where latency or cost is critical. Thanks to its efficient architecture and refined reinforcement learning training, o4-mini can chain tools, generate structured outputs, and solve multi-step tasks with minimal delay\u2014often in under a minute.",
       "context_length": 200000,
       "architecture": {
         "modality": "text+image->text",
@@ -2395,7 +2395,7 @@
       "hugging_face_id": "",
       "name": "OpenAI: o4 Mini",
       "created": 1744820942,
-      "description": "OpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining strong multimodal and agentic capabilities. It supports tool use and demonstrates competitive reasoning and coding performance across benchmarks like AIME (99.5% with Python) and SWE-bench, outperforming its predecessor o3-mini and even approaching o3 in some domains.\n\nDespite its smaller size, o4-mini exhibits high accuracy in STEM tasks, visual problem solving (e.g., MathVista, MMMU), and code editing. It is especially well-suited for high-throughput scenarios where latency or cost is critical. Thanks to its efficient architecture and refined reinforcement learning training, o4-mini can chain tools, generate structured outputs, and solve multi-step tasks with minimal delay—often in under a minute.",
+      "description": "OpenAI o4-mini is a compact reasoning model in the o-series, optimized for fast, cost-efficient performance while retaining strong multimodal and agentic capabilities. It supports tool use and demonstrates competitive reasoning and coding performance across benchmarks like AIME (99.5% with Python) and SWE-bench, outperforming its predecessor o3-mini and even approaching o3 in some domains.\n\nDespite its smaller size, o4-mini exhibits high accuracy in STEM tasks, visual problem solving (e.g., MathVista, MMMU), and code editing. It is especially well-suited for high-throughput scenarios where latency or cost is critical. Thanks to its efficient architecture and refined reinforcement learning training, o4-mini can chain tools, generate structured outputs, and solve multi-step tasks with minimal delay\u2014often in under a minute.",
       "context_length": 200000,
       "architecture": {
         "modality": "text+image->text",
@@ -2438,7 +2438,7 @@
       "hugging_face_id": "shisa-ai/shisa-v2-llama3.3-70b",
       "name": "Shisa AI: Shisa V2 Llama 3.3 70B  (free)",
       "created": 1744754858,
-      "description": "Shisa V2 Llama 3.3 70B is a bilingual Japanese-English chat model fine-tuned by Shisa.AI on Meta’s Llama-3.3-70B-Instruct base. It prioritizes Japanese language performance while retaining strong English capabilities. The model was optimized entirely through post-training, using a refined mix of supervised fine-tuning (SFT) and DPO datasets including regenerated ShareGPT-style data, translation tasks, roleplaying conversations, and instruction-following prompts. Unlike earlier Shisa releases, this version avoids tokenizer modifications or extended pretraining.\n\nShisa V2 70B achieves leading Japanese task performance across a wide range of custom and public benchmarks, including JA MT Bench, ELYZA 100, and Rakuda. It supports a 128K token context length and integrates smoothly with inference frameworks like vLLM and SGLang. While it inherits safety characteristics from its base model, no additional alignment was applied. The model is intended for high-performance bilingual chat, instruction following, and translation tasks across JA/EN.",
+      "description": "Shisa V2 Llama 3.3 70B is a bilingual Japanese-English chat model fine-tuned by Shisa.AI on Meta\u2019s Llama-3.3-70B-Instruct base. It prioritizes Japanese language performance while retaining strong English capabilities. The model was optimized entirely through post-training, using a refined mix of supervised fine-tuning (SFT) and DPO datasets including regenerated ShareGPT-style data, translation tasks, roleplaying conversations, and instruction-following prompts. Unlike earlier Shisa releases, this version avoids tokenizer modifications or extended pretraining.\n\nShisa V2 70B achieves leading Japanese task performance across a wide range of custom and public benchmarks, including JA MT Bench, ELYZA 100, and Rakuda. It supports a 128K token context length and integrates smoothly with inference frameworks like vLLM and SGLang. While it inherits safety characteristics from its base model, no additional alignment was applied. The model is intended for high-performance bilingual chat, instruction following, and translation tasks across JA/EN.",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -2585,7 +2585,7 @@
       "hugging_face_id": "",
       "name": "OpenAI: GPT-4.1 Mini",
       "created": 1744651381,
-      "description": "GPT-4.1 Mini is a mid-sized model delivering performance competitive with GPT-4o at substantially lower latency and cost. It retains a 1 million token context window and scores 45.1% on hard instruction evals, 35.8% on MultiChallenge, and 84.1% on IFEval. Mini also shows strong coding ability (e.g., 31.6% on Aider’s polyglot diff benchmark) and vision understanding, making it suitable for interactive applications with tight performance constraints.",
+      "description": "GPT-4.1 Mini is a mid-sized model delivering performance competitive with GPT-4o at substantially lower latency and cost. It retains a 1 million token context window and scores 45.1% on hard instruction evals, 35.8% on MultiChallenge, and 84.1% on IFEval. Mini also shows strong coding ability (e.g., 31.6% on Aider\u2019s polyglot diff benchmark) and vision understanding, making it suitable for interactive applications with tight performance constraints.",
       "context_length": 1047576,
       "architecture": {
         "modality": "text+image->text",
@@ -2638,7 +2638,7 @@
       "hugging_face_id": "",
       "name": "OpenAI: GPT-4.1 Nano",
       "created": 1744651369,
-      "description": "For tasks that demand low latency, GPT‑4.1 nano is the fastest and cheapest model in the GPT-4.1 series. It delivers exceptional performance at a small size with its 1 million token context window, and scores 80.1% on MMLU, 50.3% on GPQA, and 9.8% on Aider polyglot coding – even higher than GPT‑4o mini. It’s ideal for tasks like classification or autocompletion.",
+      "description": "For tasks that demand low latency, GPT\u20114.1 nano is the fastest and cheapest model in the GPT-4.1 series. It delivers exceptional performance at a small size with its 1 million token context window, and scores 80.1% on MMLU, 50.3% on GPQA, and 9.8% on Aider polyglot coding \u2013 even higher than GPT\u20114o mini. It\u2019s ideal for tasks like classification or autocompletion.",
       "context_length": 1047576,
       "architecture": {
         "modality": "text+image->text",
@@ -2931,7 +2931,7 @@
       "hugging_face_id": "",
       "name": "xAI: Grok 3 Mini Beta",
       "created": 1744240195,
-      "description": "Grok 3 Mini is a lightweight, smaller thinking model. Unlike traditional models that generate answers immediately, Grok 3 Mini thinks before responding. It’s ideal for reasoning-heavy tasks that don’t demand extensive domain knowledge, and shines in math-specific and quantitative use cases, such as solving challenging puzzles or math problems.\n\nTransparent \"thinking\" traces accessible. Defaults to low reasoning, can boost with setting `reasoning: { effort: \"high\" }`\n\nNote: That there are two xAI endpoints for this model. By default when using this model we will always route you to the base endpoint. If you want the fast endpoint you can add `provider: { sort: throughput}`, to sort by throughput instead. \n",
+      "description": "Grok 3 Mini is a lightweight, smaller thinking model. Unlike traditional models that generate answers immediately, Grok 3 Mini thinks before responding. It\u2019s ideal for reasoning-heavy tasks that don\u2019t demand extensive domain knowledge, and shines in math-specific and quantitative use cases, such as solving challenging puzzles or math problems.\n\nTransparent \"thinking\" traces accessible. Defaults to low reasoning, can boost with setting `reasoning: { effort: \"high\" }`\n\nNote: That there are two xAI endpoints for this model. By default when using this model we will always route you to the base endpoint. If you want the fast endpoint you can add `provider: { sort: throughput}`, to sort by throughput instead. \n",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -3119,7 +3119,7 @@
       "hugging_face_id": "nvidia/Llama-3_1-Nemotron-Ultra-253B-v1",
       "name": "NVIDIA: Llama 3.1 Nemotron Ultra 253B v1 (free)",
       "created": 1744115059,
-      "description": "Llama-3.1-Nemotron-Ultra-253B-v1 is a large language model (LLM) optimized for advanced reasoning, human-interactive chat, retrieval-augmented generation (RAG), and tool-calling tasks. Derived from Meta’s Llama-3.1-405B-Instruct, it has been significantly customized using Neural Architecture Search (NAS), resulting in enhanced efficiency, reduced memory usage, and improved inference latency. The model supports a context length of up to 128K tokens and can operate efficiently on an 8x NVIDIA H100 node.\n\nNote: you must include `detailed thinking on` in the system prompt to enable reasoning. Please see [Usage Recommendations](https://huggingface.co/nvidia/Llama-3_1-Nemotron-Ultra-253B-v1#quick-start-and-usage-recommendations) for more.",
+      "description": "Llama-3.1-Nemotron-Ultra-253B-v1 is a large language model (LLM) optimized for advanced reasoning, human-interactive chat, retrieval-augmented generation (RAG), and tool-calling tasks. Derived from Meta\u2019s Llama-3.1-405B-Instruct, it has been significantly customized using Neural Architecture Search (NAS), resulting in enhanced efficiency, reduced memory usage, and improved inference latency. The model supports a context length of up to 128K tokens and can operate efficiently on an 8x NVIDIA H100 node.\n\nNote: you must include `detailed thinking on` in the system prompt to enable reasoning. Please see [Usage Recommendations](https://huggingface.co/nvidia/Llama-3_1-Nemotron-Ultra-253B-v1#quick-start-and-usage-recommendations) for more.",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -3615,7 +3615,7 @@
       "hugging_face_id": "",
       "name": "Google: Gemini 2.5 Pro Experimental",
       "created": 1742922099,
-      "description": "This model has been deprecated by Google in favor of the (paid Preview model)[google/gemini-2.5-pro-preview]\n \nGemini 2.5 Pro is Google’s state-of-the-art AI model designed for advanced reasoning, coding, mathematics, and scientific tasks. It employs “thinking” capabilities, enabling it to reason through responses with enhanced accuracy and nuanced context handling. Gemini 2.5 Pro achieves top-tier performance on multiple benchmarks, including first-place positioning on the LMArena leaderboard, reflecting superior human-preference alignment and complex problem-solving abilities.",
+      "description": "This model has been deprecated by Google in favor of the (paid Preview model)[google/gemini-2.5-pro-preview]\n\u00a0\nGemini 2.5 Pro is Google\u2019s state-of-the-art AI model designed for advanced reasoning, coding, mathematics, and scientific tasks. It employs \u201cthinking\u201d capabilities, enabling it to reason through responses with enhanced accuracy and nuanced context handling. Gemini 2.5 Pro achieves top-tier performance on multiple benchmarks, including first-place positioning on the LMArena leaderboard, reflecting superior human-preference alignment and complex problem-solving abilities.",
       "context_length": 1048576,
       "architecture": {
         "modality": "text+image->text",
@@ -4709,7 +4709,7 @@
       "hugging_face_id": "TheDrummer/Anubis-Pro-105B-v1",
       "name": "TheDrummer: Anubis Pro 105B V1",
       "created": 1741642290,
-      "description": "Anubis Pro 105B v1 is an expanded and refined variant of Meta’s Llama 3.3 70B, featuring 50% additional layers and further fine-tuning to leverage its increased capacity. Designed for advanced narrative, roleplay, and instructional tasks, it demonstrates enhanced emotional intelligence, creativity, nuanced character portrayal, and superior prompt adherence compared to smaller models. Its larger parameter count allows for deeper contextual understanding and extended reasoning capabilities, optimized for engaging, intelligent, and coherent interactions.",
+      "description": "Anubis Pro 105B v1 is an expanded and refined variant of Meta\u2019s Llama 3.3 70B, featuring 50% additional layers and further fine-tuning to leverage its increased capacity. Designed for advanced narrative, roleplay, and instructional tasks, it demonstrates enhanced emotional intelligence, creativity, nuanced character portrayal, and superior prompt adherence compared to smaller models. Its larger parameter count allows for deeper contextual understanding and extended reasoning capabilities, optimized for engaging, intelligent, and coherent interactions.",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -5221,7 +5221,7 @@
       "hugging_face_id": "",
       "name": "OpenAI: GPT-4.5 (Preview)",
       "created": 1740687810,
-      "description": "GPT-4.5 (Preview) is a research preview of OpenAI’s latest language model, designed to advance capabilities in reasoning, creativity, and multi-turn conversation. It builds on previous iterations with improvements in world knowledge, contextual coherence, and the ability to follow user intent more effectively.\n\nThe model demonstrates enhanced performance in tasks that require open-ended thinking, problem-solving, and communication. Early testing suggests it is better at generating nuanced responses, maintaining long-context coherence, and reducing hallucinations compared to earlier versions.\n\nThis research preview is intended to help evaluate GPT-4.5’s strengths and limitations in real-world use cases as OpenAI continues to refine and develop future models. Read more at the [blog post here.](https://openai.com/index/introducing-gpt-4-5/)",
+      "description": "GPT-4.5 (Preview) is a research preview of OpenAI\u2019s latest language model, designed to advance capabilities in reasoning, creativity, and multi-turn conversation. It builds on previous iterations with improvements in world knowledge, contextual coherence, and the ability to follow user intent more effectively.\n\nThe model demonstrates enhanced performance in tasks that require open-ended thinking, problem-solving, and communication. Early testing suggests it is better at generating nuanced responses, maintaining long-context coherence, and reducing hallucinations compared to earlier versions.\n\nThis research preview is intended to help evaluate GPT-4.5\u2019s strengths and limitations in real-world use cases as OpenAI continues to refine and develop future models. Read more at the [blog post here.](https://openai.com/index/introducing-gpt-4-5/)",
       "context_length": 128000,
       "architecture": {
         "modality": "text+image->text",
@@ -5507,7 +5507,7 @@
       "hugging_face_id": "",
       "name": "Mistral: Saba",
       "created": 1739803239,
-      "description": "Mistral Saba is a 24B-parameter language model specifically designed for the Middle East and South Asia, delivering accurate and contextually relevant responses while maintaining efficient performance. Trained on curated regional datasets, it supports multiple Indian-origin languages—including Tamil and Malayalam—alongside Arabic. This makes it a versatile option for a range of regional and multilingual applications. Read more at the blog post [here](https://mistral.ai/en/news/mistral-saba)",
+      "description": "Mistral Saba is a 24B-parameter language model specifically designed for the Middle East and South Asia, delivering accurate and contextually relevant responses while maintaining efficient performance. Trained on curated regional datasets, it supports multiple Indian-origin languages\u2014including Tamil and Malayalam\u2014alongside Arabic. This makes it a versatile option for a range of regional and multilingual applications. Read more at the blog post [here](https://mistral.ai/en/news/mistral-saba)",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -5654,7 +5654,7 @@
       "hugging_face_id": "meta-llama/Llama-Guard-3-8B",
       "name": "Llama Guard 3 8B",
       "created": 1739401318,
-      "description": "Llama Guard 3 is a Llama-3.1-8B pretrained model, fine-tuned for content safety classification. Similar to previous versions, it can be used to classify content in both LLM inputs (prompt classification) and in LLM responses (response classification). It acts as an LLM – it generates text in its output that indicates whether a given prompt or response is safe or unsafe, and if unsafe, it also lists the content categories violated.\n\nLlama Guard 3 was aligned to safeguard against the MLCommons standardized hazards taxonomy and designed to support Llama 3.1 capabilities. Specifically, it provides content moderation in 8 languages, and was optimized to support safety and security for search and code interpreter tool calls.\n",
+      "description": "Llama Guard 3 is a Llama-3.1-8B pretrained model, fine-tuned for content safety classification. Similar to previous versions, it can be used to classify content in both LLM inputs (prompt classification) and in LLM responses (response classification). It acts as an LLM \u2013 it generates text in its output that indicates whether a given prompt or response is safe or unsafe, and if unsafe, it also lists the content categories violated.\n\nLlama Guard 3 was aligned to safeguard against the MLCommons standardized hazards taxonomy and designed to support Llama 3.1 capabilities. Specifically, it provides content moderation in 8 languages, and was optimized to support safety and security for search and code interpreter tool calls.\n",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -5965,7 +5965,7 @@
       "hugging_face_id": "",
       "name": "AionLabs: Aion-RP 1.0 (8B)",
       "created": 1738696718,
-      "description": "Aion-RP-Llama-3.1-8B ranks the highest in the character evaluation portion of the RPBench-Auto benchmark, a roleplaying-specific variant of Arena-Hard-Auto, where LLMs evaluate each other’s responses. It is a fine-tuned base model rather than an instruct model, designed to produce more natural and varied writing.",
+      "description": "Aion-RP-Llama-3.1-8B ranks the highest in the character evaluation portion of the RPBench-Auto benchmark, a roleplaying-specific variant of Arena-Hard-Auto, where LLMs evaluate each other\u2019s responses. It is a fine-tuned base model rather than an instruct model, designed to produce more natural and varied writing.",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -6698,7 +6698,7 @@
       "hugging_face_id": "",
       "name": "Perplexity: Sonar",
       "created": 1738013808,
-      "description": "Sonar is lightweight, affordable, fast, and simple to use — now featuring citations and the ability to customize sources. It is designed for companies seeking to integrate lightweight question-and-answer features optimized for speed.",
+      "description": "Sonar is lightweight, affordable, fast, and simple to use \u2014 now featuring citations and the ability to customize sources. It is designed for companies seeking to integrate lightweight question-and-answer features optimized for speed.",
       "context_length": 127072,
       "architecture": {
         "modality": "text+image->text",
@@ -6741,7 +6741,7 @@
       "hugging_face_id": "",
       "name": "Liquid: LFM 7B",
       "created": 1737806883,
-      "description": "LFM-7B, a new best-in-class language model. LFM-7B is designed for exceptional chat capabilities, including languages like Arabic and Japanese. Powered by the Liquid Foundation Model (LFM) architecture, it exhibits unique features like low memory footprint and fast inference speed. \n\nLFM-7B is the world’s best-in-class multilingual language model in English, Arabic, and Japanese.\n\nSee the [launch announcement](https://www.liquid.ai/lfm-7b) for benchmarks and more info.",
+      "description": "LFM-7B, a new best-in-class language model. LFM-7B is designed for exceptional chat capabilities, including languages like Arabic and Japanese. Powered by the Liquid Foundation Model (LFM) architecture, it exhibits unique features like low memory footprint and fast inference speed. \n\nLFM-7B is the world\u2019s best-in-class multilingual language model in English, Arabic, and Japanese.\n\nSee the [launch announcement](https://www.liquid.ai/lfm-7b) for benchmarks and more info.",
       "context_length": 32768,
       "architecture": {
         "modality": "text->text",
@@ -7041,7 +7041,7 @@
       "hugging_face_id": "MiniMaxAI/MiniMax-Text-01",
       "name": "MiniMax: MiniMax-01",
       "created": 1736915462,
-      "description": "MiniMax-01 is a combines MiniMax-Text-01 for text generation and MiniMax-VL-01 for image understanding. It has 456 billion parameters, with 45.9 billion parameters activated per inference, and can handle a context of up to 4 million tokens.\n\nThe text model adopts a hybrid architecture that combines Lightning Attention, Softmax Attention, and Mixture-of-Experts (MoE). The image model adopts the “ViT-MLP-LLM” framework and is trained on top of the text model.\n\nTo read more about the release, see: https://www.minimaxi.com/en/news/minimax-01-series-2",
+      "description": "MiniMax-01 is a combines MiniMax-Text-01 for text generation and MiniMax-VL-01 for image understanding. It has 456 billion parameters, with 45.9 billion parameters activated per inference, and can handle a context of up to 4 million tokens.\n\nThe text model adopts a hybrid architecture that combines Lightning Attention, Softmax Attention, and Mixture-of-Experts (MoE). The image model adopts the \u201cViT-MLP-LLM\u201d framework and is trained on top of the text model.\n\nTo read more about the release, see: https://www.minimaxi.com/en/news/minimax-01-series-2",
       "context_length": 1000192,
       "architecture": {
         "modality": "text+image->text",
@@ -7908,7 +7908,7 @@
       "hugging_face_id": "",
       "name": "OpenAI: GPT-4o (2024-11-20)",
       "created": 1732127594,
-      "description": "The 2024-11-20 version of GPT-4o offers a leveled-up creative writing ability with more natural, engaging, and tailored writing to improve relevance & readability. It’s also better at working with uploaded files, providing deeper insights & more thorough responses.\n\nGPT-4o (\"o\" for \"omni\") is OpenAI's latest AI model, supporting both text and image inputs with text outputs. It maintains the intelligence level of [GPT-4 Turbo](/models/openai/gpt-4-turbo) while being twice as fast and 50% more cost-effective. GPT-4o also offers improved performance in processing non-English languages and enhanced visual capabilities.",
+      "description": "The 2024-11-20 version of GPT-4o offers a leveled-up creative writing ability with more natural, engaging, and tailored writing to improve relevance & readability. It\u2019s also better at working with uploaded files, providing deeper insights & more thorough responses.\n\nGPT-4o (\"o\" for \"omni\") is OpenAI's latest AI model, supporting both text and image inputs with text outputs. It maintains the intelligence level of [GPT-4 Turbo](/models/openai/gpt-4-turbo) while being twice as fast and 50% more cost-effective. GPT-4o also offers improved performance in processing non-English languages and enhanced visual capabilities.",
       "context_length": 128000,
       "architecture": {
         "modality": "text+image->text",
@@ -8884,7 +8884,7 @@
       "hugging_face_id": null,
       "name": "Mistral: Ministral 3B",
       "created": 1729123200,
-      "description": "Ministral 3B is a 3B parameter model optimized for on-device and edge computing. It excels in knowledge, commonsense reasoning, and function-calling, outperforming larger models like Mistral 7B on most benchmarks. Supporting up to 128k context length, it’s ideal for orchestrating agentic workflows and specialist tasks with efficient inference.",
+      "description": "Ministral 3B is a 3B parameter model optimized for on-device and edge computing. It excels in knowledge, commonsense reasoning, and function-calling, outperforming larger models like Mistral 7B on most benchmarks. Supporting up to 128k context length, it\u2019s ideal for orchestrating agentic workflows and specialist tasks with efficient inference.",
       "context_length": 131072,
       "architecture": {
         "modality": "text->text",
@@ -11649,7 +11649,7 @@
     {
       "id": "cognitivecomputations/dolphin-mixtral-8x22b",
       "hugging_face_id": "cognitivecomputations/dolphin-2.9.2-mixtral-8x22b",
-      "name": "Dolphin 2.9.2 Mixtral 8x22B 🐬",
+      "name": "Dolphin 2.9.2 Mixtral 8x22B \ud83d\udc2c",
       "created": 1717804800,
       "description": "Dolphin 2.9 is designed for instruction following, conversational, and coding. This model is a finetune of [Mixtral 8x22B Instruct](/models/mistralai/mixtral-8x22b-instruct). It features a 64k context length and was fine-tuned with a 16k sequence length using ChatML templates.\n\nThis model is a successor to [Dolphin Mixtral 8x7B](/models/cognitivecomputations/dolphin-mixtral-8x7b).\n\nThe model is uncensored and is stripped of alignment and bias. It requires an external alignment layer for ethical use. Users are cautioned to use this highly compliant model responsibly, as detailed in a blog post about uncensored models at [erichartford.com/uncensored-models](https://erichartford.com/uncensored-models).\n\n#moe #uncensored",
       "context_length": 16000,
@@ -13872,7 +13872,7 @@
       "hugging_face_id": null,
       "name": "Anthropic: Claude v2.1 (self-moderated)",
       "created": 1700611200,
-      "description": "Claude 2 delivers advancements in key capabilities for enterprises—including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
+      "description": "Claude 2 delivers advancements in key capabilities for enterprises\u2014including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
       "context_length": 200000,
       "architecture": {
         "modality": "text->text",
@@ -13912,7 +13912,7 @@
       "hugging_face_id": null,
       "name": "Anthropic: Claude v2.1",
       "created": 1700611200,
-      "description": "Claude 2 delivers advancements in key capabilities for enterprises—including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
+      "description": "Claude 2 delivers advancements in key capabilities for enterprises\u2014including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
       "context_length": 200000,
       "architecture": {
         "modality": "text->text",
@@ -13952,7 +13952,7 @@
       "hugging_face_id": null,
       "name": "Anthropic: Claude v2 (self-moderated)",
       "created": 1700611200,
-      "description": "Claude 2 delivers advancements in key capabilities for enterprises—including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
+      "description": "Claude 2 delivers advancements in key capabilities for enterprises\u2014including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
       "context_length": 200000,
       "architecture": {
         "modality": "text->text",
@@ -13992,7 +13992,7 @@
       "hugging_face_id": null,
       "name": "Anthropic: Claude v2",
       "created": 1700611200,
-      "description": "Claude 2 delivers advancements in key capabilities for enterprises—including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
+      "description": "Claude 2 delivers advancements in key capabilities for enterprises\u2014including an industry-leading 200K token context window, significant reductions in rates of model hallucination, system prompts and a new beta feature: tool use.",
       "context_length": 200000,
       "architecture": {
         "modality": "text->text",

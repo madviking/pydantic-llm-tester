@@ -35,16 +35,14 @@ IMPORTANT: Always stop after each step and before stopping, update this document
     - Updated the test in `tests/test_openrouter_model_fetch.py` to use the path helper and make a real API call to verify file creation and content structure. The test suite for this functionality is passing.
 
 2.  **Create a Central Model Registry/Cache**
-    Status: Not started
-    Notes for next steps:
-    Additional dependencies to check for next step:
-
-    2.1. Create test(s) for storing and retrieving model data in the central registry.
-    2.2. Repurpose llms/llm_registry.py and llms/provider_factory.py with methods for storing and retrieving model data in this new way.
-    2.3. Create test(s) for handling cases where a requested model is not found in the registry.
-    2.4. Implement error handling in the registry for missing models.
-    2.5. Create test(s) for implementing a caching mechanism (e.g., time-based).
-    2.6. Implement caching logic in the central registry.
+    Status: Completed
+    Notes:
+    - Created a central model registry within the `LLMRegistry` class (`src/pydantic_llm_tester/llms/llm_registry.py`).
+    - Added methods to `LLMRegistry` for storing (`store_provider_models`) and retrieving (`get_provider_models`, `get_model_details`) model data.
+    - Implemented basic caching logic in `LLMRegistry` using timestamps to check cache freshness.
+    - Created a new test file `tests/test_model_registry.py` to specifically test the new model registry functionality, including storing/retrieving data and handling missing providers/models. All tests in this file are passing.
+    - Updated existing tests in `tests/test_llm_registry.py` to correctly interact with the refactored `LLMRegistry` and ensured all tests in this file are passing.
+    - Ensured that `ModelConfig` from `src.pydantic_llm_tester.llms.base` is used consistently for model details.
 
 3.  **Modify Configuration Loading (`src/pydantic_llm_tester/utils/config_manager.py`)**
     Status: Not started
