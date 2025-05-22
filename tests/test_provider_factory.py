@@ -255,7 +255,7 @@ class ExternalProvider(BaseLLM):
         self.assertEqual(provider_classes["mock_provider"], MockValidProvider)
         self.assertNotIn("invalid_provider", provider_classes)
 
-    @patch('pydantic_llm_tester.llms.provider_factory.ConfigManager') # Patch ConfigManager
+    @patch('pydantic_llm_tester.utils.config_manager.ConfigManager')  # Patch ConfigManager directly from its module
     @patch('pydantic_llm_tester.llms.provider_factory.load_external_providers')
     @patch('pydantic_llm_tester.llms.provider_factory.discover_provider_classes')
     def test_get_available_providers(self, mock_discover_provider_classes, mock_load_external_providers, mock_config_manager):

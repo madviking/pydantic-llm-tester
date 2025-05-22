@@ -12,7 +12,7 @@ import time
 import requests
 
 from .base import BaseLLM, ProviderConfig, ModelConfig
-from pydantic_llm_tester.utils.config_manager import ConfigManager # Import ConfigManager
+# ConfigManager is imported locally in functions to avoid circular imports
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -612,7 +612,8 @@ def get_available_providers() -> List[str]:
     # Combine internal and external provider names
     all_providers = sorted(list(set(list(provider_classes.keys()) + list(external_providers.keys()))))
 
-    # Get enabled providers from ConfigManager
+    # Get enabled providers from ConfigManager (imported locally to avoid circular imports)
+    from pydantic_llm_tester.utils.config_manager import ConfigManager
     config_manager = ConfigManager()
     enabled_providers_config = config_manager.get_enabled_providers()
     enabled_provider_names = set(enabled_providers_config.keys())

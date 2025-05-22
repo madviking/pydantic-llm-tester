@@ -11,7 +11,8 @@ import logging # Import logging
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path # Import Path
 
-from .common import get_openrouter_models_path, OPENROUTER_MODELS_URL # Import paths from common
+from .common import get_openrouter_models_path, OPENROUTER_MODELS_URL, read_json_file # Import paths and utilities from common
+# Note: ModelConfig is imported locally in methods to avoid circular imports
 
 logger = logging.getLogger(__name__) # Get logger
 
@@ -68,7 +69,12 @@ class ConfigManager:
                  logging.getLogger(__name__).warning(f"Error registering built-in py models: {e}")
                  # Continue even if registration fails to allow tests to work
 
-        fetch_and_save_openrouter_models() # Fetch and save models on boot
+        # Fetch and save OpenRouter models on boot - all systems use it for reference
+        fetch_and_save_openrouter_models()
+        
+        # If OpenRouter is enabled, process the models and store them in the registry
+        if self.is_openrouter_enabled():
+            self.process_openrouter_models()
 
 
     def _discover_builtin_py_models(self) -> List[str]:
@@ -226,6 +232,17 @@ class ConfigManager:
             for name, config in self.get_py_models().items()
             if config.get("enabled", False)
         }
+        
+    def is_openrouter_enabled(self) -> bool:
+        """
+        Check if OpenRouter is enabled in the configuration.
+        
+        Returns:
+            bool: True if OpenRouter is enabled, False otherwise
+        """
+        providers = self.get_providers()
+        openrouter_config = providers.get("openrouter", {})
+        return openrouter_config.get("enabled", False)
 
     # PyModel specific LLM model configuration
     def get_py_model_llm_models(self, model_name: str) -> List[str]:
@@ -297,6 +314,179 @@ class ConfigManager:
         if len(parts) != 2 or not all(parts):
             raise ValueError(f"Invalid model string format: {model_string}. Expected 'provider:model'.")
         return parts[0], parts[1]
+        
+    def process_openrouter_models(self) -> None:
+        """
+        Process OpenRouter models from openrouter_models.json and store them in the central registry.
+        This converts the OpenRouter API format to our internal ModelConfig format.
+        """
+        from .common import get_openrouter_models_path
+        from ..llms.llm_registry import LLMRegistry
+        # Import ModelConfig locally to avoid circular imports
+        from ..llms.base import ModelConfig
+        
+        # Read the OpenRouter models from the JSON file
+        models_data = read_json_file(get_openrouter_models_path())
+        if not models_data:
+            logger.warning("No OpenRouter model data found in file.")
+            return
+            
+        if not isinstance(models_data, dict):
+            logger.warning(f"OpenRouter model data is not a dictionary. Got: {type(models_data)}")
+            return
+            
+        if "data" not in models_data:
+            logger.warning("OpenRouter model data does not contain 'data' key.")
+            return
+            
+        if not isinstance(models_data["data"], list):
+            logger.warning(f"OpenRouter 'data' is not a list. Got: {type(models_data['data'])}")
+            return
+            
+        # Process the models and convert to ModelConfig objects
+        model_configs = {}
+        for model_data in models_data["data"]:
+            model_id = model_data.get("id", "")
+            # Skip models that don't have a valid ID
+            if not model_id:
+                continue
+                
+            # Clean up the model ID to get just the model name part
+            # OpenRouter model IDs can have several formats:
+            # 1. 'openrouter/model-name' - Standard format where openrouter is the provider prefix
+            # 2. 'openrouter/provider/model-name' - Models from specific providers like anthropic
+            # 3. Sometimes more complex paths like 'openrouter/provider/family/model-name'
+            if "/" in model_id:
+                parts = model_id.split("/")
+                if len(parts) == 2:
+                    # Format: 'openrouter/model-name'
+                    # Example: 'openrouter/mistral-large-latest'
+                    # We extract just 'mistral-large-latest'
+                    model_name = parts[1]
+                elif len(parts) >= 3:
+                    # Format: 'openrouter/provider/model-name' or more complex paths
+                    # Example: 'openrouter/anthropic/claude-3-opus'
+                    # We extract everything after the second slash: 'claude-3-opus'
+                    # This handles nested paths by joining with '/' if needed
+                    model_name = "/".join(parts[2:])
+                else:
+                    # Fallback for unexpected formats - use the full ID
+                    logger.warning(f"Unexpected OpenRouter model ID format: {model_id}")
+                    model_name = model_id
+            else:
+                # If there's no slash, use the ID as is (unlikely but handled)
+                model_name = model_id
+                
+            # Create the full prefixed model name for our system
+            full_model_name = f"openrouter:{model_name}"
+            
+            # Extract pricing information with validation
+            pricing = model_data.get("pricing", {})
+            if not isinstance(pricing, dict):
+                logger.warning(f"Invalid pricing format for model {model_id}: {pricing}")
+                pricing = {}
+                
+            # Get prompt and completion costs with validation
+            try:
+                prompt_cost = pricing.get("prompt", 0.0)
+                prompt_cost = float(prompt_cost) if prompt_cost is not None else 0.0
+                cost_input = prompt_cost * 1000000  # Convert to per 1M tokens
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid prompt cost for model {model_id}: {pricing.get('prompt')}: {e}")
+                cost_input = 0.0
+                
+            try:
+                completion_cost = pricing.get("completion", 0.0)
+                completion_cost = float(completion_cost) if completion_cost is not None else 0.0
+                cost_output = completion_cost * 1000000  # Convert to per 1M tokens
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid completion cost for model {model_id}: {pricing.get('completion')}: {e}")
+                cost_output = 0.0
+            
+            # Extract context length with validation
+            try:
+                context_length = model_data.get("context_length", 4096)
+                context_length = int(context_length) if context_length is not None else 4096
+                # Sanity check for unreasonably large or small values
+                if context_length <= 0 or context_length > 1000000:
+                    logger.warning(f"Unreasonable context length for model {model_id}: {context_length}, using default")
+                    context_length = 4096
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid context length for model {model_id}: {model_data.get('context_length')}: {e}")
+                context_length = 4096
+            
+            # Create ModelConfig object
+            model_config = ModelConfig(
+                name=full_model_name,
+                default=False,  # Will be set based on config later
+                preferred=False,  # Will be set based on config later
+                enabled=True,   # All models from API are enabled by default
+                cost_input=cost_input,
+                cost_output=cost_output,
+                max_input_tokens=context_length,
+                max_output_tokens=context_length
+            )
+            
+            # Store in our dictionary
+            model_configs[full_model_name] = model_config
+            
+        # Store all processed models in the central registry
+        registry = LLMRegistry()
+        registry.store_provider_models("openrouter", model_configs)
+        logger.info(f"Stored {len(model_configs)} OpenRouter models in the central registry.")
+        
+    def get_model_details_from_registry(self, model_string: str):
+        """
+        Get model details from the central registry for a model specified in 'provider:model-name' format.
+        
+        Args:
+            model_string: The model string in 'provider:model-name' format
+            
+        Returns:
+            The ModelConfig object for the model
+            
+        Raises:
+            ValueError: If the provider is not enabled or the model is not found
+        """
+        # Import ModelConfig locally to avoid circular imports
+        from ..llms.base import ModelConfig
+        # Parse the provider and model name
+        provider, model_name = self._parse_model_string(model_string)
+        
+        # Check if the provider is enabled
+        self.check_provider_enabled(provider)
+        
+        # Get model details from the registry
+        from ..llms.llm_registry import LLMRegistry
+        registry = LLMRegistry()
+        return registry.get_model_details(provider, model_name)
+        
+    def check_provider_enabled(self, provider_name: str) -> None:
+        """
+        Check if a provider is enabled in the configuration.
+        
+        Args:
+            provider_name: The name of the provider
+            
+        Raises:
+            ValueError: If the provider is not enabled
+        """
+        if not self.is_provider_enabled(provider_name):
+            raise ValueError(f"Provider '{provider_name}' is not enabled in the configuration.")
+            
+    def is_provider_enabled(self, provider_name: str) -> bool:
+        """
+        Check if a provider is enabled in the configuration.
+        
+        Args:
+            provider_name: The name of the provider
+            
+        Returns:
+            True if the provider is enabled, False otherwise
+        """
+        providers = self.get_providers()
+        provider_config = providers.get(provider_name, {})
+        return provider_config.get("enabled", False)
 
 def fetch_and_save_openrouter_models():
     """

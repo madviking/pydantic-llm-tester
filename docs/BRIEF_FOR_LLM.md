@@ -394,3 +394,4 @@ By understanding these components, an LLM can effectively analyze, modify, and e
 - ALWAYS rely on providers for getting and modifying the LLM's, Configs, and Pydantic models.
 - PATHS should always be coming from the utils, never hard coded.
 - Use the provided venv information. **Don't install packages or try to modify venv**. Always activate it to run any commands.
+- When changing any methods, ALWAYS search for usages elsewhere.

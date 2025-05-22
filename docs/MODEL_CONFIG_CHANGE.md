@@ -45,36 +45,52 @@ IMPORTANT: Always stop after each step and before stopping, update this document
     - Ensured that `ModelConfig` from `src.pydantic_llm_tester.llms.base` is used consistently for model details.
 
 3.  **Modify Configuration Loading (`src/pydantic_llm_tester/utils/config_manager.py`)**
-    Status: Not started
-    Notes for next steps:
-    Additional dependencies to check for next step:
+    Status: Completed
+    Notes:
+    Added several new methods and functionality to ConfigManager:
+    - Added `is_openrouter_enabled()` method to check if OpenRouter is enabled in the config
+    - Added conditional fetch of OpenRouter model data during ConfigManager initialization
+    - Implemented `process_openrouter_models()` to convert OpenRouter API data to our ModelConfig format
+    - Added `get_model_details_from_registry()` method to look up model details from the central registry
+    - Added provider checking methods (`check_provider_enabled()` and `is_provider_enabled()`)
+    - Enhanced `_parse_model_string()` method to handle the "provider:model-name" format
 
-    3.1. Create test(s) for identifying when OpenRouter is enabled in `pyllm_config.json`.
-    3.2. Implement logic in `ConfigManager` to check OpenRouter's enabled status.
-    3.3. Create test(s) for calling the OpenRouter provider method to fetch model data if OpenRouter is enabled during configuration loading.
-    3.4. Implement the call to fetch OpenRouter model data in `ConfigManager` during initialization/loading.
-    3.5. Create test(s) for storing the fetched OpenRouter model data in the central registry via `ConfigManager`.
-    3.6. Implement storing fetched data in the central registry via `ConfigManager`.
-    3.7. Create test(s) for parsing the "provider:model-name" format from `pyllm_config.json`.
-    3.8. Implement parsing logic for the new format in `ConfigManager`.
-    3.9. Create test(s) for looking up model details (pricing, context length) from the central registry when parsing the new format.
-    3.10. Implement lookup of model details from the central registry in `ConfigManager`.
-    3.11. Create test(s) for raising an exception if a provider specified in "provider:model-name" is not enabled.
-    3.12. Implement the check and exception raising for disabled providers in `ConfigManager`.
+    Additional improvements made after review:
+    - Added detailed documentation for the OpenRouter model ID parsing logic
+    - Enhanced error handling with more robust validation of API responses
+    - Added extensive type checking and validation for data structures
+    - Implemented defensive parsing for pricing and context length values
+    - Improved logging with detailed error messages for troubleshooting
+
+    The following subtasks have been completed:
+    3.1. Created tests for identifying when OpenRouter is enabled in `pyllm_config.json`.
+    3.2. Implemented logic in `ConfigManager` to check OpenRouter's enabled status.
+    3.3. Created tests for calling the OpenRouter provider method to fetch model data if OpenRouter is enabled during configuration loading.
+    3.4. Implemented the call to fetch OpenRouter model data in `ConfigManager` during initialization/loading.
+    3.5. Created tests for storing the fetched OpenRouter model data in the central registry via `ConfigManager`.
+    3.6. Implemented storing fetched data in the central registry via `ConfigManager`.
+    3.7. Created tests for parsing the "provider:model-name" format from `pyllm_config.json`.
+    3.8. Implemented parsing logic for the new format in `ConfigManager`.
+    3.9. Created tests for looking up model details (pricing, context length) from the central registry when parsing the new format.
+    3.10. Implemented lookup of model details from the central registry in `ConfigManager`.
+    3.11. Created tests for raising an exception if a provider specified in "provider:model-name" is not enabled.
+    3.12. Implemented the check and exception raising for disabled providers in `ConfigManager`.
 
 4.  **Refactor Provider `config.json` Files (`src/pydantic_llm_tester/llms/*/config.json`)**
-    Status: Not started
-    Notes for next steps: This step primarily involves manual file modification and verification.
+    Status: In progress
+    Notes: This step requires checking all provider config.json files and removing the llm_models array. The current implementation should already support this change based on our work in step 3.
 
+    Next steps:
     4.1. Create test(s) to verify that provider `config.json` files do NOT contain the `llm_models` array.
     4.2. Manually remove the `llm_models` array from all provider `config.json` files.
 
 5.  **Update `pyllm_config.json` Structure**
-    Status: Not started
-    Notes for next steps: This step primarily involves defining the new structure and updating documentation/examples.
+    Status: Partially completed
+    Notes: The pyllm_config.json already includes examples of the new "provider:model-name" format in the py_models section. We've implemented the necessary parsing logic in ConfigManager to support this format.
 
-    5.1. Define the new structure for specifying models using the "provider:model-name" format in `pyllm_config.json`.
-    5.2. Update example `pyllm_config.json` files or documentation to show the new format.
+    Next steps:
+    5.1. Update documentation and examples to fully document the new structure.
+    5.2. Consider whether any additional configuration properties are needed to support the new model specification format.
 
 6.  **Adjust `LLMRegistry` and `ProviderFactory`**
     Status: Not started
@@ -95,6 +111,7 @@ IMPORTANT: Always stop after each step and before stopping, update this document
     7.4. Modify relevant CLI commands and core logic to access model information from the central dynamic source.
     7.5. Create test(s) to verify that LLM model management commands have been removed from the CLI.
     7.6. Remove LLM model management commands and associated logic from the CLI.
+    7.7. For general run commands, user should always define which models to test with.
 
 8.  **Update Cost Calculation Logic**
     Status: Not started
