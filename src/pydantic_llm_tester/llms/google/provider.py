@@ -270,7 +270,8 @@ class GoogleProvider(BaseLLM):
             usage_data = {
                 "prompt_tokens": prompt_tokens,
                 "completion_tokens": completion_tokens,
-                "total_tokens": prompt_tokens + completion_tokens
+                "total_tokens": prompt_tokens + completion_tokens,
+                "model": model_name # Add the model name to usage data
             }
 
             return response_text, usage_data

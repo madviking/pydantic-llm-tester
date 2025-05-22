@@ -26,6 +26,32 @@ Refactor the Pydantic LLM Tester framework to dynamically fetch the latest model
 
 IMPORTANT: Always stop after each step and before stopping, update this document with status and notes.
 
+### What has been done:
+
+Steps 1 through 6 of the refactoring plan have been completed:
+1. Get model info from OpenRouter: Implemented fetching OpenRouter models from the API and saving to `openrouter_models.json`.
+2. Create a Central Model Registry/Cache: Established a central registry in `LLMRegistry` for storing and retrieving model data.
+3. Modify Configuration Loading (`src/pydantic_llm_tester/utils/config_manager.py`): Enhanced `ConfigManager` to handle OpenRouter data fetching, processing, and parsing the new "provider:model-name" format.
+4. Refactor Provider `config.json` Files (`src/pydantic_llm_tester/llms/*/config.json`): Removed `llm_models` array from provider config files and updated `BaseLLM` methods to use the central registry.
+5. Update `pyllm_config.json` Structure: Documented the new "provider:model-name" format in `CONFIG_REFERENCE.md`.
+6. Adjust `LLMRegistry` and `ProviderFactory`: Ensured `LLMRegistry` and `ProviderFactory` correctly interact with the central registry for model details.
+
+### What still needs to be done:
+
+Based on the plan, the following steps remain:
+7. Update CLI Commands and Core Logic (`src/pydantic_llm_tester/cli/`):
+    - Handle the new "provider:model-name" input format in relevant CLI commands.
+    - Access model information from the central dynamic source in CLI commands.
+    - Remove LLM model management commands and associated logic from the CLI.
+    - Ensure general run commands require the user to define which models to test with.
+8. Update Cost Calculation Logic:
+    - Modify `CostManager` to use dynamic pricing from the central registry for OpenRouter models.
+    - Update `LLMTester` to work with the updated `CostManager`.
+    - Ensure provider implementations return necessary token usage data.
+    - Update CLI cost/price commands to display costs based on dynamic pricing.
+9. Develop Tests (`tests/`): This is integrated into the sub-steps of each refactoring step.
+10. Update Documentation (`docs/`): Manually update documentation to reflect changes, remove references to CLI model management, and explain dynamic cost calculation for OpenRouter.
+
 1.  **Get model info from OpenRouter**
     Status: Completed
     Notes:

@@ -140,7 +140,8 @@ class MistralProvider(BaseLLM):
             usage_data_dict = {
                 "prompt_tokens": response.usage.input_tokens,
                 "completion_tokens": response.usage.output_tokens,
-                "total_tokens": response.usage.total_tokens
+                "total_tokens": response.usage.total_tokens,
+                "model": model_name # Add the model name to usage data
             }
             # You might want to wrap this in your UsageData class if it's not a dict alias
             usage_data = UsageData(**usage_data_dict) if isinstance(UsageData, type) else usage_data_dict

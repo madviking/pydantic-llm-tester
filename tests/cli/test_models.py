@@ -519,3 +519,34 @@ def test_models_add_interactive(mock_confirm, mock_prompt, mock_add_model, mock_
         "max_output_tokens": 16384
     }
     mock_add_model.assert_called_once_with("test_provider", "interactive-model", expected_config)
+
+# Tests for removed model management commands (Step 7.5)
+def test_models_list_command_removed():
+    """Test that the 'models list' command has been removed."""
+    result = runner.invoke(app, ["models", "list", "test_provider"])
+    assert result.exit_code != 0
+    assert "No such command 'list'." in result.stdout or "Error: No such command 'models'." in result.stdout
+
+def test_models_add_command_removed():
+    """Test that the 'models add' command has been removed."""
+    result = runner.invoke(app, ["models", "add", "test_provider", "--name", "new-model"])
+    assert result.exit_code != 0
+    assert "No such command 'add'." in result.stdout or "Error: No such command 'models'." in result.stdout
+
+def test_models_edit_command_removed():
+    """Test that the 'models edit' command has been removed."""
+    result = runner.invoke(app, ["models", "edit", "test_provider", "test-model", "--cost-input", "15.0"])
+    assert result.exit_code != 0
+    assert "No such command 'edit'." in result.stdout or "Error: No such command 'models'." in result.stdout
+
+def test_models_remove_command_removed():
+    """Test that the 'models remove' command has been removed."""
+    result = runner.invoke(app, ["models", "remove", "test_provider", "test-model"])
+    assert result.exit_code != 0
+    assert "No such command 'remove'." in result.stdout or "Error: No such command 'models'." in result.stdout
+
+def test_models_set_default_command_removed():
+    """Test that the 'models set-default' command has been removed."""
+    result = runner.invoke(app, ["models", "set-default", "test_provider", "test-model"])
+    assert result.exit_code != 0
+    assert "No such command 'set-default'." in result.stdout or "Error: No such command 'models'." in result.stdout

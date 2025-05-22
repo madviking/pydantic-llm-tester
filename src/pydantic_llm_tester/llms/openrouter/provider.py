@@ -184,11 +184,12 @@ class OpenRouterProvider(BaseLLM):
                 usage_data = {
                     "prompt_tokens": response.usage.prompt_tokens or 0,
                     "completion_tokens": response.usage.completion_tokens or 0,
-                    "total_tokens": response.usage.total_tokens or 0
+                    "total_tokens": response.usage.total_tokens or 0,
+                    "model": model_name # Add the model name to usage data
                 }
             else:
                 self.logger.warning("No usage information received from OpenRouter.")
-                usage_data = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                usage_data = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0, "model": model_name} # Add model name even if no usage data
 
             return response_text, usage_data
 

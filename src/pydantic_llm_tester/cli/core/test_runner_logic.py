@@ -10,44 +10,39 @@ from pydantic import BaseModel # Import BaseModel
 
 logger = logging.getLogger(__name__)
 
-def parse_model_overrides(model_args: Optional[List[str]]) -> Dict[str, List[str]]:
+def parse_model_overrides(model_args: Optional[List[str]]) -> Dict[str, str]:
     """
-    Parse model arguments in the format 'provider:model_name' or 'provider/model_name'.
-    Handles potential '/' in model names if provider is specified first.
-    Allows specifying multiple models per provider.
+    Parse model arguments in the format 'provider:model_name'.
+    Each provider can only have one model specified.
 
     Args:
-        model_args: List of model specifications (e.g., ["openai:gpt-4o", "openrouter/google/gemini-pro", "openai:gpt-3.5-turbo"]).
+        model_args: List of model specifications (e.g., ["openai:gpt-4o", "anthropic:claude-3-sonnet-20240229"]).
 
     Returns:
-        Dictionary mapping provider names to lists of model names.
+        Dictionary mapping provider names to single model names.
+
+    Raises:
+        ValueError: If an invalid format is used or if multiple models are specified for the same provider.
     """
-    models: Dict[str, List[str]] = {}
+    models: Dict[str, str] = {}
     if not model_args:
         return models
 
     for arg in model_args:
-        provider = None
-        model_name = None
-        if ":" in arg:
-            parts = arg.split(":", 1)
-            provider = parts[0].strip()
-            model_name = parts[1].strip()
-        elif "/" in arg:
-             # Handle provider/model/name format
-             parts = arg.split("/", 1)
-             provider = parts[0].strip()
-             model_name = parts[1].strip() # Keep the rest as model name
-        else:
-            logger.warning(f"Ignoring invalid model specification '{arg}'. Format should be 'provider:model_name' or 'provider/model_name'.")
-            continue
+        if ":" not in arg:
+            raise ValueError(f"Invalid model specification format: '{arg}'. Expected 'provider:model_name'.")
 
-        if provider and model_name:
-            if provider not in models:
-                models[provider] = []
-            models[provider].append(model_name)
-        else:
-             logger.warning(f"Could not parse provider and model from '{arg}'. Skipping.")
+        parts = arg.split(":", 1)
+        provider = parts[0].strip()
+        model_name = parts[1].strip()
+
+        if not provider or not model_name:
+             raise ValueError(f"Could not parse provider and model from '{arg}'. Expected 'provider:model_name'.")
+
+        if provider in models:
+            raise ValueError(f"Multiple models specified for the same provider '{provider}'. Each provider can only have one model specified.")
+
+        models[provider] = model_name
 
     logger.debug(f"Parsed model overrides: {models}")
     return models
@@ -123,7 +118,7 @@ def list_available_tests_and_providers(
 
 def run_test_suite(
     providers: Optional[List[str]] = None,
-    model_overrides: Optional[Dict[str, List[str]]] = None, # Updated type hint
+    model_overrides: Optional[Dict[str, str]] = None, # Updated type hint
     llm_models: Optional[List[str]] = None,
     test_dir: Optional[str] = None,
     output_file: Optional[str] = None,

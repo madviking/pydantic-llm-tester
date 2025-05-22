@@ -174,7 +174,8 @@ class AnthropicProvider(BaseLLM):
         usage_data = {
             "prompt_tokens": response.usage.input_tokens,
             "completion_tokens": response.usage.output_tokens,
-            "total_tokens": response.usage.input_tokens + response.usage.output_tokens
+            "total_tokens": response.usage.input_tokens + response.usage.output_tokens,
+            "model": model_name # Add the model name to usage data
         }
         
         return response_text, usage_data

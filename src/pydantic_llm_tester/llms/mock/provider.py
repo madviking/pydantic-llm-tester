@@ -153,8 +153,7 @@ class MockProvider(BaseLLM):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
-            cost_input_rate=model_config.cost_input,
-            cost_output_rate=model_config.cost_output
+            # Removed cost_input_rate and cost_output_rate as they are not part of UsageData constructor
         )
         
         # Add elapsed time manually since it's not part of the standard UsageData fields

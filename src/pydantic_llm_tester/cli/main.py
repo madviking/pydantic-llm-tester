@@ -88,7 +88,7 @@ def main_options(
 # Let's add the command first, and handle the default launch later if needed.
 
 # --- Register Command Groups ---
-from .commands import providers, configure, schemas, scaffold, paths, prices, models, costs # Import command modules including the new costs, prices, and models modules
+from .commands import providers, configure, schemas, scaffold, paths, prices, costs # Import command modules including the new costs, prices, and models modules
 app.add_typer(providers.app, name="providers")
 # app.add_typer(llm_models.app, name="llm-py_models") # Removed registration
 app.add_typer(configure.app, name="configure")
@@ -96,7 +96,7 @@ app.add_typer(schemas.app, name="schemas")
 app.add_typer(scaffold.app, name="scaffold") # Add the new scaffold command group
 app.add_typer(paths.app, name="paths") # Add the new paths command group
 app.add_typer(prices.app, name="prices") # Add the new prices command group
-app.add_typer(models.app, name="models") # Add the new models command group
+# app.add_typer(models.app, name="models") # Removed the models command group
 app.add_typer(costs.app, name="costs") # Add the new costs command group
 
 # --- Register Top-Level Commands (from run.py) ---
@@ -108,9 +108,9 @@ from .commands.run import run_tests, list_items
 @app.command("run")
 def run_command(
     # Re-declare options here, matching run.py's run_tests signature
-    providers: Optional[List[str]] = typer.Option(None, "--providers", "-p", help="LLM providers to test (default: all enabled)."),
-    py_models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models as 'provider:model_name' or 'provider/model_name'. Can be used multiple times."),
-    llm_models: Optional[List[str]] = typer.Option(None, "--llm_models", "-l", help="Specify llm_models as 'model_name'. Can be used multiple times."),
+    providers: Optional[List[str]] = typer.Option(None, "--providers", "-p", help="LLM providers to test (derived from --llm-models if not specified)."),
+    py_models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models to test (e.g., 'job_ads'). Can be used multiple times."),
+    llm_models: Optional[List[str]] = typer.Option(..., "--llm_models", "-l", help="REQUIRED: Specify LLM models to test in 'provider:model-name' format (e.g., 'openai:gpt-4o'). Can be used multiple times."),
     test_dir: Optional[str] = typer.Option(None, "--test-dir", help="Directory containing test files (default: uses LLMTester default)."),
     output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file for report/JSON (default: stdout)."),
     json_output: bool = typer.Option(False, "--json", help="Output results as JSON instead of Markdown report."),
@@ -138,8 +138,8 @@ def run_command(
 def list_command(
      # Re-declare options here, matching run.py's list_items signature
     providers: Optional[List[str]] = typer.Option(None, "--providers", "-p", help="LLM providers to list (default: all enabled)."),
-    py_models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models to consider for provider listing."),
-    llm_models: Optional[List[str]] = typer.Option(None, "--llm_models", "-m", help="Specify llm_models to consider for provider listing."),
+    py_models: Optional[List[str]] = typer.Option(None, "--py_models", "-m", help="Specify py_models to list (e.g., 'job_ads'). Can be used multiple times."),
+    llm_models: Optional[List[str]] = typer.Option(None, "--llm_models", help="Filter listed LLM models by name (case-insensitive substring match). Can be used multiple times."),
     test_dir: Optional[str] = typer.Option(None, "--test-dir", help="Directory containing test files to list.")
 ):
     """
