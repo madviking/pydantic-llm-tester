@@ -1,4 +1,4 @@
-"""CLI command for updating model costs from OpenRouter API."""
+"""CLI command for updating model costs and token information from OpenRouter API."""
 
 import typer
 import logging
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # Create a Typer app for the 'costs' command group
 app = typer.Typer(
     name="costs",
-    help="Update and manage model costs from OpenRouter API."
+    help="Update and manage model costs and token information from OpenRouter API."
 )
 
 @app.command("update")
@@ -22,8 +22,8 @@ def update_costs(
         autocompletion=cost_update_logic.get_available_providers_for_suggestions
     ),
     update_configs: bool = typer.Option(
-        False, "--update-configs", "-u",
-        help="Update provider config files with context length and other metadata."
+        True, "--update-configs/--no-update-configs", "-u/-nu",
+        help="Update provider config files with token information (context length, max input/output tokens) and other metadata."
     ),
     force: bool = typer.Option(
         False, "--force", "-f",
@@ -31,19 +31,21 @@ def update_costs(
     ),
 ):
     """
-    Update model costs from OpenRouter API.
+    Update model costs and token information from OpenRouter API.
     
-    This command fetches the latest model information from OpenRouter API
-    and updates the pricing information in models_pricing.json.
+    This command fetches the latest model information from OpenRouter API and updates:
+    1. Pricing information in models_pricing.json for cost tracking
+    2. Token limits in provider config files using the formula:
+       max_input_tokens = context_length - max_completion_tokens
     
-    It can also optionally update provider config files with context length
-    and other metadata.
+    This ensures your model configurations have both accurate pricing and
+    optimal token limits for each model.
     """
     logger.info("Executing 'costs update' command")
     
     # Confirm before proceeding
     confirm = typer.confirm(
-        "This will update model costs from OpenRouter API and may modify pricing files. Proceed?", 
+        "This will update model costs and token information from OpenRouter API and modify configuration files. Proceed?", 
         abort=True
     )
     

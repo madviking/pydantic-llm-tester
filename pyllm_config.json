@@ -34,7 +34,7 @@
     "job_ads": {
       "enabled": true,
       "llm_models": [
-        "openai:gpt-4",
+        "openai:gpt-4o-mini-2024-07-18",
         "anthropic:claude-3-opus"
       ]
     },

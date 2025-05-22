@@ -1,4 +1,4 @@
-"""Logic for updating model costs from OpenRouter API."""
+"""Logic for updating model costs and token information from OpenRouter API."""
 
 import json
 import logging
@@ -26,15 +26,20 @@ console = Console()
 
 def update_model_costs(
     provider_filter: Optional[List[str]] = None,
-    update_provider_configs: bool = False,
+    update_provider_configs: bool = True,  # Default to True to update token info
     force_refresh: bool = False
 ) -> Dict[str, Any]:
     """
-    Update model costs from OpenRouter API.
+    Update model costs and token information from OpenRouter API.
+    
+    This function fetches model data from OpenRouter API and updates:
+    1. Cost information in the global models_pricing.json file
+    2. Token information (context length, max_input_tokens, max_output_tokens) in provider config files
+       using the formula: max_input_tokens = context_length - max_completion_tokens
     
     Args:
         provider_filter: Optional list of provider names to filter by
-        update_provider_configs: Whether to update provider config files with context length and other metadata
+        update_provider_configs: Whether to update provider config files with token information and other metadata
         force_refresh: Whether to force refresh the OpenRouter API cache
         
     Returns:
@@ -60,7 +65,7 @@ def update_model_costs(
     
     # Fetch models from OpenRouter API
     logger.info("Fetching models from OpenRouter API...")
-    api_models_data = _fetch_openrouter_models_with_cache(force_refresh=force_refresh)
+    api_models_data = _fetch_openrouter_models_with_cache()
     
     if not api_models_data:
         logger.error("Failed to fetch models from OpenRouter API")
@@ -206,7 +211,7 @@ def update_model_costs(
 
 def _update_provider_configs(api_models_data: List[Dict[str, Any]], providers: List[str]) -> None:
     """
-    Update provider config files with context length and other metadata.
+    Update provider config files with context length, token information and other metadata.
     
     Args:
         api_models_data: List of model data from OpenRouter API
@@ -241,45 +246,114 @@ def _update_provider_configs(api_models_data: List[Dict[str, Any]], providers: L
         
         # Track changes
         updated_count = 0
+        added_count = 0
         
         # Update each model
         for model_name, model_data in models:
+            full_model_name = f"{provider_name}/{model_name}"
+            
+            # Extract token information
+            context_length = model_data.get("context_length")
+            if not context_length:
+                logger.debug(f"No context length available for {full_model_name}")
+                continue
+                
+            # OpenRouter API often provides max_completion_tokens within top_provider details
+            max_output_tokens_api = model_data.get("top_provider", {}).get("max_completion_tokens")
+            
+            # Calculate token limits based on context_length and max_completion_tokens
+            if max_output_tokens_api is not None:
+                # Use the formula: max_input_tokens = context_length - max_completion_tokens
+                max_output_tokens = int(max_output_tokens_api)
+                max_input_tokens = int(context_length) - max_output_tokens
+                
+                # Ensure max_input_tokens is positive
+                if max_input_tokens <= 0:
+                    logger.warning(f"Calculated negative max_input_tokens for {full_model_name}. "
+                                  f"Adjusting to use half of context length.")
+                    max_input_tokens = max(1, int(context_length) // 2)
+                    max_output_tokens = int(context_length) - max_input_tokens
+            else:
+                # If max_completion_tokens not provided, use a conservative split (75% input, 25% output)
+                # This is better than 50/50 for most use cases as input is typically larger
+                max_input_tokens = int(int(context_length) * 0.75)
+                max_output_tokens = int(context_length) - max_input_tokens
+                logger.debug(f"No max_completion_tokens for {full_model_name}, using 75/25 split")
+            
+            # Extract pricing information
+            pricing = model_data.get("pricing", {})
+            cost_input_str = pricing.get("prompt", "0.0")
+            cost_output_str = pricing.get("completion", "0.0")
+            
+            # Convert cost per token to cost per 1M tokens
+            cost_input = float(cost_input_str) * 1_000_000 if cost_input_str else 0.0
+            cost_output = float(cost_output_str) * 1_000_000 if cost_output_str else 0.0
+            
             if model_name in existing_models:
+                # Update existing model
                 model_config = existing_models[model_name]
                 
-                # Update context length if available
-                context_length = model_data.get("context_length")
-                if context_length:
-                    # OpenRouter API often provides max_completion_tokens within top_provider details
-                    max_output_tokens_api = model_data.get("top_provider", {}).get("max_completion_tokens")
+                # Track if any changes were made
+                changes_made = False
+                
+                # Update token limits if they're different
+                if model_config.max_input_tokens != max_input_tokens:
+                    model_config.max_input_tokens = max_input_tokens
+                    changes_made = True
                     
-                    if max_output_tokens_api is not None:
-                        max_output_tokens = int(max_output_tokens_api)
-                        max_input_tokens = int(context_length) - max_output_tokens
-                        
-                        # Ensure max_input_tokens is positive
-                        if max_input_tokens <= 0:
-                            logger.warning(f"Calculated negative max_input_tokens for {provider_name}/{model_name}. "
-                                          f"Adjusting to use half of context length.")
-                            max_input_tokens = max(1, int(context_length) // 2)
-                            max_output_tokens = int(context_length) - max_input_tokens
-                        
-                        # Update model config
-                        model_config.max_input_tokens = max_input_tokens
-                        model_config.max_output_tokens = max_output_tokens
-                        updated_count += 1
-                    elif context_length != (model_config.max_input_tokens + model_config.max_output_tokens):
-                        # If max_output_tokens not provided, split context length evenly
-                        max_input_tokens = int(context_length) // 2
-                        max_output_tokens = int(context_length) - max_input_tokens
-                        
-                        # Update model config
-                        model_config.max_input_tokens = max_input_tokens
-                        model_config.max_output_tokens = max_output_tokens
-                        updated_count += 1
+                if model_config.max_output_tokens != max_output_tokens:
+                    model_config.max_output_tokens = max_output_tokens
+                    changes_made = True
+                
+                # Update costs if they're different
+                if abs(model_config.cost_input - cost_input) > 0.001:
+                    model_config.cost_input = cost_input
+                    changes_made = True
+                    
+                if abs(model_config.cost_output - cost_output) > 0.001:
+                    model_config.cost_output = cost_output
+                    changes_made = True
+                
+                if changes_made:
+                    updated_count += 1
+                    logger.debug(f"Updated model {full_model_name} with new token limits: "
+                                f"input={max_input_tokens}, output={max_output_tokens}")
+            else:
+                # Only add new models that have token information
+                # Determine reasonable defaults for new models
+                new_model = {
+                    "name": model_name,
+                    "default": False,
+                    "preferred": False,
+                    "enabled": True,
+                    "cost_input": cost_input,
+                    "cost_output": cost_output,
+                    "max_input_tokens": max_input_tokens,
+                    "max_output_tokens": max_output_tokens
+                }
+                
+                # Determine cost category based on pricing
+                if cost_input == 0 and cost_output == 0:
+                    new_model["cost_category"] = "free"
+                elif cost_input < 1.0 and cost_output < 2.0:
+                    new_model["cost_category"] = "cheap"
+                elif cost_input > 10.0 or cost_output > 20.0:
+                    new_model["cost_category"] = "premium"
+                else:
+                    new_model["cost_category"] = "standard"
+                
+                # Add the new model to the provider's config
+                from pydantic_llm_tester.llms.base import ModelConfig
+                provider_config.llm_models.append(ModelConfig(**new_model))
+                added_count += 1
+                logger.debug(f"Added new model {full_model_name} with token limits: "
+                            f"input={max_input_tokens}, output={max_output_tokens}")
         
         # Save provider config if changes were made
-        if updated_count > 0:
+        if updated_count > 0 or added_count > 0:
+            # Sort models alphabetically for consistency
+            provider_config.llm_models.sort(key=lambda m: m.name)
+            
             # Save config file - use a more robust path construction
             base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
             config_path = os.path.join(base_dir, "llms", provider_name, "config.json")
@@ -289,7 +363,7 @@ def _update_provider_configs(api_models_data: List[Dict[str, Any]], providers: L
             try:
                 with open(config_path, 'w') as f:
                     json.dump(provider_config.model_dump(mode='json'), f, indent=2)
-                logger.info(f"Updated {updated_count} models in {provider_name} config")
+                logger.info(f"Updated {updated_count} models and added {added_count} new models in {provider_name} config")
             except Exception as e:
                 logger.error(f"Error saving config for provider {provider_name}: {e}")
 
@@ -306,7 +380,7 @@ def display_update_summary(update_result: Dict[str, Any]) -> None:
     
     # Create summary table
     summary_table = Table(
-        title="Model Cost Update Summary",
+        title="Model Cost and Token Update Summary",
         box=box.ROUNDED,
         show_header=False
     )
@@ -373,6 +447,14 @@ def display_update_summary(update_result: Dict[str, Any]) -> None:
             )
         
         console.print(added_table)
+        
+    # Add explanation about token limits update
+    console.print("\n[bold cyan]Token Information Update:[/bold cyan]")
+    console.print("Token limits for models have been updated based on the OpenRouter API data.")
+    console.print("For each model, the calculation follows this formula:")
+    console.print("  - Max Input Tokens = Context Length - Max Completion Tokens")
+    console.print("  - If Max Completion Tokens isn't provided, a 75/25 input/output split is used")
+    console.print("\nThis ensures your model configurations have the correct token limits for optimal usage.")
 
 def get_available_providers_for_suggestions() -> List[str]:
     """
