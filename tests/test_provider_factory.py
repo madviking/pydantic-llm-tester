@@ -353,6 +353,53 @@ class ExternalProvider(BaseLLM):
         self.assertIsNotNone(provider)
         self.assertEqual(provider.name, "external")
 
+    @patch('pydantic_llm_tester.llms.provider_factory.LLMRegistry')
+    @patch('pydantic_llm_tester.llms.provider_factory.discover_provider_classes')
+    @patch('pydantic_llm_tester.llms.provider_factory.load_provider_config')
+    @patch('pydantic_llm_tester.llms.provider_factory.validate_provider_implementation', return_value=True)
+    def test_create_provider_uses_registry_models(self, mock_validate_implementation, mock_load_provider_config, mock_discover_provider_classes, mock_llm_registry):
+        """Test that create_provider retrieves models from LLMRegistry"""
+        # Mock discover_provider_classes to return our mock provider
+        mock_discovered_classes = {"mock_provider": MockValidProvider}
+        mock_discover_provider_classes.return_value = mock_discovered_classes
+
+        # Mock load_provider_config to return a config without llm_models
+        mock_config = ProviderConfig(name="mock_provider", provider_type="mock", env_key="MOCK_API_KEY", system_prompt="Mock", llm_models=[])
+        mock_load_provider_config.return_value = mock_config
+
+        # Mock the LLMRegistry instance and its get_provider_models method
+        mock_registry_instance = MagicMock()
+        mock_llm_registry.return_value = mock_registry_instance
+
+        # Create mock ModelConfig objects that the registry will return
+        mock_model_configs = {
+            "mock:model1": ModelConfig(name="mock:model1", provider="mock_provider", default=True, preferred=False, enabled=True, cost_input=0.001, cost_output=0.002, cost_category="test", context_length=4096),
+            "mock:model2": ModelConfig(name="mock:model2", provider="mock_provider", default=False, preferred=True, enabled=True, cost_input=0.003, cost_output=0.004, cost_category="test", context_length=8192)
+        }
+        mock_registry_instance.get_provider_models.return_value = mock_model_configs
+
+        # Patch the MockValidProvider's __init__ to check the arguments it receives
+        with patch('tests.test_provider_factory.MockValidProvider.__init__') as mock_provider_init:
+            # Configure the mock __init__ to still call the original __init__ logic
+            mock_provider_init.side_effect = MockValidProvider.__init__
+
+            # Call create_provider
+            provider = pydantic_llm_tester.llms.provider_factory.create_provider("mock_provider")
+
+            # Check that LLMRegistry was instantiated and get_provider_models was called with the correct provider name
+            mock_llm_registry.assert_called_once()
+            mock_registry_instance.get_provider_models.assert_called_once_with("mock_provider")
+
+            # Check that the MockValidProvider's __init__ was called with the correct config and llm_models
+            # The llm_models passed should be a list of ModelConfig objects
+            expected_llm_models_list = list(mock_model_configs.values())
+            mock_provider_init.assert_called_once_with(mock_config, llm_models=expected_llm_models_list)
+
+            # Check that the created provider instance has the models stored
+            self.assertIsNotNone(provider)
+            self.assertIsInstance(provider, MockValidProvider)
+            self.assertEqual(provider.llm_models, expected_llm_models_list)
+
 
 if __name__ == '__main__':
     unittest.main()

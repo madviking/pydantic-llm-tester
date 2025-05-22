@@ -1,8 +1,8 @@
 """Base modules for LLM providers"""
 
 from .base import BaseLLM, ProviderConfig, ModelConfig
-from .llm_registry import get_llm_provider, get_available_providers, discover_providers, reset_provider_cache, get_provider_info
-from .provider_factory import create_provider, reset_caches, register_provider_class, discover_provider_classes, register_external_provider, load_provider_config, validate_provider_implementation
+from .llm_registry import get_llm_provider, discover_providers, reset_provider_cache, get_provider_info # Removed get_available_providers
+from .provider_factory import create_provider, reset_caches, register_provider_class, discover_provider_classes, register_external_provider, load_provider_config, validate_provider_implementation, get_available_providers # Added get_available_providers
 from .mock.provider import MockProvider
 
 # Import provider modules to ensure they're available

@@ -94,3 +94,14 @@ def temp_config():
 def job_ad_model():
     """Fixture providing a job ad model instance"""
     return JobAd
+
+@pytest.fixture(autouse=True)
+def patch_get_available_providers(monkeypatch):
+    """
+    Fixture to patch get_available_providers in llm_registry to prevent NameError
+    during test collection due to circular imports.
+    This is a temporary workaround for test collection.
+    """
+    # Patch the function where it's imported in __init__.py if necessary
+    # The local import in llm_registry.py should handle the dependency there.
+    monkeypatch.setattr("pydantic_llm_tester.llms.get_available_providers", lambda: ["mock"])

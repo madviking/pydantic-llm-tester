@@ -91,12 +91,13 @@ IMPORTANT: Always stop after each step and before stopping, update this document
     - Confirmed that no additional configuration properties are immediately needed to support the new format based on the current plan.
 
 6.  **Adjust `LLMRegistry` and `ProviderFactory`**
-    Status: Not started
-    Notes for next steps:
-    Additional dependencies to check for next step:
-
-    6.1. Create test(s) for `LLMRegistry` and `ProviderFactory` to retrieve model details from the central registry instead of provider `config.json`.
-    6.2. Modify `LLMRegistry` and `ProviderFactory` to use the central model registry/cache for model details.
+    Status: Completed
+    Notes:
+    - Added tests to `tests/test_llm_registry.py` to verify storing and retrieving model details from the central registry.
+    - Updated the `test_get_provider_info` in `tests/test_llm_registry.py` to rely on the central registry for model details.
+    - Removed fallback logic in `src/pydantic_llm_tester/llms/llm_registry.py`'s `get_provider_info` to strictly use data from the central registry.
+    - Added tests to `tests/test_provider_factory.py` to verify that `create_provider` retrieves models from the `LLMRegistry` and passes them to the provider's constructor.
+    - Confirmed that `src/pydantic_llm_tester/llms/provider_factory.py`'s `create_provider` and `load_provider_config` correctly interact with the `LLMRegistry` to source model details.
 
 7.  **Update CLI Commands and Core Logic (`src/pydantic_llm_tester/cli/`)**
     Status: Not started

@@ -6,12 +6,19 @@ import json
 import importlib
 import sys
 from typing import Dict, Type, List, Optional, Any, Tuple
+import logging
+import os
+import json
+import importlib
+import sys
+from typing import Dict, Type, List, Optional, Any, Tuple
 import inspect
 import importlib.util
 import time
 import requests
 
 from .base import BaseLLM, ProviderConfig, ModelConfig
+from .llm_registry import LLMRegistry # Keep LLMRegistry import for type hinting, but pass instance
 # ConfigManager is imported locally in functions to avoid circular imports
 
 # Configure logging
