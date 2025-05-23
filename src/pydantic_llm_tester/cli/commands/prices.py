@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Create a Typer app for the 'prices' command group
 app = typer.Typer(
     name="prices",
-    help="Query and display model prices from OpenRouter API."
+    help="Query and display model prices from the model registry."
 )
 
 class SortField(str, Enum):
@@ -53,9 +53,10 @@ def list_prices(
     ),
 ):
     """
-    List and filter model prices from all providers.
+    List and filter model prices from all enabled providers in the model registry.
     
-    Prices are shown per 1M tokens in USD.
+    Prices are shown per 1M tokens in USD. This information is sourced from the 
+    central model registry, which gets updated when OpenRouter is enabled.
     """
     logger.info("Executing 'prices list' command")
     
@@ -77,9 +78,10 @@ def list_prices(
 @app.command("refresh")
 def refresh_prices():
     """
-    Refresh model prices from OpenRouter API.
+    Refresh model information in the registry.
     
-    This forces a refresh of the cache and fetches the latest pricing data.
+    This forces a refresh of the cache, and if OpenRouter is enabled,
+    fetches the latest pricing and model data from the OpenRouter API.
     """
     logger.info("Executing 'prices refresh' command")
     

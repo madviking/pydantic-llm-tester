@@ -11,7 +11,7 @@ from rich import box
 from pydantic_llm_tester.llms.provider_factory import (
     get_available_providers
 )
-from pydantic_llm_tester.llms.llm_registry import LLMRegistry # Import LLMRegistry
+from pydantic_llm_tester.llms.llm_registry import LLMRegistry, get_all_model_details  # Import LLMRegistry and get_all_model_details
 from pydantic_llm_tester.llms.base import ModelConfig # Import ModelConfig
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,9 @@ def get_all_model_prices(
     Returns:
         List of dictionaries containing model pricing information
     """
-    registry = LLMRegistry.get_instance()
-    all_models_from_registry = registry.get_all_model_details() # Get all models from the registry
+    # Use the global function we added to get all model details
+    all_models_from_registry = get_all_model_details()
+    logger.debug(f"Retrieved {len(all_models_from_registry)} models from registry")
 
     # Apply provider filter if specified
     if provider_filter:
@@ -195,17 +196,30 @@ def refresh_openrouter_models() -> Tuple[bool, str]:
         Tuple of (success: bool, message: str)
     """
     try:
-        # Clear cache and fetch fresh data
-        models_data = _fetch_openrouter_models_with_cache()
-        if not models_data:
-            logger.error("Failed to fetch models from OpenRouter API: Empty response received")
-            return False, "Failed to fetch models from OpenRouter API: Empty response received"
+        # Clear registry cache
+        from pydantic_llm_tester.llms.provider_factory import reset_caches
+        reset_caches()
         
-        if isinstance(models_data, list) and len(models_data) == 0:
-            logger.warning("OpenRouter API returned an empty list of models")
-            return True, "OpenRouter API returned an empty list of models"
+        # Force refresh of OpenRouter models
+        from pydantic_llm_tester.utils.config_manager import ConfigManager
+        config_manager = ConfigManager()
+        
+        if config_manager.is_openrouter_enabled():
+            # Fetch and process the OpenRouter models
+            models_data = config_manager.fetch_and_process_openrouter_models(force=True)
             
-        return True, f"Successfully refreshed {len(models_data)} models from OpenRouter API"
+            if not models_data:
+                logger.warning("OpenRouter API returned no valid model data")
+                return False, "OpenRouter API returned no valid model data"
+                
+            # Get count of models for reporting
+            model_count = len(models_data) if isinstance(models_data, list) else (
+                len(models_data.get("data", [])) if isinstance(models_data, dict) else 0
+            )
+            
+            return True, f"Successfully refreshed {model_count} models from OpenRouter API"
+        else:
+            return False, "OpenRouter provider is not enabled in configuration."
     except Exception as e:
         logger.error(f"Error refreshing OpenRouter models: {e}")
         return False, f"Error refreshing OpenRouter models: {str(e)}"

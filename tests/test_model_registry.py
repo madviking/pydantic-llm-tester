@@ -14,7 +14,8 @@ dummy_model_data = {
             max_output_tokens=2000,
             preferred=True,
             enabled=True,
-            default=False
+            default=False,
+            cost_category="standard"
         ),
         "model-b": ModelConfig( # Use ModelConfig
             name="model-b",
@@ -25,7 +26,8 @@ dummy_model_data = {
             max_output_tokens=4000,
             preferred=False,
             enabled=True,
-            default=True
+            default=True,
+            cost_category="standard"
         ),
     },
     "provider2": {
@@ -38,7 +40,20 @@ dummy_model_data = {
             max_output_tokens=6000,
             preferred=True,
             enabled=True,
-            default=False
+            default=False,
+            cost_category="premium"
+        ),
+        "model-d-disabled": ModelConfig( # A disabled model
+            name="model-d-disabled",
+            provider="provider2",
+            cost_input=0.007,
+            cost_output=0.008,
+            max_input_tokens=7000,
+            max_output_tokens=8000,
+            preferred=False,
+            enabled=False,
+            default=False,
+            cost_category="premium"
         ),
     },
 }
@@ -169,3 +184,45 @@ def test_cache_expires_after_expiry(model_registry):
 # Note: Proper implementation of these tests requires modifying LLMRegistry
 # to include the caching logic and potentially adding methods to check cache status for testing.
 # The tests in 2.5 are primarily about defining the *behavior* we expect from the caching mechanism.
+
+def test_get_all_model_details_empty_registry(model_registry):
+    """Tests that get_all_model_details returns an empty list when registry is empty."""
+    all_models = model_registry.get_all_model_details()
+    assert isinstance(all_models, list)
+    assert len(all_models) == 0
+
+def test_get_all_model_details(model_registry):
+    """Tests retrieving all model details from multiple providers."""
+    # Store dummy model data for multiple providers
+    for provider, models in dummy_model_data.items():
+        model_registry.store_provider_models(provider, models)
+
+    # Get all model details
+    all_models = model_registry.get_all_model_details()
+
+    # Verify result structure and content
+    assert isinstance(all_models, list)
+    
+    # Calculate expected number of models (enabled models only)
+    expected_model_count = sum(1 for provider in dummy_model_data.values() 
+                              for model in provider.values() 
+                              if model.enabled)
+                              
+    assert len(all_models) == expected_model_count
+    
+    # Verify each model in the result
+    for model in all_models:
+        # Each item should be a ModelConfig
+        assert isinstance(model, ModelConfig)
+        assert model.enabled == True  # Only enabled models should be included
+        
+        # Verify model data matches source
+        provider_models = dummy_model_data.get(model.provider, {})
+        assert model.name in provider_models, f"Model {model.name} not found in source data for {model.provider}"
+        source_model = provider_models.get(model.name)
+        
+        # Compare key attributes
+        assert model.cost_input == source_model.cost_input
+        assert model.cost_output == source_model.cost_output
+        assert model.max_input_tokens == source_model.max_input_tokens
+        assert model.max_output_tokens == source_model.max_output_tokens

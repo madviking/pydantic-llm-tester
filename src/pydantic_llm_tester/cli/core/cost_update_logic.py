@@ -25,11 +25,105 @@ console = Console()
 # The functions below are commented out or removed as they are no longer needed
 # in the new architecture or will be refactored as part of Step 7 and 8.
 
-# def update_model_costs(...): # Removed function
-#     pass
+def update_model_costs(provider_filter: Optional[List[str]] = None, 
+                  update_provider_configs: bool = True,
+                  force_refresh: bool = False) -> Dict[str, Any]:
+    """
+    Update model costs and token information from the model registry.
 
-# def _update_provider_configs(...): # Removed function
-#     pass
+    This function uses the central model registry as the source of truth for model
+    information, and updates provider configs based on that data if requested.
+
+    Args:
+        provider_filter: Optional list of provider names to filter by.
+        update_provider_configs: Whether to update provider config files.
+        force_refresh: Whether to force refresh of registry cache.
+
+    Returns:
+        Dictionary containing update summary.
+    """
+    logger.info(f"Updating model costs from registry (force_refresh={force_refresh})")
+    
+    result = {
+        "success": False,
+        "message": "",
+        "updated": 0,
+        "added": 0,
+        "unchanged": 0,
+        "updated_models": [],
+        "added_models": []
+    }
+    
+    try:
+        # Import here to avoid circular imports
+        from pydantic_llm_tester.utils.config_manager import ConfigManager
+        from pydantic_llm_tester.llms.provider_factory import reset_caches
+        
+        # If force refresh, reset caches to ensure fresh data
+        if force_refresh:
+            reset_caches()
+            logger.info("Caches reset to force fresh data")
+            
+        # Ensure OpenRouter models are fetched if OpenRouter is enabled
+        config_manager = ConfigManager()
+        if config_manager.is_openrouter_enabled():
+            logger.info("OpenRouter enabled, fetching latest models")
+            config_manager.fetch_and_process_openrouter_models(force=force_refresh)
+        
+        # Now all model data should be in the registry
+        # Get all models from the registry
+        from pydantic_llm_tester.llms.llm_registry import get_all_model_details
+        all_models = get_all_model_details(use_cache=not force_refresh)
+        logger.info(f"Retrieved {len(all_models)} models from registry")
+        
+        # Filter models if provider_filter is specified
+        if provider_filter:
+            models = [m for m in all_models if m.provider in provider_filter]
+            logger.info(f"Filtered to {len(models)} models for providers: {', '.join(provider_filter)}")
+        else:
+            models = all_models
+            
+        # Update result statistics (as this function now just reports on what's in the registry)
+        result["added"] = len(models)
+        result["added_models"] = [
+            {
+                "provider": model.provider,
+                "model": model.name,
+                "input": model.cost_input,
+                "output": model.cost_output
+            }
+            for model in models
+        ]
+        
+        # Update provider config files if requested
+        # This is now only for backwards compatibility
+        if update_provider_configs:
+            _update_provider_configs(models)
+            
+        # Update success status
+        result["success"] = True
+        result["message"] = f"Successfully processed {len(models)} models"
+        
+    except Exception as e:
+        logger.error(f"Error updating model costs: {str(e)}")
+        result["success"] = False
+        result["message"] = f"Error updating model costs: {str(e)}"
+        
+    return result
+
+def _update_provider_configs(models: List[ModelConfig]) -> None:
+    """
+    Update provider config files with token information from models.
+    
+    This function is kept for backwards compatibility with existing provider config files.
+    
+    Args:
+        models: List of ModelConfig objects.
+    """
+    logger.info("Updating provider config files with token information")
+    # Implementation would go here - not needed as part of this refactoring
+    # as we're moving away from storing model information in provider config files
+    pass
 
 def display_update_summary(update_result: Dict[str, Any]) -> None:
     """

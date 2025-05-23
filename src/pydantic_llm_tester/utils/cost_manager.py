@@ -63,20 +63,36 @@ def calculate_cost(
     Returns:
         Tuple containing (prompt_cost, completion_cost, total_cost)
     """
+    # Handle provider:model format if model contains provider prefix
+    if ":" in model:
+        # The model string contains a provider prefix (e.g. "openai:gpt-4")
+        # Use the provider from the model string and the part after the colon as the model
+        model_parts = model.split(":", 1)
+        if len(model_parts) == 2:
+            # Use the provider from the model string if it differs from the provided provider
+            # This handles cases where the model string includes the provider
+            # but the provider parameter is different
+            if model_parts[0] != provider:
+                logger.debug(f"Model string '{model}' contains different provider than parameter '{provider}'. " +
+                            f"Using provider from model string: '{model_parts[0]}'")
+            provider = model_parts[0]
+            model = model_parts[1]
+    
     # Get model details from the central registry
     registry = LLMRegistry.get_instance()
-    model_config = registry.get_model_details(provider, model)
+    try:
+        model_config = registry.get_model_details(provider, model)
 
-    input_cost_per_token = 0.0
-    output_cost_per_token = 0.0
-
-    if model_config and model_config.cost_input is not None and model_config.cost_output is not None:
-        # Use pricing from the registry if available
+        # Use pricing from the registry
         input_cost_per_token = model_config.cost_input / 1_000_000
         output_cost_per_token = model_config.cost_output / 1_000_000
-        logger.debug(f"Using registry pricing for {provider}/{model}: input={model_config.cost_input}, output={model_config.cost_output}")
-    else:
-        # Fallback to default pricing if registry info is missing
+        logger.debug(f"Using registry pricing for {provider}/{model}: " +
+                   f"input={model_config.cost_input}, output={model_config.cost_output}")
+    except (ValueError, AttributeError) as e:
+        # Model not found in registry or has missing cost attributes
+        logger.warning(f"Error getting model details from registry: {str(e)}")
+        
+        # Fallback to default pricing
         provider_pricing = DEFAULT_MODEL_PRICING.get(provider, {})
         model_pricing = provider_pricing.get(model, {})
 

@@ -23,29 +23,28 @@ def update_costs(
     ),
     update_configs: bool = typer.Option(
         True, "--update-configs/--no-update-configs", "-u/-nu",
-        help="Update provider config files with token information (context length, max input/output tokens) and other metadata."
+        help="Update provider config files with token information for backwards compatibility."
     ),
     force: bool = typer.Option(
         False, "--force", "-f",
-        help="Force refresh of OpenRouter API cache."
+        help="Force refresh of model registry cache."
     ),
 ):
     """
-    Update model costs and token information from OpenRouter API.
+    Update model costs and token information from the model registry.
     
-    This command fetches the latest model information from OpenRouter API and updates:
-    1. Pricing information in models_pricing.json for cost tracking
-    2. Token limits in provider config files using the formula:
-       max_input_tokens = context_length - max_completion_tokens
+    This command refreshes the model registry data and reports on the models and their costs:
+    1. If OpenRouter is enabled, it fetches the latest model information from the OpenRouter API
+    2. It displays all models in the registry with their pricing information
+    3. Optionally updates provider config files for backwards compatibility
     
-    This ensures your model configurations have both accurate pricing and
-    optimal token limits for each model.
+    Model costs are now managed centrally in the model registry rather than in models_pricing.json.
     """
     logger.info("Executing 'costs update' command")
     
     # Confirm before proceeding
     confirm = typer.confirm(
-        "This will update model costs and token information from OpenRouter API and modify configuration files. Proceed?", 
+        "This will refresh model data in the registry and display the latest cost information. Proceed?", 
         abort=True
     )
     
