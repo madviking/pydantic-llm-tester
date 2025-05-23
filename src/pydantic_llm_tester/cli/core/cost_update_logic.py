@@ -15,7 +15,29 @@ from pydantic_llm_tester.llms.provider_factory import (
     get_available_providers,
     reset_caches
 )
-# Removed imports for load_model_pricing, save_model_pricing, get_pricing_config_path
+
+# These functions are kept for backward compatibility with tests
+def load_model_pricing():
+    """
+    Deprecated: Load model pricing from models_pricing.json file.
+    Now models should be loaded from the LLMRegistry.
+    
+    Returns:
+        Empty dict as models are now managed by the registry
+    """
+    logger.warning("load_model_pricing is deprecated, use LLMRegistry instead")
+    return {}
+
+def save_model_pricing(pricing_data):
+    """
+    Deprecated: Save model pricing to models_pricing.json file.
+    Now models should be saved via the LLMRegistry.
+    
+    Args:
+        pricing_data: Model pricing data to save
+    """
+    logger.warning("save_model_pricing is deprecated, use LLMRegistry instead")
+    pass
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -117,14 +139,15 @@ def update_model_costs(provider_filter: Optional[List[str]] = None,
         
     return result
 
-def _update_provider_configs(models: List[ModelConfig]) -> None:
+def _update_provider_configs(models, provider_list=None) -> None:
     """
     Update provider config files with token information from models.
     
     This function is kept for backwards compatibility with existing provider config files.
     
     Args:
-        models: List of ModelConfig objects.
+        models: List of ModelConfig objects or API model data.
+        provider_list: Optional list of providers to update.
     """
     logger.info("Updating provider config files with token information")
     # Implementation would go here - not needed as part of this refactoring

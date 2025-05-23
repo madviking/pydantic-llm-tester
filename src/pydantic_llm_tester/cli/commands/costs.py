@@ -42,7 +42,7 @@ def update_costs(
     2. It displays all models in the registry with their pricing information
     3. Optionally updates provider config files for backwards compatibility
     
-    Model costs are now managed centrally in the model registry rather than in models_pricing.json.
+    Model costs are managed centrally in the model registry.
     """
     logger.info("Executing 'costs update' command")
     

@@ -10,7 +10,6 @@ from datetime import datetime
 
 # Use absolute imports
 from .common import get_project_root, get_package_dir
-from ..llms.llm_registry import LLMRegistry # Import LLMRegistry
 from ..llms.base import ModelConfig # Import ModelConfig
 from .data_structures import UsageData # Import UsageData from the new file
 
@@ -45,6 +44,19 @@ DEFAULT_MODEL_PRICING = {
 # Removed get_pricing_config_path, load_model_pricing, save_model_pricing
 # as pricing is now sourced from LLMRegistry
 
+# Helper function to avoid circular imports
+def get_llm_registry():
+    """
+    Get the LLMRegistry instance.
+    
+    This function is used to avoid circular imports.
+    
+    Returns:
+        LLMRegistry instance
+    """
+    from ..llms.llm_registry import LLMRegistry
+    return LLMRegistry.get_instance()
+
 def calculate_cost(
     provider: str,
     model: str,
@@ -78,8 +90,8 @@ def calculate_cost(
             provider = model_parts[0]
             model = model_parts[1]
     
-    # Get model details from the central registry
-    registry = LLMRegistry.get_instance()
+    # Get model details from the central registry using the helper function
+    registry = get_llm_registry()
     try:
         model_config = registry.get_model_details(provider, model)
 

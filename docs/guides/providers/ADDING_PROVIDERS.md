@@ -157,20 +157,7 @@ Create a `config.json` file with your provider's configuration:
   "provider_type": "your_provider_type",
   "env_key": "YOUR_PROVIDER_API_KEY",
   "env_key_secret": "",
-  "system_prompt": "Extract the requested information from the provided text as accurate JSON.",
-  "llm_models": [
-    {
-      "name": "your-model-name",
-      "default": true,
-      "preferred": true,
-      "cost_input": 1.0,
-      "cost_output": 2.0,
-      "cost_category": "standard",
-      "max_input_tokens": 8000,
-      "max_output_tokens": 4000,
-      "enabled": true
-    }
-  ]
+  "system_prompt": "Extract the requested information from the provided text as accurate JSON."
 }
 ```
 
@@ -179,9 +166,32 @@ Adjust the values according to your provider's specifications:
 - `provider_type`: Type identifier
 - `env_key`: Environment variable for the API key
 - `system_prompt`: Default system prompt
-- `models`: List of supported models with their configurations. Add `"enabled": true` or `"enabled": false` to control if the model is active.
 
-*(Note: For the `openrouter` provider, cost and token limit fields in `config.json` are overridden by values fetched dynamically from the OpenRouter API via the `llm-tester update-models` command or during runtime loading. However, flags like `default`, `preferred`, and `enabled` are still respected from the static config file.)*
+**Important**: With the new architecture, model configuration (costs, token limits, etc.) is managed centrally by the framework rather than in individual provider config files. The model details are:
+
+1. For OpenRouter models: Fetched dynamically from the OpenRouter API and stored in a central registry
+2. For other providers: Configured in the central model registry and referenced in `pyllm_config.json` using the "provider:model-name" format
+
+To register models for your new provider, you'll need to add them to your `pyllm_config.json` file in the appropriate sections. For example:
+
+```json
+{
+  "providers": {
+    "your_provider_name": {
+      "enabled": true,
+      "default_model": "your-model-name"
+    }
+  },
+  "py_models": {
+    "job_ads": {
+      "enabled": true,
+      "llm_models": [
+        "your_provider_name:your-model-name"
+      ]
+    }
+  }
+}
+```
 
 ### 4. Ensure Provider Discovery
 

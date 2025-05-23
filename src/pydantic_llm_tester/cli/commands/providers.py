@@ -5,7 +5,7 @@ import logging
 from typing import List, Dict, Any # Added Optional, Dict, Any
 
 # Use absolute imports for clarity
-from pydantic_llm_tester.cli.core import provider_logic, llm_model_logic as model_logic
+from pydantic_llm_tester.cli.core import provider_logic
 
 logger = logging.getLogger(__name__)
 

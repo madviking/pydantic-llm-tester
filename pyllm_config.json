@@ -4,26 +4,14 @@
       "enabled": true,
       "default_model": "gpt-4"
     },
-    "openrouter": {
-      "enabled": true,
-      "default_model": "openai:gpt-4"
-    },
     "anthropic": {
       "enabled": true,
       "default_model": "claude-3-opus"
     },
-    "mock": {
+    "disabled-provider": {
       "enabled": false,
-      "default_model": "mock-model"
+      "default_model": "disabled-model"
     }
-  },
-  "test_settings": {
-    "output_dir": "test_results",
-    "save_optimized_prompts": true,
-    "default_modules": [
-      "job_ads"
-    ],
-    "new_setting": "value"
   },
   "bridge": {
     "default_provider": "openai",
@@ -32,28 +20,30 @@
     "secondary_model": "claude-3-opus"
   },
   "py_models": {
-    "integration_tests": {
-      "enabled": true
-    },
     "job_ads": {
       "enabled": true,
       "llm_models": [
-        "openai:gpt-4o-mini-2024-07-18",
-        "anthropic:claude-3-opus"
+        "openai:gpt-4o",
+        "anthropic:claude-3-haiku"
       ]
+    },
+    "disabled_model": {
+      "enabled": false,
+      "llm_models": [
+        "openai:disabled-model"
+      ]
+    },
+    "integration_tests": {
+      "enabled": true
     },
     "product_descriptions": {
-      "enabled": true,
-      "llm_models": [
-        "anthropic:claude-3-opus",
-        "openai:gpt-4"
-      ]
-    },
-    "config_test_model": {
       "enabled": true
     },
     "test_model": {
-      "path": "/var/folders/t2/l90v_k516tsgp2jk7h3pwd740000gn/T/tmptc8wgiq4",
+      "path": "/var/folders/t2/l90v_k516tsgp2jk7h3pwd740000gn/T/tmpwa1yypyc",
+      "enabled": true
+    },
+    "config_test_model": {
       "enabled": true
     }
   }

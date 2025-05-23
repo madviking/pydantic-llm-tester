@@ -100,15 +100,11 @@ These apply to all commands:
 
 **3. `providers`**
    - Usage: `llm-tester providers <subcommand> [args]`
-   - Description: Manage LLM providers and their specific LLM models.
+   - Description: Manage LLM providers.
    - Subcommands:
-     - `list`: Shows all discoverable providers and whether they are enabled (based on `pyllm_config.json`). (Updated description)
-     - `enable <name>`: Enables a provider by setting its 'enabled' flag to true in `pyllm_config.json`. (Updated description)
-     - `disable <name>`: Disables a provider by setting its 'enabled' flag to false in `pyllm_config.json`. (Updated description)
-     - `manage list <provider>`: Lists LLM models within a provider's `config.json` and their enabled status.
-     - `manage enable <provider> <model_name>`: Enables a specific LLM model within a provider's `config.json`.
-     - `manage disable <provider> <model_name>`: Disables a specific LLM model within a provider's `config.json`.
-     - `manage update <provider>`: Updates LLM model details (cost, limits) from the provider API (currently only `openrouter`).
+     - `list`: Shows all discoverable providers and whether they are enabled (based on `pyllm_config.json`).
+     - `enable <name>`: Enables a provider by setting its 'enabled' flag to true in `pyllm_config.json`.
+     - `disable <name>`: Disables a provider by setting its 'enabled' flag to false in `pyllm_config.json`.
 
 **4. `schemas`**
    - Usage: `llm-tester schemas <subcommand> [args]`
@@ -156,8 +152,11 @@ Use the CLI commands to check your setup:
 # Check discovered providers and enabled status
 llm-tester providers list
 
-# Check LLM py_models within a specific provider
-llm-tester providers manage list <provider_name>
+# Check available models (only configured models by default)
+llm-tester prices list
+
+# Check all available models
+llm-tester prices list --all
 
 # Check API keys (will prompt if missing)
 llm-tester configure keys
@@ -167,7 +166,7 @@ llm-tester configure keys
 
 1. **API Keys**: Use `llm-tester configure keys` or manage your `.env` file carefully. Keep this file out of version control (it should be in `.gitignore`).
 2. **Provider Enablement**: Use the `llm-tester providers enable/disable` commands to manage the 'enabled' flag in `pyllm_config.json`. (Updated description)
-3. **OpenRouter Updates**: Regularly use `llm-tester providers manage update openrouter` to keep pricing and token limits accurate.
+3. **OpenRouter Updates**: Regularly use `llm-tester prices refresh` to keep pricing and token limits accurate.
 
 ### Test Settings
 

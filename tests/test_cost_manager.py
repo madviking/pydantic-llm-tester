@@ -1,14 +1,15 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from src.pydantic_llm_tester.utils.cost_manager import CostManager, UsageData
+from src.pydantic_llm_tester.utils.cost_manager import CostTracker
+from src.pydantic_llm_tester.utils.data_structures import UsageData
 from src.pydantic_llm_tester.llms.base import ModelConfig # Import ModelConfig
 
 @pytest.fixture
 def mock_llm_registry():
     """Fixture to mock the LLMRegistry."""
-    with patch('src.pydantic_llm_tester.utils.cost_manager.LLMRegistry') as MockRegistry:
-        registry_instance = MockRegistry.get_instance.return_value = MagicMock()
+    with patch('src.pydantic_llm_tester.utils.cost_manager.get_llm_registry') as mock_get_registry:
+        registry_instance = mock_get_registry.return_value = MagicMock()
         # Configure the mock registry to return specific model details
         mock_model_config_openai = ModelConfig(
             name="gpt-4o",
@@ -56,20 +57,20 @@ def mock_llm_registry():
 
 def test_cost_manager_calculates_cost_with_dynamic_pricing(mock_llm_registry):
     """
-    Test that CostManager uses dynamic pricing from the registry for cost calculation.
+    Test that CostTracker uses dynamic pricing from the registry for cost calculation.
     """
-    cost_manager = CostManager()
-    run_id = cost_manager.run_id # Get the generated run_id
+    cost_tracker = CostTracker()
+    run_id = cost_tracker.current_run_id # Get the generated run_id
 
     # Simulate adding test results with token usage for different models
     usage_openai = UsageData(prompt_tokens=100, completion_tokens=50, total_tokens=150, model="gpt-4o", total_cost=0.0) # total_cost will be calculated
-    cost_manager.add_test_result(run_id, "test_id_1", "openai", "gpt-4o", usage_openai)
+    cost_tracker.add_test_result(run_id, "test_id_1", "openai", "gpt-4o", usage_openai)
 
     usage_openrouter_gemini = UsageData(prompt_tokens=200, completion_tokens=100, total_tokens=300, model="openrouter/google/gemini-pro", total_cost=0.0)
-    cost_manager.add_test_result(run_id, "test_id_2", "openrouter", "openrouter/google/gemini-pro", usage_openrouter_gemini)
+    cost_tracker.add_test_result(run_id, "test_id_2", "openrouter", "openrouter/google/gemini-pro", usage_openrouter_gemini)
 
     usage_openrouter_mistral = UsageData(prompt_tokens=50, completion_tokens=20, total_tokens=70, model="openrouter/mistral/mistral-large-latest", total_cost=0.0)
-    cost_manager.add_test_result(run_id, "test_id_3", "openrouter", "openrouter/mistral/mistral-large-latest", usage_openrouter_mistral)
+    cost_tracker.add_test_result(run_id, "test_id_3", "openrouter", "openrouter/mistral/mistral-large-latest", usage_openrouter_mistral)
 
     # Calculate expected costs based on mocked dynamic pricing (cost per 1M tokens)
     expected_cost_openai = (100 * (5.0 / 1_000_000)) + (50 * (15.0 / 1_000_000))
@@ -77,7 +78,7 @@ def test_cost_manager_calculates_cost_with_dynamic_pricing(mock_llm_registry):
     expected_cost_openrouter_mistral = (50 * (0.8 / 1_000_000)) + (20 * (0.24 / 1_000_000))
 
     # Get the run summary to check calculated costs
-    run_summary = cost_manager.get_run_summary(run_id)
+    run_summary = cost_tracker.get_run_summary(run_id)
 
     # Verify the calculated costs for each model
     assert "openai:gpt-4o" in run_summary["model_costs"]

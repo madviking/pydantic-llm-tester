@@ -695,7 +695,7 @@ class PyllmBridge:
             - model_pricing: Dictionary with pricing information for the model
         """
         import re
-        from ..utils.cost_manager import load_model_pricing
+        from ..llms.llm_registry import get_llm_registry
         
         # Get model name and variations
         model_name = model_class.__name__
@@ -718,13 +718,14 @@ class PyllmBridge:
         pricing_info = {}
         if provider_model:
             provider_name, model_name = provider_model
-            pricing = load_model_pricing()
-            provider_pricing = pricing.get(provider_name, {})
-            model_pricing = provider_pricing.get(model_name, {})
-            pricing_info = {
-                'input': model_pricing.get('input', 0.0),
-                'output': model_pricing.get('output', 0.0)
-            }
+            # Get the registry instance and fetch model details
+            registry = get_llm_registry()
+            model_details = registry.get_model_details(provider_name, model_name)
+            if model_details:
+                pricing_info = {
+                    'input': model_details.get('cost_input', 0.0),
+                    'output': model_details.get('cost_output', 0.0)
+                }
         
         return {
             'class_name': model_class.__name__,

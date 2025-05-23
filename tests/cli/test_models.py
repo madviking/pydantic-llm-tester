@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from typer.testing import CliRunner
 
 from pydantic_llm_tester.cli import app
-from pydantic_llm_tester.cli.core import model_config_logic
+# Import of model_config_logic removed as it no longer exists
 from pydantic_llm_tester.cli.core import provider_logic
 
 runner = CliRunner()
@@ -60,30 +60,35 @@ def mock_model_template():
     }
 
 # Test command structure and options
+@pytest.mark.skip(reason="models command has been removed")
 def test_models_list_command_exists():
     """Test that the 'models list' command exists and returns help text"""
     result = runner.invoke(app, ["models", "list", "--help"])
     assert result.exit_code == 0
     assert "List all models for a specific provider" in result.stdout
 
+@pytest.mark.skip(reason="models command has been removed")
 def test_models_add_command_exists():
     """Test that the 'models add' command exists and returns help text"""
     result = runner.invoke(app, ["models", "add", "--help"])
     assert result.exit_code == 0
     assert "Add a new model to a provider's configuration" in result.stdout
 
+@pytest.mark.skip(reason="models command has been removed")
 def test_models_edit_command_exists():
     """Test that the 'models edit' command exists and returns help text"""
     result = runner.invoke(app, ["models", "edit", "--help"])
     assert result.exit_code == 0
     assert "Edit an existing model in a provider's configuration" in result.stdout
 
+@pytest.mark.skip(reason="models command has been removed")
 def test_models_remove_command_exists():
     """Test that the 'models remove' command exists and returns help text"""
     result = runner.invoke(app, ["models", "remove", "--help"])
     assert result.exit_code == 0
     assert "Remove a model from a provider's configuration" in result.stdout
 
+@pytest.mark.skip(reason="models command has been removed")
 def test_models_set_default_command_exists():
     """Test that the 'models set-default' command exists and returns help text"""
     result = runner.invoke(app, ["models", "set-default", "--help"])
@@ -91,6 +96,7 @@ def test_models_set_default_command_exists():
     assert "Set a model as the default for a provider" in result.stdout
 
 # Test core logic functions
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.get_provider_config")
 def test_models_list(mock_get_config, mock_get_providers, mock_provider_config):
@@ -109,6 +115,7 @@ def test_models_list(mock_get_config, mock_get_providers, mock_provider_config):
     mock_get_providers.assert_called_once()
     mock_get_config.assert_called_once_with("test_provider")
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.get_provider_config")
 def test_models_list_no_models(mock_get_config, mock_get_providers):
@@ -121,6 +128,7 @@ def test_models_list_no_models(mock_get_config, mock_get_providers):
     assert result.exit_code == 0
     assert "No models found for provider 'empty_provider'" in result.stdout
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 def test_models_list_provider_not_found(mock_get_providers):
     """Test 'models list' command with non-existent provider"""
@@ -131,6 +139,7 @@ def test_models_list_provider_not_found(mock_get_providers):
     assert result.exit_code == 1
     assert "Error: Provider 'nonexistent' not found" in result.stdout
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.add_model_to_provider")
 def test_models_add(mock_add_model, mock_get_providers):
@@ -167,6 +176,7 @@ def test_models_add(mock_add_model, mock_get_providers):
         }
     )
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.add_model_to_provider")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.set_default_model")
@@ -189,6 +199,7 @@ def test_models_add_as_default(mock_set_default, mock_add_model, mock_get_provid
     mock_add_model.assert_called_once()
     mock_set_default.assert_called_once_with("test_provider", "new-model")
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.get_model_from_provider")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.edit_model_in_provider")
@@ -233,6 +244,7 @@ def test_models_edit(mock_edit_model, mock_get_model, mock_get_providers):
     }
     mock_edit_model.assert_called_once_with("test_provider", "test-model", expected_config)
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.remove_model_from_provider")
 def test_models_remove(mock_remove_model, mock_get_providers):
@@ -248,6 +260,7 @@ def test_models_remove(mock_remove_model, mock_get_providers):
     mock_get_providers.assert_called_once()
     mock_remove_model.assert_called_once_with("test_provider", "test-model")
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.remove_model_from_provider")
 def test_models_remove_abort(mock_remove_model, mock_get_providers):
@@ -261,6 +274,7 @@ def test_models_remove_abort(mock_remove_model, mock_get_providers):
     assert "Operation cancelled" in result.stdout
     mock_remove_model.assert_not_called()
 
+@pytest.mark.skip(reason="models command has been removed")
 @patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
 @patch("pydantic_llm_tester.cli.core.model_config_logic.set_default_model")
 def test_models_set_default(mock_set_default, mock_get_providers):
@@ -276,277 +290,78 @@ def test_models_set_default(mock_set_default, mock_get_providers):
     mock_set_default.assert_called_once_with("test_provider", "test-model")
 
 # Test the core logic directly
+@pytest.mark.skip(reason="model_config_logic module has been removed")
 def test_validate_model_config():
     """Test model configuration validation"""
-    # Valid model config
-    valid_config = {
-        "name": "test-model",
-        "default": False,
-        "preferred": False,
-        "enabled": True,
-        "cost_input": 10.0,
-        "cost_output": 20.0,
-        "cost_category": "standard",
-        "max_input_tokens": 4096,
-        "max_output_tokens": 4096
-    }
-    
-    success, message = model_config_logic.validate_model_config(valid_config)
-    assert success is True
-    assert "valid" in message.lower()
-    
-    # Invalid model config (missing required field)
-    invalid_config = {
-        "name": "test-model",
-        "default": False,
-        "preferred": False,
-        "enabled": True,
-        # Missing cost_input
-        "cost_output": 20.0,
-        "cost_category": "standard",
-        "max_input_tokens": 4096,
-        "max_output_tokens": 4096
-    }
-    
-    success, message = model_config_logic.validate_model_config(invalid_config)
-    assert success is False
-    assert "invalid" in message.lower()
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
+@pytest.mark.skip(reason="model_config_logic module has been removed")
 def test_add_model_to_provider():
     """Test adding a model to a provider"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Create a mock provider config file
-        config_path = os.path.join(tmpdir, "config.json")
-        provider_config = {
-            "name": "test_provider",
-            "api_key_env": "TEST_PROVIDER_API_KEY",
-            "llm_models": []
-        }
-        
-        with open(config_path, "w") as f:
-            json.dump(provider_config, f)
-        
-        # Mock the get_provider_config_path function
-        with patch("pydantic_llm_tester.cli.core.model_config_logic.get_provider_config_path") as mock_get_path, \
-             patch("pydantic_llm_tester.cli.core.model_config_logic.validate_model_config") as mock_validate, \
-             patch("pydantic_llm_tester.cli.core.model_config_logic.reset_caches") as mock_reset:
-            
-            mock_get_path.return_value = config_path
-            mock_validate.return_value = (True, "Model configuration is valid.")
-            
-            # Add a new model
-            model_config = {
-                "name": "new-model",
-                "default": False,
-                "preferred": False,
-                "enabled": True,
-                "cost_input": 5.0,
-                "cost_output": 10.0,
-                "cost_category": "cheap",
-                "max_input_tokens": 8192,
-                "max_output_tokens": 8192
-            }
-            
-            success, message = model_config_logic.add_model_to_provider("test_provider", "new-model", model_config)
-            
-            assert success is True
-            assert "added" in message.lower()
-            mock_reset.assert_called_once()
-            
-            # Verify the model was added to the config file
-            with open(config_path, "r") as f:
-                updated_config = json.load(f)
-                
-            assert len(updated_config["llm_models"]) == 1
-            assert updated_config["llm_models"][0]["name"] == "new-model"
-            assert updated_config["llm_models"][0]["cost_input"] == 5.0
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
+@pytest.mark.skip(reason="model_config_logic module has been removed")
 def test_edit_model_in_provider():
     """Test editing a model in a provider"""
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # Create a mock provider config file with an existing model
-        config_path = os.path.join(tmpdir, "config.json")
-        provider_config = {
-            "name": "test_provider",
-            "api_key_env": "TEST_PROVIDER_API_KEY",
-            "llm_models": [
-                {
-                    "name": "existing-model",
-                    "default": False,
-                    "preferred": False,
-                    "enabled": True,
-                    "cost_input": 10.0,
-                    "cost_output": 20.0,
-                    "cost_category": "standard",
-                    "max_input_tokens": 4096,
-                    "max_output_tokens": 4096
-                }
-            ]
-        }
-        
-        with open(config_path, "w") as f:
-            json.dump(provider_config, f)
-        
-        # Mock the get_provider_config_path function
-        with patch("pydantic_llm_tester.cli.core.model_config_logic.get_provider_config_path") as mock_get_path, \
-             patch("pydantic_llm_tester.cli.core.model_config_logic.validate_model_config") as mock_validate, \
-             patch("pydantic_llm_tester.cli.core.model_config_logic.reset_caches") as mock_reset:
-            
-            mock_get_path.return_value = config_path
-            mock_validate.return_value = (True, "Model configuration is valid.")
-            
-            # Edit the existing model
-            updated_config = {
-                "name": "existing-model",
-                "default": True,
-                "preferred": True,
-                "enabled": True,
-                "cost_input": 15.0,
-                "cost_output": 25.0,
-                "cost_category": "expensive",
-                "max_input_tokens": 8192,
-                "max_output_tokens": 8192
-            }
-            
-            success, message = model_config_logic.edit_model_in_provider("test_provider", "existing-model", updated_config)
-            
-            assert success is True
-            assert "updated" in message.lower()
-            mock_reset.assert_called_once()
-            
-            # Verify the model was updated in the config file
-            with open(config_path, "r") as f:
-                updated_config = json.load(f)
-                
-            assert len(updated_config["llm_models"]) == 1
-            assert updated_config["llm_models"][0]["cost_input"] == 15.0
-            assert updated_config["llm_models"][0]["cost_category"] == "expensive"
-            assert updated_config["llm_models"][0]["default"] is True
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
-# Test error handling
-@patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
-@patch("pydantic_llm_tester.cli.core.model_config_logic.get_provider_config")
-def test_models_list_config_not_found(mock_get_config, mock_get_providers):
+# All tests below are skipped because model_config_logic module has been removed
+
+@pytest.mark.skip(reason="model_config_logic module has been removed")
+def test_models_list_config_not_found():
     """Test 'models list' command when provider config cannot be loaded"""
-    mock_get_providers.return_value = ["test_provider"]
-    mock_get_config.return_value = None
-    
-    result = runner.invoke(app, ["models", "list", "test_provider"])
-    
-    assert result.exit_code == 1
-    assert "Error: Could not load configuration for provider 'test_provider'" in result.stdout
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
-@patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
-@patch("pydantic_llm_tester.cli.core.model_config_logic.add_model_to_provider")
-def test_models_add_failure(mock_add_model, mock_get_providers):
+@pytest.mark.skip(reason="model_config_logic module has been removed")
+def test_models_add_failure():
     """Test 'models add' command failure"""
-    mock_get_providers.return_value = ["test_provider"]
-    mock_add_model.return_value = (False, "Model 'new-model' already exists for provider 'test_provider'.")
-    
-    result = runner.invoke(app, [
-        "models", "add", "test_provider",
-        "--name", "new-model",
-        "--cost-input", "5.0",
-        "--cost-output", "10.0"
-    ])
-    
-    assert result.exit_code == 1
-    assert "Model 'new-model' already exists for provider 'test_provider'" in result.stdout
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
-@patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
-@patch("pydantic_llm_tester.cli.core.model_config_logic.get_model_from_provider")
-def test_models_edit_model_not_found(mock_get_model, mock_get_providers):
+@pytest.mark.skip(reason="model_config_logic module has been removed")
+def test_models_edit_model_not_found():
     """Test 'models edit' command when model is not found"""
-    mock_get_providers.return_value = ["test_provider"]
-    mock_get_model.return_value = None
-    
-    result = runner.invoke(app, [
-        "models", "edit", "test_provider", "nonexistent-model",
-        "--cost-input", "15.0"
-    ])
-    
-    assert result.exit_code == 1
-    assert "Error: Model 'nonexistent-model' not found in provider 'test_provider'" in result.stdout
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
 # Test interactive mode
-@pytest.mark.skip(reason="Interactive test is problematic to mock reliably with Typer/pytest runner interaction")
-@patch("pydantic_llm_tester.cli.core.provider_logic.get_discovered_providers")
-@patch("pydantic_llm_tester.cli.core.model_config_logic.get_model_template")
-@patch("pydantic_llm_tester.cli.core.model_config_logic.add_model_to_provider")
-@patch("pydantic_llm_tester.cli.commands.models.typer.prompt")
-@patch("pydantic_llm_tester.cli.commands.models.typer.confirm")
-def test_models_add_interactive(mock_confirm, mock_prompt, mock_add_model, mock_get_template, mock_get_providers, mock_model_template):
+@pytest.mark.skip(reason="model_config_logic module has been removed")
+def test_models_add_interactive():
     """Test 'models add' command in interactive mode"""
-    mock_get_providers.return_value = ["test_provider"]
-    mock_get_template.return_value = mock_model_template
-    mock_add_model.return_value = (True, "Model 'interactive-model' added to provider 'test_provider' successfully.")
-
-    # Configure mock prompts and confirms with separate side_effect lists
-    prompt_side_effect = [
-        "interactive-model",  # Model name
-        "7.5",                # Cost per 1M input tokens
-        "12.5",               # Cost per 1M output tokens
-        "2",                  # Cost category (standard)
-        "16384",              # Maximum input tokens
-        "16384"               # Maximum output tokens
-    ]
-    # Use string inputs for confirms
-    confirm_side_effect = [
-        "n\n",  # Set as default? (False)
-        "y\n",   # Mark as preferred? (True)
-        "y\n"    # Enable model? (True)
-    ]
-    mock_prompt.side_effect = prompt_side_effect
-    mock_confirm.side_effect = confirm_side_effect
-
-    result = runner.invoke(app, ["models", "add", "test_provider", "--interactive"])
-
-    assert result.exit_code == 0
-    assert "Model 'interactive-model' added to provider 'test_provider' successfully" in result.stdout
-    mock_get_providers.assert_called_once()
-    mock_get_template.assert_called_once()
-
-    # Check that the model config was created correctly from interactive input
-    expected_config = {
-        "name": "interactive-model",
-        "default": False,
-        "preferred": True,
-        "enabled": True,
-        "cost_input": 7.5,
-        "cost_output": 12.5,
-        "cost_category": "standard",
-        "max_input_tokens": 16384,
-        "max_output_tokens": 16384
-    }
-    mock_add_model.assert_called_once_with("test_provider", "interactive-model", expected_config)
+    # This test is skipped because model_config_logic module has been removed
+    pass
 
 # Tests for removed model management commands (Step 7.5)
 def test_models_list_command_removed():
     """Test that the 'models list' command has been removed."""
     result = runner.invoke(app, ["models", "list", "test_provider"])
     assert result.exit_code != 0
-    assert "No such command 'list'." in result.stdout or "Error: No such command 'models'." in result.stdout
+    assert "No such command 'models'" in result.stdout
 
 def test_models_add_command_removed():
     """Test that the 'models add' command has been removed."""
     result = runner.invoke(app, ["models", "add", "test_provider", "--name", "new-model"])
     assert result.exit_code != 0
-    assert "No such command 'add'." in result.stdout or "Error: No such command 'models'." in result.stdout
+    assert "No such command 'models'" in result.stdout
 
 def test_models_edit_command_removed():
     """Test that the 'models edit' command has been removed."""
     result = runner.invoke(app, ["models", "edit", "test_provider", "test-model", "--cost-input", "15.0"])
     assert result.exit_code != 0
-    assert "No such command 'edit'." in result.stdout or "Error: No such command 'models'." in result.stdout
+    assert "No such command 'models'" in result.stdout
 
 def test_models_remove_command_removed():
     """Test that the 'models remove' command has been removed."""
     result = runner.invoke(app, ["models", "remove", "test_provider", "test-model"])
     assert result.exit_code != 0
-    assert "No such command 'remove'." in result.stdout or "Error: No such command 'models'." in result.stdout
+    assert "No such command 'models'" in result.stdout
 
 def test_models_set_default_command_removed():
     """Test that the 'models set-default' command has been removed."""
     result = runner.invoke(app, ["models", "set-default", "test_provider", "test-model"])
     assert result.exit_code != 0
-    assert "No such command 'set-default'." in result.stdout or "Error: No such command 'models'." in result.stdout
+    assert "No such command 'models'" in result.stdout

@@ -5,7 +5,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 # Load environment variables from .env file
 # Use dotenv_values to get a dictionary of loaded variables
@@ -47,6 +47,12 @@ class MockLLMTester:
         # Mimic the behavior needed by tests that call this
         self.prompt_optimizer.optimize_prompt("dummy prompt") # Call the mock optimizer
         return {'dummy/test': {'original_results': {}, 'optimized_results': {}, 'original_prompt': '...', 'optimized_prompt': '...'}} # Return dummy results
+
+@pytest.fixture
+def mock_llm_tester_run_tests():
+    """Mock the LLMTester.run_tests method for test_run.py"""
+    with patch('src.pydantic_llm_tester.cli.core.test_runner_logic.LLMTester.run_tests') as mock:
+        yield mock
 
     def generate_report(self, results, optimized=False):
         # Mimic the behavior needed by tests that call this

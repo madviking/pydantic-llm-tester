@@ -9,7 +9,9 @@ from rich.text import Text
 from rich import box
 
 from pydantic_llm_tester.llms.provider_factory import (
-    get_available_providers
+    get_available_providers,
+    _fetch_openrouter_models_with_cache,
+    load_provider_config
 )
 from pydantic_llm_tester.llms.llm_registry import LLMRegistry, get_all_model_details  # Import LLMRegistry and get_all_model_details
 from pydantic_llm_tester.llms.base import ModelConfig # Import ModelConfig

@@ -14,11 +14,12 @@ class UsageData:
 
     def __init__(
         self,
-        provider: str,
-        model: str,
         prompt_tokens: int,
         completion_tokens: int,
         total_tokens: Optional[int] = None,
+        model: str = "",
+        provider: str = "",
+        total_cost: float = 0.0
     ):
         self.provider = provider
         self.model = model
@@ -26,11 +27,11 @@ class UsageData:
         self.completion_tokens = completion_tokens
         self.total_tokens = total_tokens or (prompt_tokens + completion_tokens)
 
-        # Cost calculation will be handled by CostManager or calculate_cost function
+        # Cost calculation will be handled by CostTracker or calculate_cost function
         # These attributes will be populated after initialization
         self.prompt_cost: float = 0.0
         self.completion_cost: float = 0.0
-        self.total_cost: float = 0.0
+        self.total_cost: float = total_cost
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert usage data to dictionary"""

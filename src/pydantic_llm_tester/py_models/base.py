@@ -1,7 +1,7 @@
 import os
 import json
 from typing import List, Dict, Any, ClassVar, Type, Set, Tuple, Optional, TypeVar
-from pydantic import BaseModel, model_validator, ValidationError
+from pydantic import BaseModel, validator, ValidationError
 
 T = TypeVar('T', bound='BasePyModel')
 
@@ -14,10 +14,10 @@ class BasePyModel(BaseModel):
     # Class variable for module name - must be defined by subclasses
     MODULE_NAME: ClassVar[str]
 
-    model_config = {
-        "extra": "ignore",
-        "validate_assignment": True,
-    }
+    # Pydantic v1 Config class
+    class Config:
+        extra = "ignore"
+        validate_assignment = True
 
     @classmethod
     def get_skip_fields(cls) -> Set[str]:
@@ -27,9 +27,18 @@ class BasePyModel(BaseModel):
         """
         return set()
 
-    @model_validator(mode='before')
+    # Root validator for pre-processing incoming data (Pydantic v1 compatible)
+    @validator('*', pre=True)
     @classmethod
-    def exclude_invalid_fields(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def exclude_invalid_fields(cls, value, **kwargs):
+        """
+        For Pydantic v1 compatibility, we keep this validator but don't use it for field filtering
+        """
+        return value
+        
+    # Custom classmethod to create model with field filtering
+    @classmethod
+    def create_filtered(cls, data: Dict[str, Any]):
         """
         Pre-process the data before validation to exclude fields with type errors
         or fields that are explicitly marked to be skipped.
@@ -49,14 +58,14 @@ class BasePyModel(BaseModel):
                 continue
 
             # Skip fields that don't exist in the model
-            if field_name not in cls.model_fields:
+            if field_name not in cls.__fields__:  # Use __fields__ for Pydantic v1
                 continue
 
-            # Add the field to clean data - it will be validated by Pydantic later
-            # If it fails validation, an error will be raised at that time
+            # Add the field to clean data
             clean_data[field_name] = field_value
 
-        return clean_data
+        # Return a model instance
+        return cls(**clean_data)
 
     @classmethod
     def model_validate_safe(cls: Type[T], obj: Any) -> Tuple[Optional[T], List[str]]:
@@ -75,7 +84,8 @@ class BasePyModel(BaseModel):
 
         # First attempt normal validation to get standard errors
         try:
-            result = cls.model_validate(obj)
+            # Use Pydantic v1 parse_obj instead of model_validate
+            result = cls.parse_obj(obj)
             return result, errors
         except ValidationError as e:
             # Extract error messages
@@ -87,14 +97,15 @@ class BasePyModel(BaseModel):
                 valid_data = {}
 
                 # Process each field individually
-                for field_name, field_info in cls.model_fields.items():
+                for field_name, field_info in cls.__fields__.items():  # Use __fields__ for v1
                     if field_name in obj:
                         try:
                             # Try to validate just this field
                             field_value = obj[field_name]
                             # Create a temp model with just this field to validate it
                             temp_data = {field_name: field_value}
-                            temp = cls.model_validate(temp_data, strict=False, from_attributes=True)
+                            # Use Pydantic v1 parse_obj instead of model_validate
+                            temp = cls.parse_obj(temp_data)
                             # If successful, add to valid_data
                             valid_data[field_name] = getattr(temp, field_name)
                         except Exception:
@@ -104,7 +115,7 @@ class BasePyModel(BaseModel):
                 # Create the final model with only valid fields
                 if valid_data:
                     try:
-                        result = cls.model_validate(valid_data, strict=False)
+                        result = cls.parse_obj(valid_data)
                     except Exception as final_e:
                         errors.append(f"Final validation failed: {str(final_e)}")
             except Exception as e2:

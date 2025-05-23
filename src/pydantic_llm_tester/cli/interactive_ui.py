@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Import core logic functions that the UI will call
 from pydantic_llm_tester.cli.core import config_logic, test_runner_logic, recommend_logic
-from pydantic_llm_tester.cli.core import provider_logic, llm_model_logic as model_logic
-# Removed import of model_config_logic
+from pydantic_llm_tester.cli.core import provider_logic
+# Removed imports of model_config_logic and llm_model_logic
 # Import core scaffolding logic
 from pydantic_llm_tester.cli.core.scaffold_logic import scaffold_provider_files, scaffold_model_files
 # Import ConfigManager directly
