@@ -25,7 +25,7 @@ from .utils.prompt_optimizer import PromptOptimizer
 from .utils.report_generator import ReportGenerator, DateEncoder
 from .utils.provider_manager import ProviderManager
 from .utils.config_manager import ConfigManager
-from .utils.cost_manager import cost_tracker, UsageData
+from .utils.data_structures import UsageData
 
 
 class LLMTester:
@@ -59,13 +59,9 @@ class LLMTester:
         # Test case directories
         self.cases_dir = os.path.join(self.test_dir, "cases")
 
-        # Initialize cost tracking
-        self.logger.info("LLMTester.__init__: Initializing cost_tracker.")
-        self.run_id = cost_tracker.start_new_run()
-        self.logger.info(f"LLMTester.__init__: cost_tracker run_id: {self.run_id}")
         self.logger.info("LLMTester.__init__: Initializing ConfigManager.")
         self.config_manager = ConfigManager() # Initialize ConfigManager
-        self.logger.info(f"LLMTester.__init__: ConfigManager initialized. Started new test run with ID: {self.run_id}")
+        self.logger.info("LLMTester.__init__: ConfigManager initialized.")
 
         self.logger.debug("LLMTester.__init__: Calling _verify_directories.")
         self._verify_directories()
@@ -160,31 +156,6 @@ class LLMTester:
 
                 # Get test cases from model class
                 module_test_cases = self._get_test_cases_from_model(model_class, module_name, model_path)
-                if module_test_cases:
-                    test_cases.extend(module_test_cases)
-
-
-        # Process modules explicitly defined with a 'path' in the config
-        for module_name, config in configured_py_models.items():
-            if 'path' in config and module_name not in processed_modules:
-                module_path = config['path']
-                full_module_path = os.path.abspath(module_path) # Resolve relative paths
-
-                if not os.path.exists(full_module_path):
-                    self.logger.warning(f"Configured path for module '{module_name}' does not exist: {full_module_path}. Skipping.")
-                    continue
-
-                processed_modules.add(module_name)
-                self.logger.info(f"Processing module from configured path: {module_name} at {full_module_path}")
-
-                # Find model class and get test cases
-                model_class, model_file_path = self._find_model_class_from_path(full_module_path, module_name)
-                if not model_class:
-                    self.logger.warning(f"Could not find model class for module {module_name} at {full_module_path}")
-                    continue
-
-                # Get test cases from model class
-                module_test_cases = self._get_test_cases_from_model(model_class, module_name, model_file_path)
                 if module_test_cases:
                     test_cases.extend(module_test_cases)
 
@@ -571,17 +542,8 @@ class LLMTester:
                     # Validate response against model
                     validation_result = self._validate_response(response, model_class, expected_data)
 
-                    # Record cost data
-                    if usage_data:
-                        cost_tracker.add_test_result(
-                            test_id=test_id,
-                            provider=provider_name,
-                            model=usage_data.model, # Use the model name from usage data (actual model used)
-                            usage_data=usage_data,
-                            run_id=self.run_id
-                        )
-                        if progress_callback:
-                            progress_callback(f"    {model_to_use} tokens: {usage_data.prompt_tokens} prompt, {usage_data.completion_tokens} completion, cost: ${usage_data.total_cost:.6f}")
+                    if progress_callback:
+                        progress_callback(f"    {model_to_use} tokens: {usage_data.prompt_tokens} prompt, {usage_data.completion_tokens} completion")
 
                     if progress_callback:
                         accuracy = validation_result.get('accuracy', 0.0) if validation_result.get('success', False) else 0.0
@@ -1196,26 +1158,6 @@ class LLMTester:
                       results[test_id][provider_name][model_name]['model_class'] = test_case['model_class']
 
 
-        # Generate cost summary after all tests are complete
-        self.logger.info("run_tests: All test cases processed. Generating cost summary.")
-        cost_summary = cost_tracker.get_run_summary(self.run_id)
-
-        if cost_summary:
-            self.logger.info("run_tests: Cost summary available. Preparing report text.")
-            cost_report_text = "\n\n## Cost Summary\n"
-            cost_report_text += f"Total cost: ${cost_summary.get('total_cost', 0):.6f}\n"
-            cost_report_text += f"Total tokens: {cost_summary.get('total_tokens', 0):,}\n"
-            cost_report_text += f"Prompt tokens: {cost_summary.get('prompt_tokens', 0):,}\n"
-            cost_report_text += f"Completion tokens: {cost_summary.get('completion_tokens', 0):,}\n\n"
-
-            # Add model-specific costs
-            cost_report_text += "### Model Costs\n"
-            for model_name, model_data in cost_summary.get('py_models', {}).items():
-                cost_report_text += f"- {model_name}: ${model_data.get('total_cost', 0):.6f} "
-                cost_report_text += f"({model_data.get('total_tokens', 0):,} tokens, {model_data.get('test_count', 0)} tests)\n"
-
-            main_report += cost_report_text
-        
         reports['main'] = main_report
 
         # Generate module-specific reports
@@ -1282,90 +1224,3 @@ class LLMTester:
 
         self.all_test_results = results # Store the results in an instance attribute
         return results
-
-    def save_cost_report(self, output_dir: Optional[str] = None) -> Dict[str, str]:
-        """
-        Save the cost report to a file
-
-        Args:
-            output_dir: Optional directory to save the report (defaults to test_results)
-            
-        Returns:
-            Dictionary of paths to the saved report files
-        """
-        output_dir = output_dir or self.config_manager.get_test_setting("output_dir", "test_results")
-
-        # Create the output directory if it doesn't exist
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Save the main cost report
-        report_paths = {}
-        main_report_path = cost_tracker.save_cost_report(output_dir, self.run_id)
-        if main_report_path:
-            self.logger.info(f"Cost report saved to {main_report_path}")
-            report_paths['main'] = main_report_path
-        else:
-            self.logger.warning("Failed to save main cost report")
-
-        # Get cost data from cost tracker
-        cost_data = cost_tracker.get_run_data(self.run_id)
-        if not cost_data:
-            self.logger.warning("No cost data available to save module-specific reports")
-            return report_paths
-
-        # For each module that had tests run, save a module-specific cost report
-        modules_processed = set()
-        # Iterate through the results to get module names, model classes, and module_dirs
-        # This assumes save_cost_report is called after run_tests and results are available.
-        # A more robust approach would be to pass the test_cases list to save_cost_report.
-        # For now, we'll iterate through the results structure to find the necessary info.
-        for test_id, test_results in self.all_test_results.items(): # Use self.all_test_results which is populated in run_tests
-            module_name = test_id.split('/')[0]
-
-            # Skip if already processed or is the test module
-            if module_name in modules_processed or module_name == 'test':
-                continue
-
-            modules_processed.add(module_name)
-
-            # Find the model_class and module_dir for this module from the results
-            model_class = None
-            module_dir = None
-            # Iterate through the results for this test_id to find model_class and module_dir
-            # (assuming they are stored in the results structure, which I added in the previous step)
-            for provider_results in test_results.values():
-                 for model_result in provider_results.values():
-                      model_class = model_result.get('model_class')
-                      # The module_dir is stored in the original test_case, not the results.
-                      # I need to find the original test_case for this module.
-                      # This reinforces the idea that passing test_cases to save_cost_report is better.
-                      # For now, let's find the module_dir from the discovered test cases.
-                      # This is still inefficient but avoids re-discovery *within* this loop.
-                      found_tc_for_module = next((tc for tc in self.discover_test_cases() if tc['module'] == module_name), None)
-                      if found_tc_for_module:
-                           module_dir = found_tc_for_module.get('module_dir')
-                      break # Found model_class and attempted to find module_dir, can break inner loops
-                 if model_class and module_dir:
-                      break # Found both, break outer loop
-
-
-            if not model_class:
-                self.logger.warning(f"Could not retrieve model class for module {module_name} during cost report saving.")
-                continue
-
-            if not module_dir:
-                 self.logger.warning(f"Could not retrieve module_dir for module {module_name} during cost report saving.")
-                 continue
-
-
-            # Save module-specific report if the model class has the method
-            if hasattr(model_class, 'save_module_cost_report'):
-                try:
-                    self.logger.info(f"save_cost_report: Attempting to save module cost report for {module_name} using model_class {model_class} and module_dir {module_dir}")
-                    module_report_path = model_class.save_module_cost_report(cost_data, self.run_id, module_dir) # Pass module_dir
-                    self.logger.info(f"Module cost report for {module_name} saved to {module_report_path}")
-                    report_paths[module_name] = module_report_path
-                except Exception as e:
-                    self.logger.error(f"Error saving module cost report for {module_name}: {str(e)}")
-
-        return report_paths
