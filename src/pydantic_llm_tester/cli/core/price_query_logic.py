@@ -21,7 +21,8 @@ def get_all_model_prices(
     provider_filter: Optional[List[str]] = None,
     model_pattern: Optional[str] = None,
     max_cost: Optional[float] = None,
-    min_context_length: Optional[int] = None
+    min_context_length: Optional[int] = None,
+    show_all_models: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Get pricing information for all models from the LLMRegistry, with optional filtering.
@@ -31,13 +32,19 @@ def get_all_model_prices(
         model_pattern: Optional regex pattern to filter model names
         max_cost: Optional maximum cost per 1M tokens (input + output combined)
         min_context_length: Optional minimum context length
+        show_all_models: If True, show all available models; if False, show only configured models
 
     Returns:
         List of dictionaries containing model pricing information
     """
     # Use the global function we added to get all model details
-    all_models_from_registry = get_all_model_details()
-    logger.debug(f"Retrieved {len(all_models_from_registry)} models from registry")
+    # Only show configured models by default
+    all_models_from_registry = get_all_model_details(only_configured=not show_all_models)
+    
+    if show_all_models:
+        logger.debug(f"Retrieved all {len(all_models_from_registry)} models from registry")
+    else:
+        logger.debug(f"Retrieved {len(all_models_from_registry)} configured models from registry")
 
     # Apply provider filter if specified
     if provider_filter:

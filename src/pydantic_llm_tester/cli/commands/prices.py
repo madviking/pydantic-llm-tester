@@ -51,6 +51,10 @@ def list_prices(
         True, "--asc/--desc",
         help="Sort in ascending (--asc) or descending (--desc) order."
     ),
+    show_all: bool = typer.Option(
+        False, "--all",
+        help="Show all available models, not just configured ones."
+    ),
 ):
     """
     List and filter model prices from all enabled providers in the model registry.
@@ -65,7 +69,8 @@ def list_prices(
         provider_filter=providers,
         model_pattern=model_pattern,
         max_cost=max_cost,
-        min_context_length=min_context
+        min_context_length=min_context,
+        show_all_models=show_all
     )
     
     # Display results

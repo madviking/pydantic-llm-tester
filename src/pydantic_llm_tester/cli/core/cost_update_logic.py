@@ -27,7 +27,8 @@ console = Console()
 
 def update_model_costs(provider_filter: Optional[List[str]] = None, 
                   update_provider_configs: bool = True,
-                  force_refresh: bool = False) -> Dict[str, Any]:
+                  force_refresh: bool = False,
+                  show_all_models: bool = False) -> Dict[str, Any]:
     """
     Update model costs and token information from the model registry.
 
@@ -38,6 +39,7 @@ def update_model_costs(provider_filter: Optional[List[str]] = None,
         provider_filter: Optional list of provider names to filter by.
         update_provider_configs: Whether to update provider config files.
         force_refresh: Whether to force refresh of registry cache.
+        show_all_models: If True, show all available models; if False, show only configured models.
 
     Returns:
         Dictionary containing update summary.
@@ -73,8 +75,12 @@ def update_model_costs(provider_filter: Optional[List[str]] = None,
         # Now all model data should be in the registry
         # Get all models from the registry
         from pydantic_llm_tester.llms.llm_registry import get_all_model_details
-        all_models = get_all_model_details(use_cache=not force_refresh)
-        logger.info(f"Retrieved {len(all_models)} models from registry")
+        all_models = get_all_model_details(use_cache=not force_refresh, only_configured=not show_all_models)
+        
+        if show_all_models:
+            logger.info(f"Retrieved all {len(all_models)} models from registry")
+        else:
+            logger.info(f"Retrieved {len(all_models)} configured models from registry")
         
         # Filter models if provider_filter is specified
         if provider_filter:

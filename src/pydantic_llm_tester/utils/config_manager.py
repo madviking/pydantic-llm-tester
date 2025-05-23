@@ -186,6 +186,55 @@ class ConfigManager:
             self.config["test_settings"] = {}
         self.config["test_settings"][setting_name] = value
         self.save_config()
+        
+    def get_configured_models(self) -> List[str]:
+        """
+        Get a list of all model identifiers configured in pyllm_config.json.
+        
+        This includes:
+        1. Provider default models from the providers section
+        2. Models specified in py_models.*.llm_models lists
+        3. Bridge default/secondary models
+        
+        Returns:
+            List of model identifiers in the format "provider:model"
+        """
+        configured_models = set()
+        
+        # Get provider default models
+        for provider_name, provider_config in self.config.get("providers", {}).items():
+            if provider_config.get("enabled", False):
+                default_model = provider_config.get("default_model")
+                if default_model:
+                    # Add provider prefix if not already present
+                    if ":" not in default_model:
+                        model_id = f"{provider_name}:{default_model}"
+                    else:
+                        model_id = default_model
+                    configured_models.add(model_id)
+        
+        # Get bridge models
+        bridge_config = self.config.get("bridge", {})
+        
+        default_provider = bridge_config.get("default_provider")
+        default_model = bridge_config.get("default_model")
+        if default_provider and default_model:
+            configured_models.add(f"{default_provider}:{default_model}")
+            
+        secondary_provider = bridge_config.get("secondary_provider")
+        secondary_model = bridge_config.get("secondary_model")
+        if secondary_provider and secondary_model:
+            configured_models.add(f"{secondary_provider}:{secondary_model}")
+        
+        # Get models from py_models section
+        for py_model_name, py_model_config in self.config.get("py_models", {}).items():
+            if py_model_config.get("enabled", True):
+                model_list = py_model_config.get("llm_models", [])
+                for model_id in model_list:
+                    configured_models.add(model_id)
+        
+        logger.debug(f"Found {len(configured_models)} configured models: {', '.join(configured_models)}")
+        return list(configured_models)
 
     def get_py_models_path(self) -> str:
         """Get the configured path for py_models"""

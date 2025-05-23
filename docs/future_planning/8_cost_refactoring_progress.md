@@ -61,11 +61,21 @@ Implementation progress:
 - Added tests for CostTracker's handling of provider:model format
 
 ### Part 5: Add support for filtering by configured models
-- [ ] Add method to ConfigManager to identify configured models
-- [ ] Update LLMRegistry to filter models by configuration status
-- [ ] Modify CLI commands to show only configured models by default
-- [ ] Add --all flag to optionally show all available models
-- [ ] Write tests for the configured model filtering
+- [x] Add method to ConfigManager to identify configured models
+- [x] Update LLMRegistry to filter models by configuration status
+- [x] Modify CLI commands to show only configured models by default
+- [x] Add --all flag to optionally show all available models
+- [x] Write tests for the configured model filtering
+
+Implementation progress:
+- Added `get_configured_models()` method to ConfigManager that collects model IDs from various parts of pyllm_config.json
+- Updated `get_all_model_details()` in LLMRegistry to accept a `only_configured` parameter
+- Modified price_query_logic.py to use the new filtering capability
+- Added the --all flag to both costs and prices commands
+- Updated implementations to show only configured models by default
+- Created tests for the configured model filtering functionality
+- Added tests for ConfigManager's get_configured_models method
+- Added tests for LLMRegistry's model filtering capability
 
 ## Summary of Changes
 
@@ -81,28 +91,27 @@ The result is a system that now:
 - Handles the new provider:model format correctly
 - Still maintains backward compatibility through fallback mechanisms
 - Has appropriate error handling for missing models or pricing information
+- Prioritizes showing and using configured models by default
+- Provides an optional --all flag to access all available models when needed
 
 ### Next Steps
 
-1. **Optimization for Configured Models**:
-   - Modify price listing commands to show only models that are actually configured in pyllm_config.json by default
-   - Add a `--all` flag to optionally display all available models (especially important for OpenRouter which has many models)
-   - Update the LLMRegistry to efficiently identify which models are configured for use
-   - Ensure the `llm-tester run` command only uses configured models for efficiency
+1. **Testing and Verification**:
+   - Test the complete implementation in a live environment
+   - Verify that only configured models are shown by default with price and cost commands
+   - Test the --all flag functionality to ensure all models can be shown when needed
+   - Confirm that costs are calculated correctly for all model formats
+   - Test integration with the overall test reporting flow
+   - Verify that performance improves by only loading configured models
 
-2. **Testing**: The changes should be tested in a live environment to ensure everything works as expected. Pay particular attention to:
-   - Cost calculation for models with different providers
-   - The CLI commands for listing prices and updating costs
-   - Integration with the overall test reporting flow
-   - Verify that only configured models are used by default
-
-3. **Documentation**: Update the documentation to reflect the new approach:
+2. **Documentation**: Update the documentation to reflect the new approach:
    - Remove references to models_pricing.json
    - Explain that model information comes from the central registry
    - Describe how the provider:model format works
    - Document the new --all flag and the focus on configured models
+   - Update usage examples to show the new filtering capability
 
-4. **Cleanup**: Once the changes are verified to be working correctly:
+3. **Cleanup**: Once the changes are verified to be working correctly:
    - Remove the models_pricing.json file
    - Remove any remaining references to the file in the codebase
    - Clean up any unused code or comments related to the old approach

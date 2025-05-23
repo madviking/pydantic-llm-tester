@@ -29,6 +29,10 @@ def update_costs(
         False, "--force", "-f",
         help="Force refresh of model registry cache."
     ),
+    show_all: bool = typer.Option(
+        False, "--all",
+        help="Show all available models, not just configured ones."
+    ),
 ):
     """
     Update model costs and token information from the model registry.
@@ -52,7 +56,8 @@ def update_costs(
     update_result = cost_update_logic.update_model_costs(
         provider_filter=providers,
         update_provider_configs=update_configs,
-        force_refresh=force
+        force_refresh=force,
+        show_all_models=show_all
     )
     
     # Display results

@@ -226,16 +226,18 @@ class LLMRegistry:
 
         return provider_models[model_name]
 
-    def get_all_model_details(self, use_cache: bool = True, expiry_seconds: int = DEFAULT_CACHE_EXPIRY_SECONDS) -> List[ModelConfig]:
+    def get_all_model_details(self, use_cache: bool = True, expiry_seconds: int = DEFAULT_CACHE_EXPIRY_SECONDS, 
+                           only_configured: bool = False) -> List[ModelConfig]:
         """
         Retrieves details for all models from all providers.
         
         Args:
             use_cache: Whether to use the cache if fresh.
             expiry_seconds: The cache expiry time in seconds if use_cache is True.
+            only_configured: If True, return only models configured in pyllm_config.json.
             
         Returns:
-            A list of ModelConfig objects for all enabled models.
+            A list of ModelConfig objects for enabled models.
         """
         all_models = []
         
@@ -243,22 +245,44 @@ class LLMRegistry:
         provider_names = list(self._model_data.keys())
         logger.debug(f"Found {len(provider_names)} providers in registry: {', '.join(provider_names)}")
         
+        # Get configured model IDs if needed
+        configured_model_ids = None
+        if only_configured:
+            from pydantic_llm_tester.utils.config_manager import ConfigManager
+            config_manager = ConfigManager()
+            configured_model_ids = set(config_manager.get_configured_models())
+            logger.debug(f"Filtering to {len(configured_model_ids)} configured models: {', '.join(configured_model_ids)}")
+        
         # Iterate through all providers
         for provider_name in provider_names:
             try:
                 # Get models for this provider
                 provider_models = self.get_provider_models(provider_name, use_cache=use_cache, expiry_seconds=expiry_seconds)
                 
-                # Add enabled models to the result list
-                for model_config in provider_models.values():
-                    if model_config.enabled:
-                        all_models.append(model_config)
+                # Add enabled models to the result list (filtering by configuration if needed)
+                models_added = 0
+                for model_name, model_config in provider_models.items():
+                    # Skip disabled models
+                    if not model_config.enabled:
+                        continue
+                    
+                    # Apply configuration filter if needed
+                    if only_configured:
+                        # Check if this model is in the configured list
+                        model_id = f"{provider_name}:{model_name}"
+                        if model_id not in configured_model_ids:
+                            continue
+                    
+                    # Add the model to the result list
+                    all_models.append(model_config)
+                    models_added += 1
                         
-                logger.debug(f"Added {sum(1 for m in provider_models.values() if m.enabled)} enabled models from provider {provider_name}")
+                logger.debug(f"Added {models_added} models from provider {provider_name}")
             except Exception as e:
                 logger.warning(f"Error retrieving models for provider {provider_name}: {str(e)}")
                 
-        logger.info(f"Retrieved {len(all_models)} enabled models from all providers")
+        filter_desc = " configured" if only_configured else " enabled"
+        logger.info(f"Retrieved {len(all_models)}{filter_desc} models from all providers")
         return all_models
 
     def get_provider_info(self, provider_name: str) -> Dict[str, Any]:
@@ -338,5 +362,7 @@ def get_provider_models(provider_name: str, use_cache: bool = True, expiry_secon
 def get_model_details(provider_name: str, model_name: str, use_cache: bool = True, expiry_seconds: int = LLMRegistry.DEFAULT_CACHE_EXPIRY_SECONDS) -> ModelConfig:
     return LLMRegistry().get_model_details(provider_name, model_name, use_cache=use_cache, expiry_seconds=expiry_seconds)
     
-def get_all_model_details(use_cache: bool = True, expiry_seconds: int = LLMRegistry.DEFAULT_CACHE_EXPIRY_SECONDS) -> List[ModelConfig]:
-    return LLMRegistry().get_all_model_details(use_cache=use_cache, expiry_seconds=expiry_seconds)
+def get_all_model_details(use_cache: bool = True, expiry_seconds: int = LLMRegistry.DEFAULT_CACHE_EXPIRY_SECONDS, 
+                     only_configured: bool = False) -> List[ModelConfig]:
+    return LLMRegistry().get_all_model_details(use_cache=use_cache, expiry_seconds=expiry_seconds, 
+                                            only_configured=only_configured)
